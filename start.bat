@@ -1,0 +1,1 @@
+C:\Users\Utilisateur\Desktop\Server\Server\FXServer.exe +exec server.cfg

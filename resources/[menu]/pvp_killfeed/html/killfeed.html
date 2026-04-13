@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
+  <link rel="stylesheet" href="killfeed.css">
+</head>
+<body>
+
+  <!-- ── Kill Leader & Crew Leader (coin supérieur gauche) ── -->
+  <div id="leaders" class="hidden">
+    <div id="kill-leader-box" class="leader-box hidden">
+      <div class="leader-info">
+        <div class="leader-label">KILL LEADER</div>
+        <div class="leader-name" id="kl-name">—</div>
+        <div class="leader-count" id="kl-kills">0 KILLS</div>
+      </div>
+    </div>
+    <div id="crew-leader-box" class="leader-box crew hidden">
+      <div class="leader-info">
+        <div class="leader-label">CREW LEADER</div>
+        <div class="leader-name" id="cl-name">—</div>
+        <div class="leader-count" id="cl-kills">0 KILLS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Killfeed (coin supérieur droit) ── -->
+  <div id="killfeed"></div>
+
+  <script src="killfeed.js"></script>
+</body>
+</html>

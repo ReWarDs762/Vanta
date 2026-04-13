@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shop.css"/>
+</head>
+<body>
+
+<div id="shop-overlay">
+
+  <!-- ══ LEFT : catalogue ══ -->
+  <div id="shop-left">
+
+    <div id="vendor-header">
+      <h2 id="shop-vendor-title">VENDEUR</h2>
+      <span id="shop-vendor-balance">Solde : $0</span>
+    </div>
+
+    <!-- Tabs Acheter / Vendre -->
+    <div id="mode-tabs">
+      <button class="mode-tab active" data-mode="buy">ACHETER</button>
+      <button class="mode-tab"        data-mode="sell">VENDRE</button>
+    </div>
+
+    <!-- Barre de recherche + filtre -->
+    <div id="shop-toolbar">
+      <div id="search-wrap">
+        <input type="text" id="shop-search" placeholder="Rechercher..."/>
+        <span class="srch-icon">&#9906;</span>
+      </div>
+      <div id="filter-wrap">
+        <select id="shop-filter">
+          <option value="">Tous</option>
+        </select>
+        <span class="filter-arr">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Grille acheter -->
+    <div id="buy-grid"  class="items-grid"></div>
+    <!-- Grille vendre -->
+    <div id="sell-grid" class="items-grid" style="display:none"></div>
+
+  </div><!-- /shop-left -->
+
+  <!-- ══ RIGHT : panier / vente ══ -->
+  <div id="shop-right">
+
+    <!-- ─ Panneau PANIER (buy mode) ─ -->
+    <div id="buy-panel">
+      <div id="cart-header">
+        <h3>PANIER</h3>
+        <p>Contenu du panier</p>
+      </div>
+
+      <div id="cart-content">
+        <div id="cart-empty">VOTRE PANIER EST VIDE.</div>
+        <div id="cart-items-list"></div>
+      </div>
+
+      <div id="buy-footer">
+        <div class="total-row">
+          <span>Montant du panier :</span>
+          <span id="cart-total">$0</span>
+        </div>
+        <button id="btn-buy-bag"   class="btn-primary"   disabled>Acheter</button>
+        <button id="btn-buy-stash" class="btn-primary"   disabled>Acheter et envoyer au coffre</button>
+        <button id="btn-buy-back"  class="btn-secondary" onclick="closeShop()">Retour</button>
+      </div>
+    </div><!-- /buy-panel -->
+
+    <!-- ─ Panneau VENTE (sell mode) ─ -->
+    <div id="sell-panel" style="display:none">
+      <div id="sell-select-area">
+        <div id="sell-hint">Sélectionnez un article<br>pour voir le prix de vente</div>
+        <div id="sell-item-detail" style="display:none">
+          <div id="sell-img-wrap"></div>
+          <div id="sell-item-name">—</div>
+          <div id="sell-price-label">Prix de vente</div>
+          <div id="sell-item-price">$0</div>
+          <div id="sell-ratio-note">50% du prix d'achat</div>
+        </div>
+      </div>
+
+      <div id="sell-footer">
+        <div class="total-row">
+          <span>Prix de vente :</span>
+          <span id="sell-total">$0</span>
+        </div>
+        <button id="btn-sell-confirm" class="btn-green" disabled>Vendre</button>
+        <div id="sell-all-separator"></div>
+        <div class="total-row" id="sell-all-row">
+          <span>Tout vendre :</span>
+          <span id="sell-all-total">$0</span>
+        </div>
+        <button id="btn-sell-all" class="btn-sell-all" disabled>Tout vendre</button>
+        <button id="btn-sell-back" class="btn-secondary" onclick="closeShop()">Retour</button>
+      </div>
+    </div><!-- /sell-panel -->
+
+  </div><!-- /shop-right -->
+
+</div><!-- /shop-overlay -->
+
+<div id="shop-toast"></div>
+
+<!-- ══ WAYPOINT TELEPORT PROMPT ══ -->
+<div id="wp-tp-prompt">
+  <div class="wp-tp-inner">
+    <div class="wp-tp-key">E</div>
+    <div class="wp-tp-text">
+      <span class="wp-tp-action">TÉLÉPORTATION</span>
+      <span class="wp-tp-dest" id="wp-tp-dest">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Icônes NPC flottantes -->
+<div id="npc-icons"></div>
+
+<!-- ══ TELEPORT MAP ══ -->
+<div id="teleport-overlay" class="hidden">
+    <div class="teleport-container">
+        <div class="teleport-header">
+            <div class="header-icon">⚡</div>
+            <h1>TÉLÉPORTATION</h1>
+            <div class="header-sub">Sélectionnez une destination</div>
+        </div>
+        <div class="map-wrapper">
+            <div class="map-area" id="mapArea">
+                <div class="map-inner" id="mapInner">
+                    <div class="map-grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="info-panel" id="infoPanel">
+            <div class="info-empty">Cliquez sur un avant-poste pour le sélectionner</div>
+        </div>
+        <div class="teleport-footer">
+            <button class="btn-teleport" id="btnTeleport" disabled>TÉLÉPORTER</button>
+            <button class="btn-close" id="btnClose">FERMER</button>
+        </div>
+    </div>
+</div>
+
+<script src="shop.js"></script>
+<script src="teleport.js"></script>
+
+<!-- ══ WEAPON CUSTOM PANEL ══════════════════════════════════════ -->
+<link rel="stylesheet" href="weapon_custom.css">
+
+<div id="wc-overlay">
+
+  <!-- Gauche : transparent — l'arme 3D est visible à travers -->
+  <div id="wc-left">
+    <div id="wc-brand">
+      <svg id="wc-brand-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 20h4.5L12 9.5 17.5 20H22L12 2z"/>
+        <path d="M12 11l-3 7h6l-3-7z" opacity="0.45"/>
+      </svg>
+      <span id="wc-brand-word">VANTA</span>
+    </div>
+  </div>
+
+  <!-- Droite : panneau VANTA -->
+  <div id="wc-right">
+
+    <!-- Header -->
+    <div id="wc-header">
+      <div id="wc-header-top">
+        <div>
+          <div id="wc-section-label">Armurerie — Personnalisation</div>
+          <div id="wc-weapon-name">—</div>
+        </div>
+        <button id="wc-close-btn" onclick="WC.close()">&#x2715;</button>
+      </div>
+      <div id="wc-tabs">
+        <button class="wc-tab active" data-tab="components" onclick="WC.setTab('components')">Composants</button>
+        <button class="wc-tab"        data-tab="tint"       onclick="WC.setTab('tint')">Teinte</button>
+      </div>
+    </div>
+
+    <!-- Contenu (onglets) -->
+    <div id="wc-content">
+      <div id="wc-pane-components" class="wc-pane active">
+        <div id="wc-comp-grid"></div>
+      </div>
+      <div id="wc-pane-tint" class="wc-pane">
+        <div id="wc-tint-grid"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="wc-footer">
+      <button id="wc-save-btn" onclick="WC.save()">SAUVEGARDER</button>
+      <div id="wc-status"></div>
+    </div>
+
+  </div><!-- /wc-right -->
+</div><!-- /wc-overlay -->
+
+<script src="weapon_custom.js"></script>
+</body>
+</html>

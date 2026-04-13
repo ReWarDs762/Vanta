@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Téléportation</title>
+    <link rel="stylesheet" href="teleport.css">
+</head>
+<body>
+    <div id="teleport-overlay" class="hidden">
+        <div class="teleport-container">
+            <!-- Header -->
+            <div class="teleport-header">
+                <div class="header-icon">⚡</div>
+                <h1>TÉLÉPORTATION</h1>
+                <div class="header-sub">Sélectionnez une destination</div>
+            </div>
+
+            <!-- Map area -->
+            <div class="map-wrapper">
+                <div class="map-area" id="mapArea">
+                    <!-- Map background with grid -->
+                    <div class="map-grid"></div>
+
+                    <!-- Zone labels -->
+                    <div class="zone-label" style="left: 38%; top: 72%;">LOS SANTOS</div>
+                    <div class="zone-label" style="left: 55%; top: 48%;">SANDY SHORES</div>
+                    <div class="zone-label" style="left: 20%; top: 25%;">PALETO BAY</div>
+                    <div class="zone-label zone-small" style="left: 30%; top: 55%;">VINEWOOD</div>
+                    <div class="zone-label zone-small" style="left: 70%; top: 40%;">GRAPESEED</div>
+
+                    <!-- Outpost pins will be injected here by JS -->
+                </div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="info-panel" id="infoPanel">
+                <div class="info-empty">Cliquez sur un avant-poste</div>
+            </div>
+
+            <!-- Bottom buttons -->
+            <div class="teleport-footer">
+                <button class="btn-teleport" id="btnTeleport" disabled>TÉLÉPORTER</button>
+                <button class="btn-close" id="btnClose">FERMER</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="teleport.js"></script>
+</body>
+</html>

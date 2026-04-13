@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANTA — Connexion</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Fond -->
+    <div class="bg"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-line"></div>
+
+    <!-- Coins décoratifs -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <!-- Centre -->
+    <div class="wrapper">
+
+        <!-- Logo -->
+        <div class="logo-zone">
+            <div class="logo-mark">
+                <!-- Icône skull minimaliste -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C7.03 2 3 6.03 3 11c0 3.1 1.54 5.84 3.9 7.53V21h2v-1h2v1h2v-1h2v1h2v-2.47C19.46 16.84 21 14.1 21 11c0-4.97-4.03-9-9-9zm-3 13v-2H7l2-4h1v4h2v-4h1l2 4h-2v2H9zm3-6a1 1 0 110-2 1 1 0 010 2z"/>
+                </svg>
+            </div>
+            <div class="logo-name">VANTA</div>
+            <div class="logo-sub">Zombie Survival — PVP</div>
+        </div>
+
+        <!-- Progression -->
+        <div class="progress-zone">
+            <div class="progress-header">
+                <span class="progress-label">Chargement</span>
+                <span class="progress-pct" id="pct">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="fill"></div>
+            </div>
+            <div class="progress-step" id="step">Initialisation...</div>
+        </div>
+
+    </div>
+
+    <!-- Bas de page -->
+    <div class="h-line"></div>
+    <div class="bottom-zone">
+        <div class="bottom-left">
+            <span class="bottom-tag">Serveur</span>
+            <span class="bottom-val">VANTA — FR</span>
+        </div>
+        <div class="bottom-right">
+            <span class="bottom-tag">Saison</span>
+            <span class="bottom-val">Saison 1</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

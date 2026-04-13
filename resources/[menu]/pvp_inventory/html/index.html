@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="overlay">
+
+  <!-- ══ TOPBAR ══ -->
+  <header id="topbar">
+    <nav id="tabs">
+      <button class="tab active" data-tab="inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>INVENTAIRE</button>
+      <button class="tab" data-tab="market"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>MARCHÉ</button>
+      <button class="tab" data-tab="crew"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>CREW</button>
+      <button class="tab" data-tab="leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M9 8h6M12 8V3m-4 18v-7h8v7"/></svg>CLASSEMENT</button>
+      <button class="tab" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>PROFIL</button>
+      <button class="tab" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>PARAMÈTRES</button>
+    </nav>
+    <div id="player-bar">
+      <span id="tb-name">—</span>
+      <div class="money-widget">
+        <span class="money-widget-label">BANK</span>
+        <span class="money-widget-val"><svg viewBox="0 0 10 14" width="8" height="11" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-right:3px;opacity:0.7"><path d="M5 1v12M2 4.5C2 3 3.3 2 5 2s3 1 3 2.5S6.7 7 5 7s-3 1.1-3 2.5S3.3 12 5 12s3-1 3-2.5"/></svg><b id="tb-bank">0</b></span>
+      </div>
+      <button id="close-btn" onclick="closeUI()">✕</button>
+    </div>
+  </header>
+
+  <!-- ══ CORPS ══ -->
+  <main id="left-panel">
+
+    <!-- ─ INVENTAIRE ─ -->
+    <section id="view-inventory" class="view active">
+      <div id="inv-split">
+
+        <!-- MON SAC -->
+        <div id="inv-left">
+          <div class="sec-header">
+            <span class="sec-title">MON SAC</span>
+            <span id="weight-display" class="weight">0.0 / 50.0 kg</span>
+          </div>
+          <div id="weight-bar-wrap"><div id="weight-bar"></div></div>
+          <div id="grid-main" class="item-grid"></div>
+        </div>
+
+        <!-- CONTENEUR PROTÉGÉ -->
+        <div id="inv-right">
+          <div class="sec-header">
+            <span class="sec-title">CONTENEUR PROTÉGÉ</span>
+            <span id="stash-weight" class="weight">0.0 / 20.0 kg</span>
+          </div>
+          <div id="stash-bar-wrap" class="weight-bar-wrap-s"><div id="stash-bar"></div></div>
+          <div id="grid-stash" class="item-grid"></div>
+        </div>
+
+      </div>
+
+      <!-- HOTBAR -->
+      <div id="inv-hotbar">
+        <div class="sec-header">
+          <span class="sec-title">HOTBAR</span>
+          <div id="drop-remove" onclick="clickRemove()">RETIRER</div>
+        </div>
+        <div id="hbar">
+          <div class="hs-wrap"><div class="hs" id="hs0" onclick="clickSlot(0)"></div><span class="hs-label">SLOT 1</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs1" onclick="clickSlot(1)"></div><span class="hs-label">SLOT 2</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs2" onclick="clickSlot(2)"></div><span class="hs-label">SLOT 3</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs3" onclick="clickSlot(3)"></div><span class="hs-label">SLOT 4</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs4" onclick="clickSlot(4)"></div><span class="hs-label">SLOT 5</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs5" onclick="clickSlot(5)"></div><span class="hs-label">SLOT 6</span></div>
+          <div class="hs-wrap"><div class="hs" id="hs6" onclick="clickSlot(6)"></div><span class="hs-label">SLOT 7</span></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─ MARCHÉ ─ -->
+    <section id="view-market" class="view">
+      <div class="market-notice" id="market-zone-warn" style="display:none">
+        ⚠ Achats et ventes uniquement en zone safe
+      </div>
+      <div id="market-container" class="market-two-col">
+        <div id="market-left" class="market-col-left"></div>
+        <div id="market-right" class="market-col-right"></div>
+      </div>
+    </section>
+
+    <!-- ─ PROFIL ─ -->
+    <section id="view-profile" class="view">
+
+      <!-- Carte identité -->
+      <div id="pcard">
+        <div id="pavatar">👤</div>
+        <div class="pcard-info">
+          <div id="pname">—</div>
+          <div id="pid">—</div>
+          <div id="pbadge-row">
+            <span id="pactive-badge" class="badge-display"></span>
+            <span id="pprestige-label" class="prestige-label"></span>
+          </div>
+        </div>
+        <div class="pcard-money">
+          <span class="pcm-ico">💰</span>
+          <span class="pcm-val green" id="sb">0</span>
+        </div>
+      </div>
+
+      <!-- Barre XP -->
+      <div id="pxp-block">
+        <div class="pxp-header">
+          <span id="pxp-level-label">NIVEAU <span id="pxp-level">1</span></span>
+          <span id="pxp-val">0 / 100 XP</span>
+        </div>
+        <div class="pxp-bar-bg">
+          <div class="pxp-bar-fill" id="pxp-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Stats principales -->
+      <div id="pgrid">
+        <div class="pstat"><div class="psv" id="sk">0</div><div class="psl">KILLS</div></div>
+        <div class="pstat"><div class="psv" id="sd">0</div><div class="psl">MORTS</div></div>
+        <div class="pstat"><div class="psv" id="skd">0</div><div class="psl">K/D</div></div>
+        <div class="pstat"><div class="psv" id="sz">0</div><div class="psl">ZOMBIES</div></div>
+      </div>
+
+      <!-- Records -->
+      <div class="profile-section">
+        <div class="profile-section-title">RECORDS</div>
+        <div class="records-grid">
+          <div class="record-item">
+            <div class="record-val" id="pstreak">0</div>
+            <div class="record-lbl">KILL STREAK RECORD</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classement personnel -->
+      <div class="profile-section">
+        <div class="profile-section-title">MON CLASSEMENT</div>
+        <div class="rank-grid">
+          <div class="rank-item">
+            <div class="rank-lbl">KILLS</div>
+            <div class="rank-val" id="prank-kills">#—</div>
+          </div>
+          <div class="rank-item">
+            <div class="rank-lbl">ZOMBIES</div>
+            <div class="rank-val" id="prank-zombies">#—</div>
+          </div>
+          <div class="rank-item">
+            <div class="rank-lbl">K/D</div>
+            <div class="rank-val" id="prank-kd">#—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badges -->
+      <div class="profile-section">
+        <div class="profile-section-title">BADGES <span class="badge-hint">— clic pour activer</span></div>
+        <div id="pbadges-grid" class="badges-grid">
+          <div class="badges-empty">Aucun badge débloqué</div>
+        </div>
+      </div>
+
+      <!-- Stats redzone -->
+      <div class="rz-section">
+        <div class="rz-title">STATS REDZONE</div>
+        <div id="rz-stats" class="rz-grid">
+          <div class="rz-stat"><span class="rz-label">RZ Kills</span><span class="rz-value">0</span></div>
+          <div class="rz-stat"><span class="rz-label">RZ Morts</span><span class="rz-value">0</span></div>
+          <div class="rz-stat"><span class="rz-label">RZ Zombies</span><span class="rz-value">0</span></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─ CREW ─ -->
+    <section id="view-crew" class="view">
+
+      <!-- Pas de crew -->
+      <div id="crew-no-crew">
+        <div class="crew-create-box">
+          <h2 class="crew-h2">CRÉER UN CREW</h2>
+          <p class="crew-cost-info">Coût : <span id="crew-cost-val" class="green">$5 000</span></p>
+          <div class="crew-form-row">
+            <input type="text" id="crew-input-name" placeholder="Nom du crew" maxlength="30" class="crew-input"/>
+            <input type="text" id="crew-input-tag" placeholder="TAG" maxlength="5" class="crew-input crew-tag-input"/>
+          </div>
+          <button id="crew-btn-create" class="crew-btn-primary">CRÉER</button>
+        </div>
+        <div class="crew-invites-section">
+          <h2 class="crew-h2">INVITATIONS REÇUES</h2>
+          <div id="crew-invites-list" class="crew-member-list">
+            <p class="crew-empty">Aucune invitation</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dans un crew — Page profil complète -->
+      <div id="crew-in-crew" style="display:none">
+
+        <!-- Bannière crew -->
+        <div class="crew-banner" id="crew-banner-box">
+          <div class="crew-identity">
+            <span class="crew-tag-big" id="crew-tag-disp"></span>
+            <div class="crew-name-wrap">
+              <h1 class="crew-name" id="crew-name-disp"></h1>
+              <span class="crew-date" id="crew-date-disp"></span>
+            </div>
+          </div>
+          <div class="crew-color-pick" id="crew-color-area" style="display:none">
+            <input type="color" id="crew-color-input" class="crew-color-input" title="Couleur du crew"/>
+          </div>
+        </div>
+
+        <!-- MOTD -->
+        <div class="crew-motd-box" id="crew-motd-box">
+          <div class="crew-motd-label">MESSAGE DU CREW</div>
+          <div class="crew-motd-text" id="crew-motd-text">—</div>
+          <div class="crew-motd-edit" id="crew-motd-edit" style="display:none">
+            <input type="text" id="crew-motd-input" class="crew-input" placeholder="Écrivez un message..." maxlength="200"/>
+            <button id="crew-motd-save" class="crew-btn-sm promote">Sauver</button>
+          </div>
+        </div>
+
+        <!-- Stats globales -->
+        <div class="crew-stats-grid">
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-kills">0</span>
+            <span class="crew-stat-lbl">KILLS PVP</span>
+          </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-deaths">0</span>
+            <span class="crew-stat-lbl">MORTS</span>
+          </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-kd">0.00</span>
+            <span class="crew-stat-lbl">K/D RATIO</span>
+          </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-zombies">0</span>
+            <span class="crew-stat-lbl">ZOMBIES</span>
+          </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-count">0</span>
+            <span class="crew-stat-lbl">MEMBRES</span>
+          </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-best">—</span>
+            <span class="crew-stat-lbl">MEILLEUR</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="crew-actions-bar">
+          <button id="crew-btn-invite" class="crew-btn-action">INVITER</button>
+          <button id="crew-btn-leave" class="crew-btn-action crew-btn-danger">QUITTER</button>
+          <button id="crew-btn-disband" class="crew-btn-action crew-btn-danger" style="display:none">DISSOUDRE</button>
+        </div>
+
+        <!-- Sous-tabs : Membres / Activité -->
+        <div class="crew-subtabs">
+          <button class="crew-subtab active" data-subtab="members">CLASSEMENT</button>
+          <button class="crew-subtab" data-subtab="activity">ACTIVITÉ</button>
+        </div>
+
+        <!-- Classement des membres -->
+        <div id="crew-sub-members" class="crew-sub-content">
+          <div class="crew-table-header">
+            <span class="ct-rank">#</span>
+            <span class="ct-name">JOUEUR</span>
+            <span class="ct-stat">KILLS</span>
+            <span class="ct-stat">MORTS</span>
+            <span class="ct-stat">K/D</span>
+            <span class="ct-stat">ZOMBIES</span>
+            <span class="ct-actions"></span>
+          </div>
+          <div id="crew-members-list" class="crew-member-list"></div>
+        </div>
+
+        <!-- Historique d'activité -->
+        <div id="crew-sub-activity" class="crew-sub-content" style="display:none">
+          <div id="crew-activity-list" class="crew-activity-list">
+            <p class="crew-empty">Aucune activité récente</p>
+          </div>
+        </div>
+
+        <!-- Panel invite (liste joueurs en ligne) -->
+        <div id="crew-invite-panel" style="display:none">
+          <h3 class="crew-h3">Joueurs en ligne</h3>
+          <div id="crew-online-list" class="crew-member-list"></div>
+          <button id="crew-btn-cancel-invite" class="crew-btn-action">RETOUR</button>
+        </div>
+      </div>
+
+      <!-- Modal confirmation crew -->
+      <div id="crew-confirm-modal" class="crew-modal" style="display:none">
+        <div class="crew-modal-box">
+          <p id="crew-confirm-text"></p>
+          <div class="crew-modal-actions">
+            <button id="crew-confirm-yes" class="crew-btn-primary" style="width:auto">CONFIRMER</button>
+            <button id="crew-confirm-no" class="crew-btn-action" style="width:auto">ANNULER</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─ LEADERBOARD ─ -->
+    <section id="view-leaderboard" class="view">
+      <div class="lb-toolbar">
+        <div class="lb-type-switch">
+          <button id="lb-btn-players" class="lb-type active">JOUEURS</button>
+          <button id="lb-btn-crews" class="lb-type">CREWS</button>
+        </div>
+        <div class="lb-cat-switch">
+          <button class="lb-cat active" data-cat="kills">KILLS</button>
+          <button class="lb-cat" data-cat="deaths">MORTS</button>
+          <button class="lb-cat" data-cat="zombies">ZOMBIES</button>
+          <button class="lb-cat" data-cat="kd">K/D</button>
+          <button class="lb-cat rz-btn" data-cat="redzoneKills">RZ KILLS</button>
+          <button class="lb-cat rz-btn" data-cat="redzoneZombies">RZ ZOMBIES</button>
+        </div>
+      </div>
+
+      <div id="lb-my-rank" class="lb-my-rank">Chargement...</div>
+
+      <div class="lb-table-wrap">
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="lb-th-avatar"></th>
+              <th id="lb-col-name">JOUEUR</th>
+              <th id="lb-col-main">KILLS</th>
+              <th>MORTS</th>
+              <th>ZOMBIES</th>
+              <th>K/D</th>
+            </tr>
+          </thead>
+          <tbody id="lb-body">
+            <tr class="lb-skel-row"><td><span class="skel lb-skel-rank"></span></td><td class="lb-avatar-cell"><span class="skel lb-skel-avatar"></span></td><td><span class="skel lb-skel-name"></span></td><td><span class="skel lb-skel-val"></span></td><td><span class="skel lb-skel-val"></span></td><td><span class="skel lb-skel-val"></span></td><td><span class="skel lb-skel-val"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─ PARAMÈTRES ─ -->
+    <section id="view-settings" class="view">
+
+      <!-- AFFICHAGE -->
+      <div class="cfg-section">
+        <div class="cfg-section-hdr">AFFICHAGE</div>
+
+        <div class="cfg-row">
+          <div class="cfg-row-info">
+            <span class="cfg-row-label">TRANSPARENCE</span>
+            <span class="cfg-row-sub">Opacité du fond de l'interface</span>
+          </div>
+          <div class="cfg-row-ctrl">
+            <span class="cfg-val" id="val-opacity">55%</span>
+            <input type="range" class="cfg-slider" id="opt-opacity" min="10" max="90" value="55" oninput="applySetting('opacity',this.value)"/>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <div class="cfg-row-info">
+            <span class="cfg-row-label">FLOU</span>
+            <span class="cfg-row-sub">Intensité du flou d'arrière-plan</span>
+          </div>
+          <div class="cfg-row-ctrl">
+            <span class="cfg-val" id="val-blur">3px</span>
+            <input type="range" class="cfg-slider" id="opt-blur" min="0" max="10" value="3" oninput="applySetting('blur',this.value)"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUD EN JEU -->
+      <div class="cfg-section">
+        <div class="cfg-section-hdr">HUD EN JEU</div>
+
+        <div class="cfg-row cfg-row--top">
+          <div class="cfg-row-info">
+            <span class="cfg-row-label">TYPE DE HUD</span>
+            <span class="cfg-row-sub" id="hud-desc-text">GTA : HUD standard de GTA V. VANTA : HUD minimaliste personnalisé.</span>
+          </div>
+          <div class="cfg-row-ctrl">
+            <div class="cfg-seg">
+              <button id="btn-hud-gta"   class="cfg-seg-btn" onclick="applySetting('hudType','gta')">GTA</button>
+              <button id="btn-hud-vanta" class="cfg-seg-btn" onclick="applySetting('hudType','vanta')">VANTA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+</div>
+
+<!-- ══ FENÊTRE D'ÉCHANGE ══ -->
+<div id="trade-overlay" style="display:none">
+  <div id="trade-window">
+    <div class="trade-header">
+      <span>ÉCHANGE AVEC <b id="trade-partner-name">—</b></span>
+      <button onclick="cancelTrade()">✕</button>
+    </div>
+    <div class="trade-body">
+      <!-- Mon offre -->
+      <div class="trade-side">
+        <div class="trade-side-title">MON OFFRE</div>
+        <div id="trade-my-items" class="trade-items"></div>
+        <div class="trade-money-row">
+          <label>Argent : $</label>
+          <input type="number" id="trade-my-money" min="0" value="0" oninput="sendTradeOffer()"/>
+        </div>
+        <div class="trade-inv-title">MON INVENTAIRE</div>
+        <div id="trade-my-inv" class="trade-inv-grid"></div>
+      </div>
+      <!-- Offre du partenaire -->
+      <div class="trade-side trade-partner">
+        <div class="trade-side-title">SON OFFRE</div>
+        <div id="trade-partner-items" class="trade-items"></div>
+        <div class="trade-money-row">
+          <label>Argent : $</label>
+          <span id="trade-partner-money">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="trade-footer">
+      <button id="trade-confirm-btn" class="btn-confirm" onclick="confirmTrade()">CONFIRMER</button>
+      <span id="trade-status"></span>
+      <button class="btn-cancel" onclick="cancelTrade()">ANNULER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PROFIL JOUEUR (leaderboard) ══ -->
+<div id="player-profile-modal" class="ppm-overlay" style="display:none">
+  <div class="ppm-box">
+    <button class="ppm-close" id="ppm-close-btn">✕</button>
+
+    <div class="ppm-header">
+      <div class="ppm-avatar">👤</div>
+      <div class="ppm-identity">
+        <div class="ppm-name" id="ppm-name">—</div>
+        <div class="ppm-id" id="ppm-id">—</div>
+      </div>
+    </div>
+
+    <div class="ppm-crew-section" id="ppm-crew-section" style="display:none">
+      <div class="ppm-crew-badge">
+        <span class="ppm-crew-tag" id="ppm-crew-tag"></span>
+        <span class="ppm-crew-name" id="ppm-crew-name"></span>
+      </div>
+    </div>
+    <div class="ppm-no-crew" id="ppm-no-crew" style="display:none">Sans crew</div>
+
+    <div class="ppm-stats-grid">
+      <div class="ppm-stat">
+        <div class="ppm-stat-val" id="ppm-kills">0</div>
+        <div class="ppm-stat-lbl">KILLS</div>
+      </div>
+      <div class="ppm-stat">
+        <div class="ppm-stat-val" id="ppm-deaths">0</div>
+        <div class="ppm-stat-lbl">MORTS</div>
+      </div>
+      <div class="ppm-stat">
+        <div class="ppm-stat-val" id="ppm-kd">0.00</div>
+        <div class="ppm-stat-lbl">K/D</div>
+      </div>
+      <div class="ppm-stat">
+        <div class="ppm-stat-val" id="ppm-zombies">0</div>
+        <div class="ppm-stat-lbl">ZOMBIES</div>
+      </div>
+    </div>
+
+    <div class="ppm-rank-line" id="ppm-rank-line">Rang #<span id="ppm-rank">—</span></div>
+  </div>
+</div>
+
+<!-- ══ BARRE DE HEAL ══ -->
+<div id="heal-label"></div>
+<div id="heal-bar-wrap"><div id="heal-bar"></div></div>
+
+<!-- ══ VANTA HUD OVERLAY ══ -->
+<div id="vanta-hud" style="display:none;">
+  <div id="dmg-flash"></div>
+  <div id="vhud">
+    <div class="vhud-block">
+      <div class="vhud-stat-row" id="vhud-hp-row">
+        <span class="vhud-stat-label">VIE</span>
+        <div class="vhud-bar-track"><div class="vhud-bar-fill vhud-hp-fill" id="vhud-hp-bar" style="width:100%"></div></div>
+        <span class="vhud-stat-value" id="vhud-hp-val">100</span>
+      </div>
+      <div class="vhud-stat-row" id="vhud-armor-row">
+        <span class="vhud-stat-label">ARMOR</span>
+        <div class="vhud-bar-track"><div class="vhud-bar-fill vhud-armor-fill" id="vhud-armor-bar" style="width:0%"></div></div>
+        <span class="vhud-stat-value" id="vhud-armor-val">0</span>
+      </div>
+      <div class="vhud-sep"></div>
+      <div class="vhud-weapon-row">
+        <span id="vhud-weapon-name">AUCUNE ARME</span>
+        <div id="vhud-ammo-display" style="display:none;">
+          <span id="vhud-ammo-current">0</span>
+          <span class="vhud-ammo-sep">/</span>
+          <span id="vhud-ammo-reserve">0</span>
+        </div>
+        <span id="vhud-ammo-inf" style="display:none;">&#8734;</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

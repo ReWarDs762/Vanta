@@ -1,0 +1,784 @@
+/* ═══════════════════════════════════════════════════════════════
+   PVP GARAGE — Design System VANTA v2
+   Dark minimal · Silver accent · Sharp angles
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:       #0a0a0a;
+  --surface:  #111111;
+  --surface2: #181818;
+  --border:   #242424;
+  --border2:  #3a3a3a;
+  --accent:   #c8cdd4;
+  --accent2:  #f0f2f4;
+  --red:      #8b2020;
+  --green:    #1a6b3a;
+  --text:     #c8cdd4;
+  --text-dim: #5a5f66;
+  --font:     'Inter', sans-serif;
+}
+
+body {
+    background: transparent;
+    font-family: var(--font);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+}
+
+.hidden { display: none !important; }
+
+/* ── PANEL ── */
+.panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100vh;
+    background: rgba(10,10,10,0.96);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeSlideIn 0.18s ease;
+}
+
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── HEADER ── */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.panel-actions button {
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-cancel {
+    background: transparent;
+    color: var(--text-dim);
+}
+.btn-cancel:hover {
+    background: rgba(139, 32, 32, 0.1);
+    border-color: var(--red);
+    color: var(--red);
+}
+
+.btn-confirm {
+    background: rgba(200, 205, 212, 0.06);
+    color: var(--accent);
+    border-color: rgba(200, 205, 212, 0.3);
+}
+.btn-confirm:hover {
+    background: rgba(200, 205, 212, 0.12);
+    border-color: var(--accent);
+}
+
+/* ── BODY ── */
+.panel-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+    width: 160px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 8px 0;
+}
+
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-left: 2px solid transparent;
+}
+
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+}
+
+.sidebar-item.active {
+    background: rgba(200, 205, 212, 0.06);
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+
+.sidebar-item.special {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ── CONTENT ── */
+.content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-title:not(:first-child) {
+    margin-top: 20px;
+}
+
+/* ── COLOR GRID ── */
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 3px;
+}
+
+.color-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.color-swatch:hover {
+    transform: scale(1.3);
+    z-index: 2;
+    border-color: var(--text-dim);
+}
+
+.color-swatch.active {
+    border-color: var(--accent);
+    box-shadow: none;
+    outline: 1px solid var(--accent);
+    transform: scale(1.2);
+    z-index: 1;
+}
+
+/* ── OPTION LIST (upgrades, tint, livery, wheels) ── */
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 12px;
+}
+
+.option-item:hover {
+    background: #1e1e1e;
+    border-color: var(--border2);
+}
+
+.option-item.active {
+    background: rgba(200, 205, 212, 0.06);
+    border-color: rgba(200, 205, 212, 0.4);
+    color: var(--accent);
+}
+
+.option-label {
+    font-weight: 500;
+}
+
+.option-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dim);
+}
+
+.option-item.active .option-badge {
+    background: rgba(200, 205, 212, 0.12);
+    color: var(--accent);
+}
+
+/* ── TOGGLE ── */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+}
+
+.toggle-label {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.toggle-switch {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--border2);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.15s ease;
+}
+
+.toggle-switch.active {
+    background: var(--accent);
+}
+
+.toggle-switch.active::after {
+    left: 19px;
+    background: var(--bg);
+}
+
+/* ── NEON SECTION ── */
+.neon-positions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.neon-pos-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+}
+
+.neon-pos-btn:hover {
+    border-color: var(--border2);
+}
+
+.neon-pos-btn.active {
+    background: rgba(200, 205, 212, 0.06);
+    border-color: rgba(200, 205, 212, 0.4);
+    color: var(--accent);
+}
+
+/* ── COLOR PICKER (neon/xenon) ── */
+.color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+}
+
+.color-picker-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    min-width: 60px;
+}
+
+.color-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.color-input-group label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+.color-input-group input[type="number"] {
+    width: 50px;
+    padding: 4px 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    text-align: center;
+    outline: none;
+}
+
+.color-input-group input[type="number"]:focus {
+    border-color: var(--accent);
+}
+
+.color-preview {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.btn-apply-color {
+    padding: 6px 14px;
+    background: rgba(200, 205, 212, 0.06);
+    border: 1px solid rgba(200, 205, 212, 0.3);
+    border-radius: 2px;
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-apply-color:hover {
+    background: rgba(200, 205, 212, 0.12);
+    border-color: var(--accent);
+}
+
+/* ── SPECIAL MODS (segmented buttons) ── */
+.special-mod-group {
+    margin-bottom: 16px;
+}
+
+.special-mod-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.segmented-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.segment-btn {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--surface2);
+    border: none;
+    border-right: 1px solid var(--border);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.segment-btn:last-child {
+    border-right: none;
+}
+
+.segment-btn:hover {
+    background: #1e1e1e;
+    color: var(--text);
+}
+
+.segment-btn.active {
+    background: rgba(200, 205, 212, 0.06);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ── WHEEL TYPE SELECTOR ── */
+.wheel-type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.wheel-type-btn {
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.wheel-type-btn:hover {
+    border-color: var(--border2);
+    color: var(--text);
+}
+
+.wheel-type-btn.active {
+    background: rgba(200, 205, 212, 0.06);
+    border-color: rgba(200, 205, 212, 0.4);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ── VEHICLE GRID (Dealer) ── */
+.vehicle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.vehicle-card {
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vehicle-card:hover {
+    background: #1e1e1e;
+    border-color: var(--border2);
+}
+
+.vehicle-card.selected {
+    background: rgba(200, 205, 212, 0.06);
+    border-color: rgba(200, 205, 212, 0.4);
+}
+
+.vehicle-card-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.vehicle-card-category {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.vehicle-card-price {
+    font-size: 10px;
+    color: var(--green);
+    font-weight: 500;
+}
+
+/* Spawn button (dealer) */
+.dealer-spawn-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.selected-vehicle-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+}
+
+.btn-spawn {
+    padding: 8px 24px;
+    background: rgba(200, 205, 212, 0.06);
+    border: 1px solid rgba(200, 205, 212, 0.3);
+    border-radius: 2px;
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-spawn:hover {
+    background: rgba(200, 205, 212, 0.12);
+    border-color: var(--accent);
+}
+
+.btn-spawn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+/* ── SCROLLBAR FOR BODY ── */
+*::-webkit-scrollbar { width: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Sub-tabs (paint mode) ── */
+.sub-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.sub-tab {
+    flex: 1;
+    padding: 8px;
+    background: var(--surface2);
+    border: none;
+    border-right: 1px solid var(--border);
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.sub-tab:last-child { border-right: none; }
+
+.sub-tab:hover {
+    background: #1e1e1e;
+    color: var(--text);
+}
+
+.sub-tab.active {
+    background: rgba(200, 205, 212, 0.06);
+    color: var(--accent);
+}
+
+/* ── DEALER BALANCE ── */
+.dealer-balance {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+.dealer-balance #balance-amount {
+    color: var(--accent);
+}
+
+/* ── SELL SECTION ── */
+.sell-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--red);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.sell-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    flex-shrink: 0;
+}
+
+.sell-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+#sell-vehicle-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sell-price {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    flex-shrink: 0;
+}
+
+.btn-sell {
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    background: transparent;
+    border: 1px solid var(--red);
+    border-radius: 2px;
+    color: var(--red);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+.btn-sell:hover {
+    background: var(--red);
+    color: #fff;
+}
+
+/* ── VEHICLE CARD PRICE ── */
+.vehicle-card-price {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: auto;
+}
+.vehicle-card-price.unaffordable {
+    color: var(--red);
+    opacity: 0.7;
+}
+
+/* ── BUY BUTTON ── */
+.btn-spawn {
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 8px 24px;
+    background: rgba(200, 205, 212, 0.06);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-spawn:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
+}
+.btn-spawn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── DEALER CONTENT (flex column pour sell section + grille) ── */
+#dealer-content {
+    display: flex;
+    flex-direction: column;
+}

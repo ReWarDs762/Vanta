@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div id="panel" style="display:none">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">PVP ADMIN</div>
+      <span class="header-badge" id="role-badge">ADMIN</span>
+    </div>
+    <div class="header-right">
+      <span class="player-count-badge" id="header-count">0 en ligne</span>
+      <button class="close-btn" onclick="closePanel()">&#x2715;</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="players" onclick="switchTab('players')">JOUEURS</button>
+    <button class="tab" data-tab="server" onclick="switchTab('server')">SERVEUR</button>
+    <button class="tab" data-tab="tools" onclick="switchTab('tools')">OUTILS</button>
+    <button class="tab" data-tab="logs" onclick="switchTab('logs')">LOGS</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ═══ JOUEURS ═══ -->
+    <div id="tab-players" class="tab-content active">
+      <div class="section-head">
+        <div class="search-wrap">
+          <input type="text" id="player-search" placeholder="Rechercher joueur..." oninput="filterPlayers()"/>
+        </div>
+        <div class="section-head-right">
+          <span class="count-label">(<span id="player-count">0</span>)</span>
+          <button class="btn-sm" onclick="refreshPlayers()">&#x21bb; Actualiser</button>
+        </div>
+      </div>
+      <div class="player-list" id="player-list">
+        <div class="empty">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- ═══ SERVEUR ═══ -->
+    <div id="tab-server" class="tab-content">
+      <!-- Drops -->
+      <div class="card">
+        <div class="card-title">DROPS DE RAVITAILLEMENT</div>
+        <div class="card-body">
+          <button class="btn-action btn-green" onclick="doAction('forcedrop')">FORCER UN DROP</button>
+          <button class="btn-action" onclick="doAction('spawnzombies',{count:10})">SPAWN 10 ZOMBIES</button>
+          <button class="btn-action btn-red" onclick="doAction('killzombies')">TUER ZOMBIES PROCHES</button>
+        </div>
+      </div>
+      <!-- Redzones -->
+      <div class="card">
+        <div class="card-title">REDZONES</div>
+        <div class="card-body">
+          <button class="btn-action btn-orange" onclick="doAction('rzrotate')">FORCER ROTATION</button>
+          <div id="rz-list" class="rz-list"></div>
+        </div>
+      </div>
+      <!-- Météo / Heure -->
+      <div class="card">
+        <div class="card-title">METEO & HEURE</div>
+        <div class="card-body row-wrap">
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'CLEAR'})">Clair</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'RAIN'})">Pluie</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'THUNDER'})">Orage</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'FOGGY'})">Brouillard</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'OVERCAST'})">Nuageux</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'XMAS'})">Neige</button>
+          <button class="btn-mini" onclick="doAction('setweather',{weather:'HALLOWEEN'})">Halloween</button>
+        </div>
+        <div class="card-body">
+          <div class="time-row">
+            <input type="range" id="time-slider" min="0" max="23" value="12" oninput="document.getElementById('time-val').textContent=this.value+'h'"/>
+            <span id="time-val">12h</span>
+            <button class="btn-sm" onclick="doAction('settime',{hour:+document.getElementById('time-slider').value})">Appliquer</button>
+          </div>
+        </div>
+      </div>
+      <!-- Annonce -->
+      <div class="card">
+        <div class="card-title">ANNONCE SERVEUR</div>
+        <div class="card-body">
+          <div class="announce-row">
+            <input type="text" id="announce-input" placeholder="Message a diffuser..." maxlength="200"/>
+            <button class="btn-action btn-green" onclick="sendAnnounce()">ENVOYER</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ OUTILS ═══ -->
+    <div id="tab-tools" class="tab-content">
+      <div class="card">
+        <div class="card-title">MODES ADMIN</div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <span>Noclip <small>(WASD+Q/Z, SHIFT=rapide)</small></span>
+            <button class="btn-toggle" id="btn-noclip" onclick="toggleNoclip()">OFF</button>
+          </div>
+          <div class="toggle-row">
+            <span>God Mode</span>
+            <button class="btn-toggle" id="btn-god" onclick="toggleGod()">OFF</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">VEHICULE</div>
+        <div class="card-body">
+          <div class="input-row">
+            <input type="text" id="car-model" placeholder="Modele (ex: adder, insurgent)"/>
+            <button class="btn-action" onclick="spawnCar()">SPAWN</button>
+            <button class="btn-action btn-red" onclick="deleteCar()">SUPPRIMER</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">TELEPORTATION</div>
+        <div class="card-body">
+          <button class="btn-action" onclick="tpWaypoint()">TP AU WAYPOINT</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">DONNER</div>
+        <div class="card-body">
+          <div class="give-row">
+            <input type="number" id="give-id" placeholder="ID" min="1" style="width:60px"/>
+            <input type="text" id="give-item" placeholder="Item (weapon_rpg, medkit...)"/>
+            <input type="number" id="give-qty" placeholder="Qte" value="1" min="1" style="width:60px"/>
+            <button class="btn-action btn-green" onclick="giveItem()">DONNER</button>
+          </div>
+          <div class="give-row" style="margin-top:8px">
+            <input type="number" id="givem-id" placeholder="ID" min="1" style="width:60px"/>
+            <input type="number" id="givem-amount" placeholder="Montant $" min="1"/>
+            <button class="btn-action btn-green" onclick="giveMoney()">DONNER $</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">BAN / UNBAN</div>
+        <div class="card-body">
+          <div class="give-row">
+            <input type="text" id="unban-ident" placeholder="Identifier (steam:xxx, license:xxx...)"/>
+            <button class="btn-action btn-orange" onclick="unbanPlayer()">UNBAN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOGS ═══ -->
+    <div id="tab-logs" class="tab-content">
+      <div class="section-head">
+        <span>Historique des actions admin</span>
+        <button class="btn-sm" onclick="refreshPlayers()">&#x21bb; Actualiser</button>
+      </div>
+      <div class="log-list" id="log-list">
+        <div class="empty">Aucun log.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast-container"></div>
+
+<!-- ═══ MODAL CONFIRM ═══ -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title">Confirmation</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-action" onclick="closeModal()">ANNULER</button>
+      <button class="btn-action btn-red" id="modal-confirm-btn" onclick="modalConfirmAction()">CONFIRMER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL KICK ═══ -->
+<div id="kick-overlay" class="modal-overlay" style="display:none" onclick="closeKickModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Expulser le joueur</div>
+    <div class="modal-body">
+      <div class="modal-target" id="kick-target"></div>
+      <input type="text" id="kick-reason" placeholder="Raison de l'expulsion..." maxlength="200"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-action" onclick="closeKickModal()">ANNULER</button>
+      <button class="btn-action btn-red" onclick="confirmKick()">KICK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL BAN ═══ -->
+<div id="ban-overlay" class="modal-overlay" style="display:none" onclick="closeBanModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Bannir le joueur</div>
+    <div class="modal-body">
+      <div class="modal-target" id="ban-target"></div>
+      <input type="text" id="ban-reason" placeholder="Raison du ban..." maxlength="200"/>
+      <div class="ban-duration-row">
+        <label>Duree :</label>
+        <select id="ban-duration">
+          <option value="0">Permanent</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 heure</option>
+          <option value="360">6 heures</option>
+          <option value="1440">1 jour</option>
+          <option value="4320">3 jours</option>
+          <option value="10080">7 jours</option>
+          <option value="43200">30 jours</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-action" onclick="closeBanModal()">ANNULER</button>
+      <button class="btn-action btn-red" onclick="confirmBan()">BANNIR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL PLAYER DETAIL ═══ -->
+<div id="detail-overlay" class="modal-overlay" style="display:none" onclick="closeDetailModal()">
+  <div class="modal-box modal-large" onclick="event.stopPropagation()">
+    <div class="modal-title">Detail joueur</div>
+    <div class="modal-body" id="detail-body">
+      <div class="empty">Chargement...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-action" onclick="closeDetailModal()">FERMER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL STORAGE (inventaire/coffre/avant-poste) ═══ -->
+<div id="storage-overlay" class="modal-overlay" style="display:none" onclick="closeStorageModal()">
+  <div class="modal-box modal-large" onclick="event.stopPropagation()">
+    <div class="modal-title" id="storage-title">Stockage</div>
+    <div class="modal-body" id="storage-body">
+      <div class="empty">Chargement...</div>
+    </div>
+    <div class="modal-footer">
+      <div class="storage-add-row">
+        <input type="text" id="storage-add-item" placeholder="Nom item (ex: weapon_pistol)"/>
+        <input type="number" id="storage-add-qty" value="1" min="1" style="width:60px"/>
+        <button class="btn-action btn-green" onclick="addToCurrentStorage()">AJOUTER</button>
+      </div>
+      <button class="btn-action" onclick="refreshCurrentStorage()">ACTUALISER</button>
+      <button class="btn-action" onclick="closeStorageModal()">FERMER</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANTA XP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Overlay pour clic extérieur -->
+    <div id="overlay" class="overlay hidden" onclick="closePanel()"></div>
+
+    <!-- Panel principal -->
+    <div id="xpPanel" class="xp-panel hidden">
+
+        <!-- Section haute : Badge + Niveau -->
+        <div class="section-top">
+            <div id="prestigeBadge" class="prestige-badge"></div>
+            <div id="levelDisplay" class="level-display">LVL 1</div>
+            <div id="totalXP" class="total-xp">0 XP total</div>
+        </div>
+
+        <!-- Section milieu : Barre XP -->
+        <div class="section-mid">
+            <div class="xp-bar-container">
+                <div id="xpBar" class="xp-bar" style="width: 0%"></div>
+                <div id="xpPercent" class="xp-percent">0%</div>
+            </div>
+            <div class="xp-labels">
+                <span id="xpCurrent">0</span>
+                <span id="xpNext">/ 0 XP</span>
+            </div>
+            <button id="prestigeBtn" class="prestige-btn hidden" onclick="doPrestige()">
+                ✦ PASSER AU PRESTIGE ✦
+            </button>
+        </div>
+
+        <!-- Section bas : Capacités -->
+        <div class="section-bottom">
+            <div class="capacity-block">
+                <div class="capacity-label">SAC</div>
+                <div id="bagCapacity" class="capacity-value">50kg</div>
+            </div>
+            <div class="capacity-block">
+                <div class="capacity-label">CONTENEUR</div>
+                <div id="contCapacity" class="capacity-value">20kg</div>
+            </div>
+        </div>
+
+        <!-- Section prestiges : badges en ligne -->
+        <div class="section-prestiges">
+            <div class="prestiges-row" id="prestigesRow"></div>
+        </div>
+
+    </div>
+
+    <!-- Notifications (toasts) -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Notification prestige (centré) -->
+    <div id="prestigeNotif" class="prestige-notif hidden"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

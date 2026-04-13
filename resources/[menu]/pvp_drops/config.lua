@@ -1,0 +1,99 @@
+-- =============================================
+--   PVP DROPS - Configuration
+-- =============================================
+
+Config = {}
+
+-- Intervalle entre chaque drop (ms)
+Config.DropInterval = 120 * 60 * 1000   -- toutes les 2h
+
+-- Délai avant le 1er drop au démarrage du serveur (ms)
+Config.FirstDropDelay = 10 * 60 * 1000  -- 10 min après démarrage
+
+-- Temps d'approche de l'avion avant le largage (ms)
+Config.ApproachTime = 45 * 1000         -- 45 secondes
+
+-- Durée de chute de la caisse (ms)
+Config.FallDuration = 5 * 60 * 1000     -- 5 minutes
+
+-- Délai avant ouverture après atterrissage (ms)
+Config.OpenDelay = 5 * 60 * 1000        -- 5 minutes
+
+-- Altitude de départ de la caisse (mètres au-dessus du sol)
+Config.DropAltitude = 450.0
+
+-- Distance depuis la zone de drop où l'avion spawn (mètres)
+Config.PlaneStartDistance = 3000.0
+
+-- Rayon d'interaction pour ouvrir la caisse (mètres)
+Config.InteractRadius = 4.0
+
+-- Modèle de l'avion
+Config.PlaneModel = 'cargoplane'
+
+-- Modèle de la caisse
+Config.CrateModel = 'prop_mil_crate_01'
+
+-- ── Zones de drop (avec Z au sol précis) ─────────────────────────────────
+Config.DropZones = {
+    { x =  929.0,   y =   47.0,   z =  81.0, label = 'Casino' },
+    { x = -1300.0,  y = -2900.0,  z =  14.0, label = 'Aéroport LSIA' },
+    { x =  1748.0,  y =  3300.0,  z =  41.0, label = 'Sandy Shores Airfield' },
+    { x =  1635.0,  y =  2519.0,  z =  45.0, label = 'Prison' },
+    { x =  3619.0,  y =  3741.0,  z =  28.0, label = 'Humane Labs' },
+    { x =   600.0,  y = -2800.0,  z =   6.0, label = 'Port Elysian' },
+    { x =   250.0,  y =  -700.0,  z =  35.0, label = 'Downtown LS' },
+    { x =  -290.0,  y = -2000.0,  z =  22.0, label = 'Maze Bank Arena' },
+    { x = -2180.0,  y =  3215.0,  z =  32.0, label = 'Fort Zancudo' },
+    { x =  1850.0,  y =  3700.0,  z =  32.0, label = 'Sandy Shores' },
+    { x =  -300.0,  y =  6250.0,  z =  31.0, label = 'Paleto Bay' },
+    { x =   100.0,  y = -1700.0,  z =  30.0, label = 'Davis' },
+}
+
+-- ── Loot de la caisse de ravitaillement ──────────────────────────────────
+-- Uniquement catégories Légendaire et Épic
+-- 3 items tirés aléatoirement parmi cette table
+Config.LootCount = 3
+
+-- NOTE BALANCE : les chances sont pondérées entre elles (pas des %).
+-- Légendaire total ~40, Épic total ~250 → ratio ~86% épic, ~14% légendaire.
+-- Ajuster si inflation observée : réduire chances ou augmenter DropInterval.
+Config.LootTable = {
+    -- ══ LÉGENDAIRE (chances réduites pour limiter l'inflation) ═══════════
+    -- Armes légendaires
+    { item = 'weapon_heavysniper',       chance = 5,  count = 1 },  -- AWP (drop exclusif)
+    { item = 'weapon_heavysniper_mk2',   chance = 3,  count = 1 },  -- AWP MK2 (drop exclusif)
+    { item = 'weapon_sniperrifle',       chance = 8,  count = 1 },
+    { item = 'weapon_marksmanrifle_mk2', chance = 7,  count = 1 },
+    { item = 'weapon_rpg',               chance = 4,  count = 1 },
+    { item = 'weapon_hominglauncher',    chance = 3,  count = 1 },
+    -- Véhicules légendaires
+    { item = 'vehicle_deluxo',           chance = 3,  count = 1 },
+    { item = 'vehicle_oppressor2',       chance = 2,  count = 1 },
+    { item = 'vehicle_nightshark',       chance = 5,  count = 1 },
+    { item = 'vehicle_scarab',           chance = 4,  count = 1 },
+    { item = 'vehicle_insurgent3',       chance = 5,  count = 1 },
+    { item = 'vehicle_dukes2',           chance = 5,  count = 1 },
+
+    -- ══ ÉPIC ══════════════════════════════════════════════════════════════
+    -- Armes épic
+    { item = 'weapon_precisionrifle',    chance = 25, count = 1 },
+    { item = 'weapon_compactlauncher',   chance = 20, count = 1 },
+    { item = 'weapon_emplauncher',       chance = 20, count = 1 },
+    { item = 'weapon_combatmg_mk2',      chance = 25, count = 1 },
+    { item = 'weapon_musket',            chance = 22, count = 1 },
+    -- Véhicules épic
+    { item = 'vehicle_schafter5',        chance = 22, count = 1 },
+    { item = 'vehicle_baller6',          chance = 22, count = 1 },
+    { item = 'vehicle_xls2',            chance = 18, count = 1 },
+    { item = 'vehicle_voltic2',          chance = 18, count = 1 },
+    { item = 'vehicle_cerberus',         chance = 22, count = 1 },
+    { item = 'vehicle_zr380',            chance = 22, count = 1 },
+    { item = 'vehicle_cog552',           chance = 18, count = 1 },
+    { item = 'vehicle_sasquatch',        chance = 18, count = 1 },
+    { item = 'vehicle_thruster',         chance = 15, count = 1 },
+    { item = 'vehicle_vigilante',        chance = 22, count = 1 },
+    { item = 'vehicle_buzzard2',         chance = 22, count = 1 },
+    { item = 'vehicle_maverick',         chance = 25, count = 1 },
+    { item = 'vehicle_havok',            chance = 18, count = 1 },
+}

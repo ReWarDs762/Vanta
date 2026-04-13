@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VANTA — Design System v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   VANTA DESIGN SYSTEM v2
+   Direction: Apple Monochrome × Tactical Premium
+   ============================================================ */
+
+/* --- RESET --- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ============================================================
+   DESIGN TOKENS
+   Copy this :root block into every NUI CSS file
+   ============================================================ */
+:root {
+  /* === Backgrounds === */
+  --v-black:        #000000;
+  --v-bg:           #0a0a0a;
+  --v-surface:      #141414;
+  --v-surface-2:    #1c1c1e;
+  --v-surface-3:    #242426;
+  --v-elevated:     #2c2c2e;
+
+  /* === Separators & Borders === */
+  --v-separator:       rgba(255, 255, 255, 0.06);
+  --v-separator-bold:  rgba(255, 255, 255, 0.10);
+  --v-border:          rgba(255, 255, 255, 0.08);
+  --v-border-hover:    rgba(255, 255, 255, 0.15);
+
+  /* === Text === */
+  --v-text:          #ffffff;
+  --v-text-secondary: rgba(255, 255, 255, 0.55);
+  --v-text-tertiary:  rgba(255, 255, 255, 0.28);
+  --v-text-disabled:  rgba(255, 255, 255, 0.15);
+
+  /* === Brand === */
+  --v-silver:        #c8cdd4;
+  --v-silver-dim:    rgba(200, 205, 212, 0.40);
+  --v-silver-glow:   rgba(200, 205, 212, 0.06);
+
+  /* === Semantic === */
+  --v-danger:        #ff453a;
+  --v-danger-dim:    rgba(255, 69, 58, 0.15);
+  --v-success:       #30d158;
+  --v-success-dim:   rgba(48, 209, 88, 0.15);
+  --v-warning:       #ffd60a;
+  --v-warning-dim:   rgba(255, 214, 10, 0.15);
+  --v-info:          #64d2ff;
+  --v-info-dim:      rgba(100, 210, 255, 0.15);
+
+  /* === Rarity === */
+  --v-rarity-common:     rgba(255, 255, 255, 0.10);
+  --v-rarity-common-solid: #3a3a3e;
+  --v-rarity-uncommon:   rgba(48, 209, 88, 0.25);
+  --v-rarity-uncommon-solid: #1a5c32;
+  --v-rarity-rare:       rgba(100, 210, 255, 0.25);
+  --v-rarity-rare-solid: #1a4a6e;
+  --v-rarity-legendary:  rgba(255, 214, 10, 0.25);
+  --v-rarity-legendary-solid: #6e5a10;
+
+  /* === Radius (Apple-inspired) === */
+  --v-radius-xs:   4px;
+  --v-radius-sm:   6px;
+  --v-radius-md:   10px;
+  --v-radius-lg:   14px;
+  --v-radius-xl:   20px;
+  --v-radius-full: 9999px;
+
+  /* === Spacing === */
+  --v-space-1:  4px;
+  --v-space-2:  8px;
+  --v-space-3:  12px;
+  --v-space-4:  16px;
+  --v-space-5:  20px;
+  --v-space-6:  24px;
+  --v-space-8:  32px;
+  --v-space-10: 40px;
+  --v-space-12: 48px;
+  --v-space-16: 64px;
+
+  /* === Typography === */
+  --v-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --v-size-xs:    11px;
+  --v-size-sm:    13px;
+  --v-size-base:  15px;
+  --v-size-lg:    17px;
+  --v-size-xl:    20px;
+  --v-size-2xl:   24px;
+  --v-size-3xl:   28px;
+  --v-size-4xl:   34px;
+
+  /* === Transitions === */
+  --v-ease:      cubic-bezier(0.25, 0.1, 0.25, 1);
+  --v-duration:  0.2s;
+  --v-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* === ANIMATION KEYFRAMES === */
+@keyframes v-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes v-scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes v-slideRight {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes v-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* ============================================================
+   DESIGN SYSTEM PAGE LAYOUT (documentation only)
+   ============================================================ */
+
+body {
+  font-family: var(--v-font);
+  background: var(--v-black);
+  color: var(--v-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ds-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--v-space-16) var(--v-space-8);
+}
+
+/* --- Hero --- */
+.ds-hero {
+  text-align: center;
+  padding: var(--v-space-16) 0;
+  border-bottom: 1px solid var(--v-separator);
+  margin-bottom: var(--v-space-16);
+}
+
+.ds-hero .logo-mark {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--v-space-6);
+  opacity: 0.9;
+}
+
+.ds-hero h1 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-3);
+}
+
+.ds-hero p {
+  font-size: var(--v-size-sm);
+  color: var(--v-text-tertiary);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* --- Sections --- */
+.ds-section {
+  margin-bottom: var(--v-space-16);
+}
+
+.ds-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--v-text-tertiary);
+  margin-bottom: var(--v-space-8);
+  padding-bottom: var(--v-space-3);
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.ds-subsection {
+  margin-bottom: var(--v-space-10);
+}
+
+.ds-subsection-title {
+  font-size: var(--v-size-sm);
+  font-weight: 600;
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-4);
+}
+
+.ds-label {
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--v-space-1);
+}
+
+.ds-note {
+  font-size: var(--v-size-xs);
+  color: var(--v-text-tertiary);
+  font-style: italic;
+  margin-top: var(--v-space-2);
+}
+
+/* ============================================================
+   1. LOGO
+   ============================================================ */
+
+.ds-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--v-space-6);
+}
+
+.ds-logo-card {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  padding: var(--v-space-10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v-space-4);
+  min-height: 200px;
+}
+
+.ds-logo-card.light {
+  background: #f5f5f7;
+}
+
+.ds-logo-card .logo-label {
+  font-size: var(--v-size-xs);
+  color: var(--v-text-tertiary);
+  letter-spacing: 0.06em;
+}
+
+.ds-logo-card.light .logo-label {
+  color: rgba(0,0,0,0.4);
+}
+
+.v-wordmark {
+  font-family: var(--v-font);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 0.35em;
+  color: var(--v-text);
+  text-indent: 0.35em;
+}
+
+.v-wordmark.sm {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--v-text-tertiary);
+  text-indent: 0.3em;
+}
+
+.v-wordmark.dark {
+  color: #000000;
+}
+
+.ds-logo-card .v-logomark {
+  width: 48px;
+  height: 48px;
+}
+
+.ds-logo-card .v-logomark.lg {
+  width: 64px;
+  height: 64px;
+}
+
+/* ============================================================
+   2. COLORS
+   ============================================================ */
+
+.ds-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--v-space-3);
+}
+
+.ds-color-swatch {
+  border-radius: var(--v-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--v-border);
+}
+
+.ds-color-swatch .preview {
+  height: 72px;
+  position: relative;
+}
+
+.ds-color-swatch .preview.checkered {
+  background-image:
+    linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
+    linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
+    linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+.ds-color-swatch .preview .overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.ds-color-swatch .meta {
+  padding: var(--v-space-3);
+  background: var(--v-surface);
+}
+
+.ds-color-swatch .meta .name {
+  font-size: var(--v-size-sm);
+  font-weight: 500;
+  color: var(--v-text);
+  margin-bottom: 2px;
+}
+
+.ds-color-swatch .meta .value {
+  font-size: var(--v-size-xs);
+  color: var(--v-text-tertiary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================
+   3. TYPOGRAPHY
+   ============================================================ */
+
+.ds-type-scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-6);
+}
+
+.ds-type-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--v-space-8);
+  padding-bottom: var(--v-space-4);
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.ds-type-row .size-label {
+  flex-shrink: 0;
+  width: 100px;
+  font-size: var(--v-size-xs);
+  color: var(--v-text-tertiary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.ds-type-row .sample {
+  flex: 1;
+  color: var(--v-text);
+}
+
+.ds-weight-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--v-space-4);
+  margin-top: var(--v-space-4);
+}
+
+.ds-weight-card {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-5);
+  text-align: center;
+}
+
+.ds-weight-card .demo {
+  font-size: var(--v-size-2xl);
+  margin-bottom: var(--v-space-2);
+}
+
+.ds-weight-card .label {
+  font-size: var(--v-size-xs);
+  color: var(--v-text-tertiary);
+}
+
+/* ============================================================
+   4. COMPONENTS
+   ============================================================ */
+
+/* --- Buttons --- */
+.ds-component-row {
+  display: flex;
+  gap: var(--v-space-4);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--v-space-6);
+}
+
+.v-btn {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v-space-2);
+  padding: 10px 20px;
+  border-radius: var(--v-radius-sm);
+  transition: all var(--v-duration) var(--v-ease);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.v-btn:active { transform: scale(0.97); }
+
+/* Primary */
+.v-btn-primary {
+  background: var(--v-text);
+  color: var(--v-black);
+}
+.v-btn-primary:hover { background: rgba(255,255,255,0.85); }
+
+/* Secondary */
+.v-btn-secondary {
+  background: var(--v-surface-2);
+  color: var(--v-text);
+  border: 1px solid var(--v-border);
+}
+.v-btn-secondary:hover {
+  background: var(--v-surface-3);
+  border-color: var(--v-border-hover);
+}
+
+/* Ghost */
+.v-btn-ghost {
+  background: transparent;
+  color: var(--v-text-secondary);
+}
+.v-btn-ghost:hover {
+  background: var(--v-separator);
+  color: var(--v-text);
+}
+
+/* Danger */
+.v-btn-danger {
+  background: var(--v-danger-dim);
+  color: var(--v-danger);
+}
+.v-btn-danger:hover { background: rgba(255, 69, 58, 0.25); }
+
+/* Success */
+.v-btn-success {
+  background: var(--v-success-dim);
+  color: var(--v-success);
+}
+.v-btn-success:hover { background: rgba(48, 209, 88, 0.25); }
+
+/* Small */
+.v-btn-sm {
+  font-size: var(--v-size-xs);
+  padding: 6px 12px;
+}
+
+/* Large */
+.v-btn-lg {
+  font-size: var(--v-size-base);
+  padding: 14px 28px;
+  border-radius: var(--v-radius-md);
+}
+
+/* Icon only */
+.v-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--v-radius-sm);
+}
+
+/* --- Cards --- */
+.v-card {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  padding: var(--v-space-5);
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-card:hover {
+  border-color: var(--v-border-hover);
+  background: var(--v-surface-2);
+}
+
+.v-card-flat {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-4);
+}
+
+/* --- Input --- */
+.v-input {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-input::placeholder { color: var(--v-text-tertiary); }
+.v-input:focus {
+  border-color: var(--v-text-secondary);
+  background: var(--v-surface-3);
+}
+
+/* --- Badge / Tag --- */
+.v-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--v-radius-full);
+  line-height: 1;
+}
+
+.v-badge-default {
+  background: var(--v-separator-bold);
+  color: var(--v-text-secondary);
+}
+
+.v-badge-danger {
+  background: var(--v-danger-dim);
+  color: var(--v-danger);
+}
+
+.v-badge-success {
+  background: var(--v-success-dim);
+  color: var(--v-success);
+}
+
+.v-badge-warning {
+  background: var(--v-warning-dim);
+  color: var(--v-warning);
+}
+
+/* --- Quantity badge (items) --- */
+.v-qty {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--v-text);
+  background: rgba(0, 0, 0, 0.65);
+  padding: 2px 6px;
+  border-radius: var(--v-radius-xs);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* --- Tabs / Navigation --- */
+.v-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: 3px;
+  width: fit-content;
+}
+
+.v-tab {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  background: transparent;
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--v-radius-sm);
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+}
+
+.v-tab:hover { color: var(--v-text-secondary); }
+
+.v-tab.active {
+  background: var(--v-surface-3);
+  color: var(--v-text);
+}
+
+/* --- Top Navbar (fullwidth like V3 ref) --- */
+.v-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0 var(--v-space-4);
+  height: 48px;
+  background: rgba(10, 10, 10, 0.85);
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.v-nav-item {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  background: transparent;
+  border: none;
+  padding: 0 var(--v-space-5);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.v-nav-item:hover { color: var(--v-text-secondary); }
+
+.v-nav-item.active {
+  color: var(--v-text);
+}
+
+.v-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--v-space-5);
+  right: var(--v-space-5);
+  height: 2px;
+  background: var(--v-text);
+  border-radius: 1px;
+}
+
+/* --- Nav item icon --- */
+.v-nav-item svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.v-nav-item.active svg { opacity: 1; }
+
+/* --- Section header --- */
+.v-section-header {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-4);
+}
+
+/* ============================================================
+   5. ITEM SLOTS (Inventory grid)
+   ============================================================ */
+
+.v-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: var(--v-space-2);
+}
+
+.v-item-slot {
+  position: relative;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  overflow: hidden;
+}
+
+.v-item-slot:hover {
+  border-color: var(--v-border-hover);
+  background: var(--v-surface-2);
+}
+
+.v-item-slot.empty {
+  border-style: dashed;
+  border-color: var(--v-separator);
+  background: transparent;
+}
+
+.v-item-slot .item-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  opacity: 0.9;
+  margin-bottom: var(--v-space-1);
+}
+
+.v-item-slot .item-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--v-text-secondary);
+  text-align: center;
+  padding: 0 4px;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rarity borders */
+.v-item-slot.rarity-common    { border-color: var(--v-rarity-common); }
+.v-item-slot.rarity-uncommon  { border-color: var(--v-rarity-uncommon); }
+.v-item-slot.rarity-rare      { border-color: var(--v-rarity-rare); }
+.v-item-slot.rarity-legendary { border-color: var(--v-rarity-legendary); }
+
+/* Rarity subtle glow on hover */
+.v-item-slot.rarity-uncommon:hover  { box-shadow: 0 0 20px rgba(48, 209, 88, 0.08); }
+.v-item-slot.rarity-rare:hover      { box-shadow: 0 0 20px rgba(100, 210, 255, 0.08); }
+.v-item-slot.rarity-legendary:hover { box-shadow: 0 0 20px rgba(255, 214, 10, 0.08); }
+
+/* --- Hotbar slots --- */
+.v-hotbar {
+  display: flex;
+  gap: var(--v-space-2);
+}
+
+.v-hotbar-slot {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-hotbar-slot:hover {
+  border-color: var(--v-border-hover);
+}
+
+.v-hotbar-slot .key {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--v-text-tertiary);
+  line-height: 1;
+}
+
+.v-hotbar-slot .slot-label {
+  font-size: 10px;
+  color: var(--v-text-disabled);
+  font-weight: 500;
+}
+
+/* ============================================================
+   6. PROGRESS BARS
+   ============================================================ */
+
+.v-progress {
+  height: 4px;
+  background: var(--v-separator-bold);
+  border-radius: var(--v-radius-full);
+  overflow: hidden;
+  width: 100%;
+}
+
+.v-progress .bar {
+  height: 100%;
+  border-radius: var(--v-radius-full);
+  transition: width 0.4s var(--v-ease);
+}
+
+.v-progress .bar.hp      { background: var(--v-text); }
+.v-progress .bar.armor   { background: var(--v-text-secondary); }
+.v-progress .bar.xp      { background: var(--v-silver); }
+.v-progress .bar.danger  { background: var(--v-danger); }
+.v-progress .bar.success { background: var(--v-success); }
+
+.v-progress-lg { height: 6px; }
+
+/* ============================================================
+   7. TOAST / NOTIFICATION
+   ============================================================ */
+
+.v-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-3) var(--v-space-5);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  max-width: 360px;
+  animation: v-fadeIn 0.3s var(--v-ease);
+}
+
+.v-toast .toast-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.v-toast-danger  { border-left: 3px solid var(--v-danger); }
+.v-toast-success { border-left: 3px solid var(--v-success); }
+.v-toast-warning { border-left: 3px solid var(--v-warning); }
+.v-toast-info    { border-left: 3px solid var(--v-info); }
+
+/* ============================================================
+   8. MODAL / OVERLAY
+   ============================================================ */
+
+.v-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.70);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.v-modal {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  padding: var(--v-space-8);
+  max-width: 480px;
+  width: 100%;
+  animation: v-scaleIn 0.25s var(--v-ease);
+}
+
+.v-modal-title {
+  font-size: var(--v-size-lg);
+  font-weight: 600;
+  color: var(--v-text);
+  margin-bottom: var(--v-space-2);
+}
+
+.v-modal-desc {
+  font-size: var(--v-size-sm);
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-6);
+  line-height: 1.6;
+}
+
+.v-modal-actions {
+  display: flex;
+  gap: var(--v-space-3);
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   9. HUD (minimal Apple-style)
+   ============================================================ */
+
+.v-hud {
+  position: fixed;
+  bottom: var(--v-space-8);
+  left: var(--v-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  width: 200px;
+}
+
+.v-hud-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.v-hud-bar .hud-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.v-hud-bar .v-progress { flex: 1; }
+
+.v-hud-bar .hud-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v-text-secondary);
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-hud-weapon {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  margin-top: var(--v-space-1);
+}
+
+.v-hud-weapon .weapon-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v-text-secondary);
+}
+
+.v-hud-weapon .ammo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v-text-tertiary);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   10. WATERMARK & BRANDING
+   ============================================================ */
+
+.v-watermark {
+  position: fixed;
+  top: var(--v-space-5);
+  left: var(--v-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.v-watermark svg { width: 24px; height: 24px; }
+
+.v-watermark span {
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--v-text);
+}
+
+/* ============================================================
+   11. RARITY SHOWCASE
+   ============================================================ */
+
+.ds-rarity-row {
+  display: flex;
+  gap: var(--v-space-4);
+  margin-bottom: var(--v-space-6);
+}
+
+.ds-rarity-card {
+  flex: 1;
+  text-align: center;
+  padding: var(--v-space-6) var(--v-space-4);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface);
+  transition: all 0.3s var(--v-ease);
+}
+
+.ds-rarity-card .rarity-name {
+  font-size: var(--v-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--v-space-2);
+}
+
+.ds-rarity-card .rarity-bar {
+  height: 2px;
+  width: 40px;
+  margin: 0 auto;
+  border-radius: 1px;
+}
+
+.ds-rarity-card.common    { border: 1px solid var(--v-rarity-common); }
+.ds-rarity-card.common .rarity-name { color: var(--v-text-tertiary); }
+.ds-rarity-card.common .rarity-bar { background: var(--v-rarity-common-solid); }
+
+.ds-rarity-card.uncommon  { border: 1px solid var(--v-rarity-uncommon); }
+.ds-rarity-card.uncommon .rarity-name { color: var(--v-success); }
+.ds-rarity-card.uncommon .rarity-bar { background: var(--v-rarity-uncommon-solid); }
+
+.ds-rarity-card.rare      { border: 1px solid var(--v-rarity-rare); }
+.ds-rarity-card.rare .rarity-name { color: var(--v-info); }
+.ds-rarity-card.rare .rarity-bar { background: var(--v-rarity-rare-solid); }
+
+.ds-rarity-card.legendary { border: 1px solid var(--v-rarity-legendary); }
+.ds-rarity-card.legendary .rarity-name { color: var(--v-warning); }
+.ds-rarity-card.legendary .rarity-bar { background: var(--v-rarity-legendary-solid); }
+
+/* ============================================================
+   12. DEMO INVENTORY MOCKUP
+   ============================================================ */
+
+.ds-mockup {
+  background: rgba(10, 10, 10, 0.92);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  overflow: hidden;
+  margin-top: var(--v-space-6);
+}
+
+.ds-mockup-inner {
+  padding: var(--v-space-6);
+}
+
+.ds-mockup-nav {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--v-space-5);
+  border-bottom: 1px solid var(--v-separator);
+  gap: var(--v-space-6);
+}
+
+.ds-mockup-nav .nav-link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  position: relative;
+  transition: color var(--v-duration) var(--v-ease);
+}
+
+.ds-mockup-nav .nav-link:hover { color: var(--v-text-secondary); }
+
+.ds-mockup-nav .nav-link.active { color: var(--v-text); }
+.ds-mockup-nav .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--v-text);
+  border-radius: 1px;
+}
+
+.ds-mockup-nav .nav-logo {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  opacity: 0.2;
+}
+
+.ds-mockup-nav .nav-logo svg { width: 18px; height: 18px; }
+.ds-mockup-nav .nav-logo span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--v-text);
+}
+
+.ds-inv-section {
+  margin-bottom: var(--v-space-6);
+}
+
+.ds-inv-section:last-child { margin-bottom: 0; }
+
+.ds-inv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--v-space-3);
+}
+
+.ds-inv-header h3 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v-text-secondary);
+}
+
+.ds-inv-header .counter {
+  font-size: 11px;
+  color: var(--v-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* item placeholder inside mockup */
+.v-item-slot .placeholder-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--v-separator-bold);
+  border-radius: var(--v-radius-sm);
+  margin-bottom: var(--v-space-1);
+}
+
+/* ============================================================
+   13. TOOLTIP
+   ============================================================ */
+
+.v-tooltip {
+  background: var(--v-surface-3);
+  border: 1px solid var(--v-border-hover);
+  border-radius: var(--v-radius-sm);
+  padding: var(--v-space-2) var(--v-space-3);
+  font-size: var(--v-size-xs);
+  color: var(--v-text);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  max-width: 220px;
+  animation: v-fadeIn 0.15s var(--v-ease);
+}
+
+.v-tooltip .tt-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.v-tooltip .tt-desc {
+  color: var(--v-text-secondary);
+  line-height: 1.4;
+}
+
+.v-tooltip .tt-rarity {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: var(--v-space-1);
+}
+
+/* ============================================================
+   14. TOGGLE / SWITCH
+   ============================================================ */
+
+.v-toggle {
+  width: 44px;
+  height: 26px;
+  background: var(--v-surface-3);
+  border-radius: var(--v-radius-full);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--v-duration) var(--v-ease);
+  border: 1px solid var(--v-border);
+}
+
+.v-toggle.on {
+  background: var(--v-success);
+  border-color: var(--v-success);
+}
+
+.v-toggle .knob {
+  width: 20px;
+  height: 20px;
+  background: var(--v-text);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform var(--v-duration) var(--v-spring);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.v-toggle.on .knob {
+  transform: translateX(18px);
+}
+
+/* ============================================================
+   15. DROPDOWN / SELECT
+   ============================================================ */
+
+.v-select {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  padding: 10px 36px 10px 14px;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-select:focus {
+  border-color: var(--v-text-secondary);
+}
+
+/* ============================================================
+   16. SCROLLBAR
+   ============================================================ */
+
+.v-scroll::-webkit-scrollbar { width: 4px; }
+.v-scroll::-webkit-scrollbar-track { background: transparent; }
+.v-scroll::-webkit-scrollbar-thumb {
+  background: var(--v-separator-bold);
+  border-radius: var(--v-radius-full);
+}
+.v-scroll::-webkit-scrollbar-thumb:hover { background: var(--v-border-hover); }
+
+/* ============================================================
+   17. SEPARATOR
+   ============================================================ */
+
+.v-divider {
+  height: 1px;
+  background: var(--v-separator);
+  margin: var(--v-space-6) 0;
+}
+
+.v-divider-bold {
+  height: 1px;
+  background: var(--v-separator-bold);
+}
+
+/* ============================================================
+   18. STAT ROW (profile)
+   ============================================================ */
+
+.v-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--v-space-3) 0;
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.v-stat-row .stat-label {
+  font-size: var(--v-size-sm);
+  color: var(--v-text-secondary);
+}
+
+.v-stat-row .stat-value {
+  font-size: var(--v-size-sm);
+  font-weight: 600;
+  color: var(--v-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   RESPONSIVE DEMO INVENTORY GRID
+   ============================================================ */
+
+.ds-item-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--v-space-2);
+}
+
+.ds-item-demo-grid .v-item-slot {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+/* ============================================================
+   CODE SNIPPET (for documentation)
+   ============================================================ */
+
+.ds-code {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-4) var(--v-space-5);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--v-text-secondary);
+  overflow-x: auto;
+  white-space: pre;
+  margin-top: var(--v-space-3);
+}
+
+.ds-code .comment { color: var(--v-text-disabled); }
+.ds-code .prop { color: var(--v-info); }
+.ds-code .val { color: var(--v-success); }
+
+</style>
+</head>
+<body>
+
+<div class="ds-page">
+
+  <!-- ==================== HERO ==================== -->
+  <div class="ds-hero">
+    <svg class="logo-mark" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="url(#logo-grad)" />
+      <path d="M50 28 L35 58 L50 48 L65 58 Z" fill="url(#logo-grad2)" opacity="0.5"/>
+      <defs>
+        <linearGradient id="logo-grad" x1="50" y1="0" x2="50" y2="65">
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#888888" />
+        </linearGradient>
+        <linearGradient id="logo-grad2" x1="50" y1="28" x2="50" y2="58">
+          <stop offset="0%" stop-color="#cccccc" />
+          <stop offset="100%" stop-color="#444444" />
+        </linearGradient>
+      </defs>
+    </svg>
+    <h1>VANTA DESIGN SYSTEM</h1>
+    <p>Version 2.0 — Apple Monochrome × Tactical Premium<br>Zombie Survival PVP — FiveM</p>
+  </div>
+
+  <!-- ==================== 1. LOGO USAGE ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">1 — Logo & Branding</h2>
+
+    <div class="ds-logo-grid">
+      <div class="ds-logo-card">
+        <svg class="v-logomark lg" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="url(#lg1)" />
+          <path d="M50 28 L35 58 L50 48 L65 58 Z" fill="url(#lg2)" opacity="0.5"/>
+          <defs>
+            <linearGradient id="lg1" x1="50" y1="0" x2="50" y2="65"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#888"/></linearGradient>
+            <linearGradient id="lg2" x1="50" y1="28" x2="50" y2="58"><stop offset="0%" stop-color="#ccc"/><stop offset="100%" stop-color="#444"/></linearGradient>
+          </defs>
+        </svg>
+        <span class="v-wordmark">VANTA</span>
+        <span class="logo-label">Primary — Dark BG</span>
+      </div>
+
+      <div class="ds-logo-card light">
+        <svg class="v-logomark lg" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="url(#lg3)" />
+          <path d="M50 28 L35 58 L50 48 L65 58 Z" fill="url(#lg4)" opacity="0.5"/>
+          <defs>
+            <linearGradient id="lg3" x1="50" y1="0" x2="50" y2="65"><stop offset="0%" stop-color="#222"/><stop offset="100%" stop-color="#555"/></linearGradient>
+            <linearGradient id="lg4" x1="50" y1="28" x2="50" y2="58"><stop offset="0%" stop-color="#333"/><stop offset="100%" stop-color="#777"/></linearGradient>
+          </defs>
+        </svg>
+        <span class="v-wordmark dark">VANTA</span>
+        <span class="logo-label">Inversé — Light BG</span>
+      </div>
+
+      <div class="ds-logo-card" style="background: var(--v-bg);">
+        <div style="display:flex;align-items:center;gap:10px;opacity:0.15;">
+          <svg width="28" height="22" viewBox="0 0 100 80" fill="none"><path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="#fff"/></svg>
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.3em;color:#fff;">VANTA</span>
+        </div>
+        <div style="margin-top: 32px;"></div>
+        <span class="logo-label">Watermark in-game (opacity 0.15)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. COLORS ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">2 — Colors</h2>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Backgrounds</h3>
+      <div class="ds-color-grid">
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#000000;"></div>
+          <div class="meta"><div class="name">Black</div><div class="value">--v-black #000000</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#0a0a0a;"></div>
+          <div class="meta"><div class="name">Background</div><div class="value">--v-bg #0a0a0a</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#141414;"></div>
+          <div class="meta"><div class="name">Surface</div><div class="value">--v-surface #141414</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#1c1c1e;"></div>
+          <div class="meta"><div class="name">Surface 2</div><div class="value">--v-surface-2 #1c1c1e</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#242426;"></div>
+          <div class="meta"><div class="name">Surface 3</div><div class="value">--v-surface-3 #242426</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#2c2c2e;"></div>
+          <div class="meta"><div class="name">Elevated</div><div class="value">--v-elevated #2c2c2e</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Text</h3>
+      <div class="ds-color-grid">
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#ffffff;"></div>
+          <div class="meta"><div class="name">Primary</div><div class="value">--v-text #ffffff</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview checkered"><div class="overlay" style="background:rgba(255,255,255,0.55);"></div></div>
+          <div class="meta"><div class="name">Secondary</div><div class="value">--v-text-secondary 55%</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview checkered"><div class="overlay" style="background:rgba(255,255,255,0.28);"></div></div>
+          <div class="meta"><div class="name">Tertiary</div><div class="value">--v-text-tertiary 28%</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview checkered"><div class="overlay" style="background:rgba(255,255,255,0.15);"></div></div>
+          <div class="meta"><div class="name">Disabled</div><div class="value">--v-text-disabled 15%</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Brand — Silver</h3>
+      <div class="ds-color-grid">
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#c8cdd4;"></div>
+          <div class="meta"><div class="name">Silver</div><div class="value">--v-silver #c8cdd4</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview checkered"><div class="overlay" style="background:rgba(200,205,212,0.40);"></div></div>
+          <div class="meta"><div class="name">Silver Dim</div><div class="value">--v-silver-dim 40%</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview checkered"><div class="overlay" style="background:rgba(200,205,212,0.06);"></div></div>
+          <div class="meta"><div class="name">Silver Glow</div><div class="value">--v-silver-glow 6%</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Semantic</h3>
+      <div class="ds-color-grid">
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#ff453a;"></div>
+          <div class="meta"><div class="name">Danger</div><div class="value">--v-danger #ff453a</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#30d158;"></div>
+          <div class="meta"><div class="name">Success</div><div class="value">--v-success #30d158</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#ffd60a;"></div>
+          <div class="meta"><div class="name">Warning</div><div class="value">--v-warning #ffd60a</div></div>
+        </div>
+        <div class="ds-color-swatch">
+          <div class="preview" style="background:#64d2ff;"></div>
+          <div class="meta"><div class="name">Info</div><div class="value">--v-info #64d2ff</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Rarity</h3>
+      <div class="ds-rarity-row">
+        <div class="ds-rarity-card common">
+          <div class="rarity-name">Commun</div>
+          <div class="rarity-bar"></div>
+        </div>
+        <div class="ds-rarity-card uncommon">
+          <div class="rarity-name">Peu Commun</div>
+          <div class="rarity-bar"></div>
+        </div>
+        <div class="ds-rarity-card rare">
+          <div class="rarity-name">Rare</div>
+          <div class="rarity-bar"></div>
+        </div>
+        <div class="ds-rarity-card legendary">
+          <div class="rarity-name">Légendaire</div>
+          <div class="rarity-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. TYPOGRAPHY ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">3 — Typography</h2>
+
+    <p class="ds-label">Font : Inter — toutes les UIs, tous les contextes</p>
+    <div style="margin-bottom: var(--v-space-6);"></div>
+
+    <div class="ds-type-scale">
+      <div class="ds-type-row">
+        <span class="size-label">34px / Bold</span>
+        <span class="sample" style="font-size:34px;font-weight:700;">VANTA</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">28px / SemiBold</span>
+        <span class="sample" style="font-size:28px;font-weight:600;">Zombie Survival</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">24px / SemiBold</span>
+        <span class="sample" style="font-size:24px;font-weight:600;">Inventaire</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">20px / SemiBold</span>
+        <span class="sample" style="font-size:20px;font-weight:600;">Coffre Protégé</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">17px / Medium</span>
+        <span class="sample" style="font-size:17px;font-weight:500;">Carbine Rifle MK II</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">15px / Regular</span>
+        <span class="sample" style="font-size:15px;font-weight:400;">Cliquez pour équiper cet item dans votre hotbar.</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">13px / Medium</span>
+        <span class="sample" style="font-size:13px;font-weight:500;">12 / 30 items — 8.4 kg</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="size-label">11px / SemiBold</span>
+        <span class="sample" style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">SECTION HEADER · NAVIGATION · LABELS</span>
+      </div>
+    </div>
+
+    <div style="margin-top: var(--v-space-8);"></div>
+    <div class="ds-subsection-title">Poids</div>
+    <div class="ds-weight-grid">
+      <div class="ds-weight-card">
+        <div class="demo" style="font-weight:300;">Aa</div>
+        <div class="label">Light 300</div>
+      </div>
+      <div class="ds-weight-card">
+        <div class="demo" style="font-weight:400;">Aa</div>
+        <div class="label">Regular 400</div>
+      </div>
+      <div class="ds-weight-card">
+        <div class="demo" style="font-weight:500;">Aa</div>
+        <div class="label">Medium 500</div>
+      </div>
+      <div class="ds-weight-card">
+        <div class="demo" style="font-weight:600;">Aa</div>
+        <div class="label">SemiBold 600</div>
+      </div>
+      <div class="ds-weight-card">
+        <div class="demo" style="font-weight:700;">Aa</div>
+        <div class="label">Bold 700</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. COMPONENTS ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">4 — Components</h2>
+
+    <!-- Buttons -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Buttons</h3>
+      <div class="ds-component-row">
+        <button class="v-btn v-btn-primary">Confirmer</button>
+        <button class="v-btn v-btn-secondary">Annuler</button>
+        <button class="v-btn v-btn-ghost">Fermer</button>
+        <button class="v-btn v-btn-danger">Supprimer</button>
+        <button class="v-btn v-btn-success">Acheter</button>
+      </div>
+      <div class="ds-component-row">
+        <button class="v-btn v-btn-primary v-btn-sm">Small</button>
+        <button class="v-btn v-btn-primary">Default</button>
+        <button class="v-btn v-btn-primary v-btn-lg">Large</button>
+        <button class="v-btn v-btn-secondary v-btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Inputs -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Inputs</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--v-space-4);max-width:700px;">
+        <div>
+          <div class="ds-label">Text Input</div>
+          <input class="v-input" type="text" placeholder="Rechercher..." />
+        </div>
+        <div>
+          <div class="ds-label">Select</div>
+          <select class="v-select" style="width:100%;">
+            <option>Toutes les raretés</option>
+            <option>Commun</option>
+            <option>Rare</option>
+            <option>Légendaire</option>
+          </select>
+        </div>
+        <div>
+          <div class="ds-label">Focused</div>
+          <input class="v-input" type="text" value="AK-47" style="border-color:var(--v-text-secondary);background:var(--v-surface-3);" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Tabs</h3>
+      <div class="v-tabs">
+        <button class="v-tab active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Inventaire
+        </button>
+        <button class="v-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+          Marché
+        </button>
+        <button class="v-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profil
+        </button>
+        <button class="v-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Paramètres
+        </button>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Badges</h3>
+      <div class="ds-component-row">
+        <span class="v-badge v-badge-default">x12</span>
+        <span class="v-badge v-badge-success">En ligne</span>
+        <span class="v-badge v-badge-danger">Mort</span>
+        <span class="v-badge v-badge-warning">Redzone</span>
+      </div>
+    </div>
+
+    <!-- Toggles -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Toggles</h3>
+      <div class="ds-component-row">
+        <div>
+          <div class="ds-label">Off</div>
+          <div class="v-toggle"><div class="knob"></div></div>
+        </div>
+        <div>
+          <div class="ds-label">On</div>
+          <div class="v-toggle on"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bars -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Progress Bars</h3>
+      <div style="max-width: 400px; display: flex; flex-direction: column; gap: var(--v-space-4);">
+        <div>
+          <div class="ds-label">HP</div>
+          <div class="v-progress"><div class="bar hp" style="width:75%;"></div></div>
+        </div>
+        <div>
+          <div class="ds-label">Armor</div>
+          <div class="v-progress"><div class="bar armor" style="width:50%;"></div></div>
+        </div>
+        <div>
+          <div class="ds-label">XP (Large)</div>
+          <div class="v-progress v-progress-lg"><div class="bar xp" style="width:62%;"></div></div>
+        </div>
+        <div>
+          <div class="ds-label">HP Critique</div>
+          <div class="v-progress"><div class="bar danger" style="width:15%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Toasts / Notifications</h3>
+      <div style="display:flex;flex-direction:column;gap:var(--v-space-3);max-width:360px;">
+        <div class="v-toast v-toast-success">
+          <span>+1 Carbine Rifle</span>
+        </div>
+        <div class="v-toast v-toast-danger">
+          <span>Vous avez été tué par Player_42</span>
+        </div>
+        <div class="v-toast v-toast-warning">
+          <span>Redzone active — Zone dangereuse</span>
+        </div>
+        <div class="v-toast v-toast-info">
+          <span>Drop de ravitaillement dans 2:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Tooltip (item hover)</h3>
+      <div style="display:flex;gap:var(--v-space-4);">
+        <div class="v-tooltip">
+          <div class="tt-title">AK-47</div>
+          <div class="tt-desc">Fusil d'assaut automatique. Dégâts élevés, recul modéré.</div>
+          <div class="tt-rarity" style="color:var(--v-info);">Rare</div>
+        </div>
+        <div class="v-tooltip">
+          <div class="tt-title">Medkit</div>
+          <div class="tt-desc">Restaure 75% des PV. Temps d'utilisation : 5s.</div>
+          <div class="tt-rarity" style="color:var(--v-text-tertiary);">Commun</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Modal</h3>
+      <div style="background:rgba(0,0,0,0.5);padding:var(--v-space-10);border-radius:var(--v-radius-xl);display:flex;justify-content:center;">
+        <div class="v-modal" style="position:relative;">
+          <div class="v-modal-title">Supprimer l'item ?</div>
+          <div class="v-modal-desc">Cette action est irréversible. L'item sera définitivement supprimé de votre inventaire.</div>
+          <div class="v-modal-actions">
+            <button class="v-btn v-btn-secondary">Annuler</button>
+            <button class="v-btn v-btn-danger">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. ITEM SLOTS ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">5 — Item Slots & Rarity</h2>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Slot States</h3>
+      <div style="display:flex;gap:var(--v-space-3);flex-wrap:wrap;">
+        <!-- Empty -->
+        <div class="v-item-slot empty" style="width:90px;height:90px;">
+          <span class="item-name" style="color:var(--v-text-disabled);">Vide</span>
+        </div>
+        <!-- Common -->
+        <div class="v-item-slot rarity-common" style="width:90px;height:90px;">
+          <div class="placeholder-icon"></div>
+          <span class="item-name">Pistol</span>
+          <span class="v-qty">x1</span>
+        </div>
+        <!-- Uncommon -->
+        <div class="v-item-slot rarity-uncommon" style="width:90px;height:90px;">
+          <div class="placeholder-icon" style="background:var(--v-rarity-uncommon);"></div>
+          <span class="item-name">Pump Shotgun</span>
+          <span class="v-qty">x1</span>
+        </div>
+        <!-- Rare -->
+        <div class="v-item-slot rarity-rare" style="width:90px;height:90px;">
+          <div class="placeholder-icon" style="background:var(--v-rarity-rare);"></div>
+          <span class="item-name">AK-47</span>
+          <span class="v-qty">x1</span>
+        </div>
+        <!-- Legendary -->
+        <div class="v-item-slot rarity-legendary" style="width:90px;height:90px;">
+          <div class="placeholder-icon" style="background:var(--v-rarity-legendary);"></div>
+          <span class="item-name">RPG</span>
+          <span class="v-qty">x1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-subsection">
+      <h3 class="ds-subsection-title">Hotbar (7 slots)</h3>
+      <div class="v-hotbar">
+        <div class="v-hotbar-slot">
+          <span class="key">1</span>
+          <div class="placeholder-icon" style="width:36px;height:36px;"></div>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">2</span>
+          <div class="placeholder-icon" style="width:36px;height:36px;"></div>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">3</span>
+          <span class="slot-label">Vide</span>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">4</span>
+          <span class="slot-label">Vide</span>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">5</span>
+          <span class="slot-label">Vide</span>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">6</span>
+          <span class="slot-label">Vide</span>
+        </div>
+        <div class="v-hotbar-slot">
+          <span class="key">7</span>
+          <span class="slot-label">Vide</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. HUD MOCKUP ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">6 — HUD (In-Game)</h2>
+    <div style="background:var(--v-bg);border:1px solid var(--v-border);border-radius:var(--v-radius-xl);padding:var(--v-space-16);position:relative;min-height:300px;">
+
+      <!-- Watermark -->
+      <div style="position:absolute;top:20px;left:20px;display:flex;align-items:center;gap:8px;opacity:0.15;">
+        <svg width="24" height="19" viewBox="0 0 100 80" fill="none"><path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="#fff"/></svg>
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.3em;color:#fff;">VANTA</span>
+      </div>
+
+      <!-- HUD bottom-left -->
+      <div style="position:absolute;bottom:32px;left:32px;width:180px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <div class="v-progress" style="flex:1;"><div class="bar hp" style="width:82%;"></div></div>
+          <span style="font-size:11px;font-weight:600;color:var(--v-text-secondary);min-width:28px;text-align:right;font-variant-numeric:tabular-nums;">164</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div class="v-progress" style="flex:1;"><div class="bar armor" style="width:50%;"></div></div>
+          <span style="font-size:11px;font-weight:600;color:var(--v-text-secondary);min-width:28px;text-align:right;font-variant-numeric:tabular-nums;">50</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <span style="font-size:11px;font-weight:500;color:var(--v-text-tertiary);">AK-47</span>
+          <span style="font-size:11px;font-weight:600;color:var(--v-text-secondary);margin-left:auto;font-variant-numeric:tabular-nums;">∞</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 7. INVENTORY MOCKUP ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">7 — Inventory Mockup</h2>
+    <p class="ds-note" style="margin-bottom:var(--v-space-4);">Inspiré du layout V3 PVP — adapté au design system VANTA v2</p>
+
+    <div class="ds-mockup">
+      <!-- Nav bar -->
+      <div class="ds-mockup-nav">
+        <div class="nav-logo">
+          <svg width="18" height="14" viewBox="0 0 100 80" fill="none"><path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="#fff"/></svg>
+          <span>VANTA</span>
+        </div>
+        <a class="nav-link" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+          Marché
+        </a>
+        <a class="nav-link active" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Inventaire
+        </a>
+        <a class="nav-link" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profil
+        </a>
+        <a class="nav-link" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Classement
+        </a>
+        <a class="nav-link" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Crew
+        </a>
+        <a class="nav-link" href="#" style="margin-left:auto;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Paramètres
+        </a>
+      </div>
+
+      <div class="ds-mockup-inner">
+        <!-- Mon Sac -->
+        <div class="ds-inv-section">
+          <div class="ds-inv-header">
+            <h3>Mon Sac</h3>
+            <span class="counter">4 / 20 — 3.2 kg</span>
+          </div>
+          <div class="ds-item-demo-grid">
+            <div class="v-item-slot rarity-rare">
+              <span class="v-qty">x1</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-rare);"></div>
+              <span class="item-name">AK-47</span>
+            </div>
+            <div class="v-item-slot rarity-uncommon">
+              <span class="v-qty">x1</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-uncommon);"></div>
+              <span class="item-name">Kuruma</span>
+            </div>
+            <div class="v-item-slot rarity-common">
+              <span class="v-qty">x3</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-common);"></div>
+              <span class="item-name">Bandage</span>
+            </div>
+            <div class="v-item-slot rarity-legendary">
+              <span class="v-qty">x1</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-legendary);"></div>
+              <span class="item-name">RPG</span>
+            </div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+          </div>
+        </div>
+
+        <div class="v-divider"></div>
+
+        <!-- Coffre Protégé -->
+        <div class="ds-inv-section">
+          <div class="ds-inv-header">
+            <h3>Coffre Protégé</h3>
+            <span class="counter">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:4px;opacity:0.4;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Persistant
+            </span>
+          </div>
+          <div class="ds-item-demo-grid">
+            <div class="v-item-slot rarity-rare">
+              <span class="v-qty">x5</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-rare);"></div>
+              <span class="item-name">Carbine MK2</span>
+            </div>
+            <div class="v-item-slot rarity-uncommon">
+              <span class="v-qty">x2</span>
+              <div class="placeholder-icon" style="background:var(--v-rarity-uncommon);"></div>
+              <span class="item-name">Medkit</span>
+            </div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+            <div class="v-item-slot empty"></div>
+          </div>
+        </div>
+
+        <div class="v-divider"></div>
+
+        <!-- Hotbar -->
+        <div class="ds-inv-section">
+          <div class="ds-inv-header">
+            <h3>Hotbar</h3>
+            <span class="counter">Touches 1–7</span>
+          </div>
+          <div class="v-hotbar">
+            <div class="v-hotbar-slot" style="border-color:var(--v-rarity-rare);">
+              <span class="key">1</span>
+              <div class="placeholder-icon" style="width:36px;height:36px;background:var(--v-rarity-rare);"></div>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">2</span>
+              <span class="slot-label">Vide</span>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">3</span>
+              <span class="slot-label">Vide</span>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">4</span>
+              <span class="slot-label">Vide</span>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">5</span>
+              <span class="slot-label">Vide</span>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">6</span>
+              <span class="slot-label">Vide</span>
+            </div>
+            <div class="v-hotbar-slot">
+              <span class="key">7</span>
+              <span class="slot-label">Vide</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 8. STAT PROFILE ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">8 — Profile Stats</h2>
+
+    <div style="max-width:400px;">
+      <div class="v-card" style="padding:var(--v-space-6);">
+        <!-- Avatar + Name -->
+        <div style="display:flex;align-items:center;gap:var(--v-space-4);margin-bottom:var(--v-space-5);">
+          <div style="width:48px;height:48px;background:var(--v-surface-3);border-radius:var(--v-radius-md);display:flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v-text-tertiary)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:var(--v-size-lg);font-weight:600;">Player_01</div>
+            <div style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">Prestige 2 — Niveau 14</div>
+          </div>
+          <span class="v-badge v-badge-success" style="margin-left:auto;">En ligne</span>
+        </div>
+
+        <!-- XP Bar -->
+        <div style="margin-bottom:var(--v-space-5);">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">XP</span>
+            <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-variant-numeric:tabular-nums;">18,450 / 30,000</span>
+          </div>
+          <div class="v-progress v-progress-lg"><div class="bar xp" style="width:61.5%;"></div></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="v-stat-row">
+          <span class="stat-label">Kills</span>
+          <span class="stat-value">247</span>
+        </div>
+        <div class="v-stat-row">
+          <span class="stat-label">Morts</span>
+          <span class="stat-value">89</span>
+        </div>
+        <div class="v-stat-row">
+          <span class="stat-label">K/D Ratio</span>
+          <span class="stat-value">2.77</span>
+        </div>
+        <div class="v-stat-row">
+          <span class="stat-label">Zombies tués</span>
+          <span class="stat-value">1,203</span>
+        </div>
+        <div class="v-stat-row" style="border-bottom:none;">
+          <span class="stat-label">Kill Streak Record</span>
+          <span class="stat-value" style="color:var(--v-warning);">12</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 9. SPACING ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">9 — Spacing Scale</h2>
+    <div style="display:flex;flex-direction:column;gap:var(--v-space-3);">
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">4px</span>
+        <div style="width:4px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-1</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">8px</span>
+        <div style="width:8px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-2</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">12px</span>
+        <div style="width:12px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-3</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">16px</span>
+        <div style="width:16px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-4</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">24px</span>
+        <div style="width:24px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-6</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">32px</span>
+        <div style="width:32px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-8</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">48px</span>
+        <div style="width:48px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-12</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--v-space-4);">
+        <span style="width:60px;font-size:var(--v-size-xs);color:var(--v-text-tertiary);font-family:monospace;">64px</span>
+        <div style="width:64px;height:16px;background:var(--v-silver);border-radius:1px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">--v-space-16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 10. RADIUS ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">10 — Border Radius</h2>
+    <div style="display:flex;gap:var(--v-space-5);flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:4px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">4px — XS</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:6px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">6px — SM</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:10px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">10px — MD</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:14px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">14px — LG</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:20px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">20px — XL</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--v-surface-2);border:1px solid var(--v-border);border-radius:9999px;margin-bottom:8px;"></div>
+        <span style="font-size:var(--v-size-xs);color:var(--v-text-tertiary);">Full — Pill</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 11. ANIMATIONS ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">11 — Animations</h2>
+    <div class="ds-code">
+<span class="comment">/* Utiliser uniquement ces 3 animations */</span>
+
+<span class="comment">/* Apparition standard — menus, panels, items */</span>
+@keyframes v-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+<span class="comment">/* Modals, popups */</span>
+@keyframes v-scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+<span class="comment">/* Slide latéral — listes, sidebar */</span>
+@keyframes v-slideRight {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+<span class="comment">/* Transition par défaut pour hover/focus */</span>
+transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+<span class="comment">/* Toggle knob spring */</span>
+transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    </div>
+
+    <p class="ds-note" style="margin-top:var(--v-space-4);">
+      PAS de : bounce, scale pulse, glow pulse, infinite spin, shake.<br>
+      PAS de : backdrop-filter (cassé dans FiveM CEF).<br>
+      Durée max : 0.3s. Tout doit être instantané et responsive.
+    </p>
+  </div>
+
+  <!-- ==================== 12. RULES ==================== -->
+  <div class="ds-section">
+    <h2 class="ds-section-title">12 — Rules</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--v-space-4);">
+      <div class="v-card" style="padding:var(--v-space-5);">
+        <div style="font-size:var(--v-size-sm);font-weight:600;color:var(--v-success);margin-bottom:var(--v-space-3);">DO</div>
+        <div style="font-size:var(--v-size-sm);color:var(--v-text-secondary);line-height:1.8;">
+          Font Inter partout<br>
+          Fond noir pur (#000 ou #0a0a0a)<br>
+          Texte blanc, hiérarchie via opacity<br>
+          Bordures subtiles rgba(255,255,255,0.06-0.15)<br>
+          Séparation par espacement, pas par lignes<br>
+          Radius 6-14px (Apple-style)<br>
+          Animations CSS courtes (0.15-0.3s)<br>
+          Items 1:1 aspect ratio en grille<br>
+          Couleur de rareté = bordure uniquement<br>
+          Monochrome. Silver comme accent brand.
+        </div>
+      </div>
+      <div class="v-card" style="padding:var(--v-space-5);">
+        <div style="font-size:var(--v-size-sm);font-weight:600;color:var(--v-danger);margin-bottom:var(--v-space-3);">DON'T</div>
+        <div style="font-size:var(--v-size-sm);color:var(--v-text-secondary);line-height:1.8;">
+          Grunge, rouille, poussière, néon<br>
+          Glassmorphism / backdrop-filter blur<br>
+          Drop shadows (utiliser bordures)<br>
+          Gradients sur les fonds<br>
+          Bounce, scale, glow, pulse<br>
+          confirm() ou prompt() (freeze FiveM)<br>
+          HTML5 drag (cassé dans FiveM CEF)<br>
+          Couleurs saturées en fond (rareté = bordure)<br>
+          Plus de 2 couleurs par écran<br>
+          Radius > 20px (sauf pills/toggles)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <div style="text-align:center;padding:var(--v-space-16) 0 var(--v-space-8);border-top:1px solid var(--v-separator);margin-top:var(--v-space-16);">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;opacity:0.2;margin-bottom:var(--v-space-3);">
+      <svg width="20" height="16" viewBox="0 0 100 80" fill="none"><path d="M50 0 L15 65 L30 65 L50 28 L70 65 L85 65 Z" fill="#fff"/></svg>
+      <span style="font-size:10px;font-weight:700;letter-spacing:0.3em;color:#fff;">VANTA</span>
+    </div>
+    <p style="font-size:var(--v-size-xs);color:var(--v-text-disabled);">Design System v2.0 — Apple Monochrome × Tactical Premium</p>
+  </div>
+
+</div>
+
+</body>
+</html>

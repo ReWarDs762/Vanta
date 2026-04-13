@@ -1,0 +1,147 @@
+/* ═══════════════════════════════════════════════
+   PVP SQUAD — Thème post-apocalyptique
+   ═══════════════════════════════════════════════ */
+
+:root {
+    --accent   : #e53935;
+    --accent-h : #c62828;
+    --green    : #27ae60;
+    --gold     : #f39c12;
+    --text     : #d0cdc4;
+    --text-dim : #8a8680;
+    --muted    : #4a4640;
+    --border   : rgba(255,255,255,0.07);
+    --card-bg  : rgba(255,255,255,0.035);
+    --card-hov : rgba(255,255,255,0.07);
+    --surface  : rgba(14,14,18,0.98);
+    --fh : 'Bebas Neue', sans-serif;
+    --fb : 'Rajdhani', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--fb); color:var(--text); overflow:hidden; }
+.hidden { display:none !important; }
+
+#squad-overlay {
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.5);
+    z-index:9999;
+}
+
+#squad-container {
+    width:420px;
+    max-height:70vh;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    display:flex; flex-direction:column;
+    position:relative;
+}
+
+#squad-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 18px;
+    border-bottom:1px solid var(--border);
+}
+
+.squad-title {
+    font-family:var(--fh); font-size:22px; letter-spacing:3px; color:var(--accent);
+}
+
+#btn-close {
+    background:none; border:none; color:var(--text-dim);
+    font-size:26px; cursor:pointer; line-height:1;
+}
+#btn-close:hover { color:var(--accent); }
+
+#squad-body { padding:16px; overflow-y:auto; flex:1; }
+
+.sq-h3 { font-family:var(--fh); font-size:14px; letter-spacing:1px; color:var(--text-dim); margin-bottom:6px; }
+
+.sq-btn-primary {
+    font-family:var(--fh); font-size:14px; letter-spacing:2px;
+    background:var(--accent); color:#fff; border:none; border-radius:4px;
+    padding:8px 20px; cursor:pointer; width:100%;
+}
+.sq-btn-primary:hover { background:var(--accent-h); }
+
+.sq-btn-action {
+    font-family:var(--fh); font-size:13px; letter-spacing:1px;
+    background:var(--card-bg); color:var(--text); border:1px solid var(--border);
+    border-radius:4px; padding:6px 14px; cursor:pointer;
+}
+.sq-btn-action:hover { background:var(--card-hov); }
+.sq-btn-danger { color:var(--accent); border-color:rgba(229,57,53,0.3); }
+.sq-btn-danger:hover { background:rgba(229,57,53,0.1); }
+
+.empty-squad { text-align:center; padding:30px 16px; }
+.sq-empty { color:var(--muted); font-size:14px; margin-bottom:14px; line-height:1.5; }
+.empty-squad .sq-btn-primary { width:auto; display:inline-block; }
+
+.squad-count-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px; font-family:var(--fh); font-size:14px;
+    letter-spacing:1px; color:var(--text-dim);
+}
+#squad-count { color:var(--accent); font-size:16px; }
+
+.sq-member-list { display:flex; flex-direction:column; gap:3px; max-height:200px; overflow-y:auto; margin-bottom:10px; }
+
+.sq-member-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; background:var(--card-bg); border:1px solid var(--border); border-radius:4px;
+}
+.sq-member-row:hover { background:var(--card-hov); }
+.sq-member-info { display:flex; align-items:center; gap:8px; }
+.sq-member-name { font-weight:600; font-size:14px; }
+
+.sq-leader-badge {
+    font-family:var(--fh); font-size:10px; letter-spacing:1px;
+    padding:1px 6px; border-radius:3px; text-transform:uppercase;
+    background:rgba(243,156,18,0.15); color:var(--gold); border:1px solid rgba(243,156,18,0.3);
+}
+
+.sq-btn-sm {
+    font-family:var(--fb); font-size:11px; font-weight:600;
+    background:var(--card-bg); color:var(--accent); border:1px solid var(--border);
+    border-radius:3px; padding:3px 8px; cursor:pointer;
+}
+.sq-btn-sm:hover { background:rgba(229,57,53,0.1); }
+
+.squad-actions { display:flex; gap:6px; margin-top:8px; }
+
+#squad-invite-banner {
+    background:rgba(39,174,96,0.1); border:1px solid rgba(39,174,96,0.3);
+    border-radius:6px; padding:14px; margin-bottom:14px; text-align:center;
+}
+#squad-invite-banner p { font-size:14px; margin-bottom:8px; }
+#squad-invite-from { font-weight:700; color:var(--green); }
+.squad-invite-btns { display:flex; gap:6px; justify-content:center; }
+.squad-invite-btns .sq-btn-primary { width:auto; }
+
+.sq-player-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 12px; background:var(--card-bg); border:1px solid var(--border);
+    border-radius:4px; cursor:pointer;
+}
+.sq-player-row:hover { background:var(--card-hov); border-color:var(--accent); }
+.sq-player-name { font-weight:600; font-size:14px; }
+.sq-player-id { font-size:11px; color:var(--text-dim); }
+
+#sq-toast {
+    position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+    padding:8px 20px; border-radius:4px; font-size:13px; font-weight:600;
+    z-index:100; pointer-events:none; animation:sqToastIn 0.3s ease;
+}
+#sq-toast.success { background:rgba(39,174,96,0.9); color:#fff; }
+#sq-toast.error   { background:rgba(229,57,53,0.9); color:#fff; }
+
+@keyframes sqToastIn {
+    from { opacity:0; transform:translateX(-50%) translateY(8px); }
+    to   { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--muted); border-radius:2px; }

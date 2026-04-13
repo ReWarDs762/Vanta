@@ -1,0 +1,279 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --v-black:        #000000;
+    --v-bg:           #0a0a0a;
+    --v-surface:      #141414;
+    --v-surface-2:    #1c1c1e;
+    --v-elevated:     #2c2c2e;
+    --v-separator:    rgba(255, 255, 255, 0.06);
+    --v-border:       rgba(255, 255, 255, 0.08);
+    --v-border-hover: rgba(255, 255, 255, 0.15);
+    --v-text:         #ffffff;
+    --v-text-secondary: rgba(255, 255, 255, 0.55);
+    --v-text-tertiary:  rgba(255, 255, 255, 0.28);
+    --v-silver:       #c8cdd4;
+    --v-silver-dim:   rgba(200, 205, 212, 0.40);
+    --v-danger:       #ff453a;
+    --v-success:      #30d158;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--v-black);
+    font-family: 'Inter', sans-serif;
+    color: var(--v-text);
+    user-select: none;
+}
+
+/* ── Fond ── */
+.bg {
+    position: fixed;
+    inset: 0;
+    background: var(--v-black);
+    z-index: 0;
+}
+
+/* Grille de fond subtile */
+.bg-grid {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+
+/* Ligne verticale centrale décorative */
+.bg-line {
+    position: fixed;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(255,255,255,0.04) 20%,
+        rgba(255,255,255,0.06) 50%,
+        rgba(255,255,255,0.04) 80%,
+        transparent 100%
+    );
+    z-index: 1;
+}
+
+/* ── Wrapper principal ── */
+.wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+
+/* ── Zone logo ── */
+.logo-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 72px;
+    animation: fadeUp 0.8s ease both;
+}
+
+.logo-mark {
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--v-border-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.logo-mark::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid var(--v-border);
+}
+
+.logo-mark svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--v-silver);
+}
+
+.logo-name {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--v-text);
+}
+
+.logo-sub {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+}
+
+/* ── Barre de progression ── */
+.progress-zone {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: fadeUp 0.8s 0.15s ease both;
+}
+
+.progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.progress-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+}
+
+.progress-pct {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--v-silver-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-track {
+    width: 100%;
+    height: 2px;
+    background: var(--v-surface-2);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--v-silver);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-step {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--v-text-tertiary);
+    min-height: 14px;
+    transition: opacity 0.3s ease;
+}
+
+/* ── Séparateur + infos bas ── */
+.bottom-zone {
+    position: fixed;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    animation: fadeUp 0.8s 0.3s ease both;
+}
+
+.bottom-left,
+.bottom-right {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bottom-right {
+    align-items: flex-end;
+}
+
+.bottom-tag {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+}
+
+.bottom-val {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--v-text-secondary);
+}
+
+/* Séparateur horizontal fin */
+.h-line {
+    position: fixed;
+    bottom: 80px;
+    left: 48px;
+    right: 48px;
+    height: 1px;
+    background: var(--v-separator);
+}
+
+/* ── Coin decoratifs ── */
+.corner {
+    position: fixed;
+    width: 16px;
+    height: 16px;
+    z-index: 20;
+}
+.corner::before,
+.corner::after {
+    content: '';
+    position: absolute;
+    background: var(--v-border-hover);
+}
+.corner::before { width: 100%; height: 1px; top: 0; left: 0; }
+.corner::after  { width: 1px; height: 100%; top: 0; left: 0; }
+
+.corner-tl { top: 24px; left: 24px; }
+.corner-tr { top: 24px; right: 24px; transform: scaleX(-1); }
+.corner-bl { bottom: 24px; left: 24px; transform: scaleY(-1); }
+.corner-br { bottom: 24px; right: 24px; transform: scale(-1); }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Écran de sortie ── */
+.fade-out {
+    animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}

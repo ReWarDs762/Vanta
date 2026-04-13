@@ -1,0 +1,744 @@
+/* ============================================================
+   VANTA DESIGN SYSTEM v2.0
+   Direction: Apple Monochrome × Tactical Premium
+
+   Usage dans une NUI FiveM :
+   <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
+   ============================================================ */
+
+/* --- Google Fonts (Inter) --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* === Backgrounds === */
+  --v-black:        #000000;
+  --v-bg:           #0a0a0a;
+  --v-surface:      #141414;
+  --v-surface-2:    #1c1c1e;
+  --v-surface-3:    #242426;
+  --v-elevated:     #2c2c2e;
+
+  /* === Separators & Borders === */
+  --v-separator:       rgba(255, 255, 255, 0.06);
+  --v-separator-bold:  rgba(255, 255, 255, 0.10);
+  --v-border:          rgba(255, 255, 255, 0.08);
+  --v-border-hover:    rgba(255, 255, 255, 0.15);
+
+  /* === Text === */
+  --v-text:          #ffffff;
+  --v-text-secondary: rgba(255, 255, 255, 0.55);
+  --v-text-tertiary:  rgba(255, 255, 255, 0.28);
+  --v-text-disabled:  rgba(255, 255, 255, 0.15);
+
+  /* === Brand === */
+  --v-silver:        #c8cdd4;
+  --v-silver-dim:    rgba(200, 205, 212, 0.40);
+  --v-silver-glow:   rgba(200, 205, 212, 0.06);
+
+  /* === Semantic === */
+  --v-danger:        #ff453a;
+  --v-danger-dim:    rgba(255, 69, 58, 0.15);
+  --v-success:       #30d158;
+  --v-success-dim:   rgba(48, 209, 88, 0.15);
+  --v-warning:       #ffd60a;
+  --v-warning-dim:   rgba(255, 214, 10, 0.15);
+  --v-info:          #64d2ff;
+  --v-info-dim:      rgba(100, 210, 255, 0.15);
+
+  /* === Rarity === */
+  --v-rarity-common:          rgba(255, 255, 255, 0.10);
+  --v-rarity-common-solid:    #3a3a3e;
+  --v-rarity-uncommon:        rgba(48, 209, 88, 0.25);
+  --v-rarity-uncommon-solid:  #1a5c32;
+  --v-rarity-rare:            rgba(100, 210, 255, 0.25);
+  --v-rarity-rare-solid:      #1a4a6e;
+  --v-rarity-legendary:       rgba(255, 214, 10, 0.25);
+  --v-rarity-legendary-solid: #6e5a10;
+
+  /* === Radius === */
+  --v-radius-xs:   4px;
+  --v-radius-sm:   6px;
+  --v-radius-md:   10px;
+  --v-radius-lg:   14px;
+  --v-radius-xl:   20px;
+  --v-radius-full: 9999px;
+
+  /* === Spacing === */
+  --v-space-1:  4px;
+  --v-space-2:  8px;
+  --v-space-3:  12px;
+  --v-space-4:  16px;
+  --v-space-5:  20px;
+  --v-space-6:  24px;
+  --v-space-8:  32px;
+  --v-space-10: 40px;
+  --v-space-12: 48px;
+  --v-space-16: 64px;
+
+  /* === Typography === */
+  --v-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --v-size-xs:   11px;
+  --v-size-sm:   13px;
+  --v-size-base: 15px;
+  --v-size-lg:   17px;
+  --v-size-xl:   20px;
+  --v-size-2xl:  24px;
+  --v-size-3xl:  28px;
+  --v-size-4xl:  34px;
+
+  /* === Transitions === */
+  --v-ease:        cubic-bezier(0.23, 1, 0.32, 1);     /* strong ease-out — starts fast, feels responsive */
+  --v-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* strong ease-in-out — for on-screen movement */
+  --v-duration: 0.18s;
+  --v-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   RESET (opt-in via class .v-reset)
+   ============================================================ */
+.v-reset, .v-reset *, .v-reset *::before, .v-reset *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.v-reset {
+  font-family: var(--v-font);
+  color: var(--v-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes v-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes v-scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes v-slideRight {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes v-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.v-btn {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v-space-2);
+  padding: 10px 20px;
+  border-radius: var(--v-radius-sm);
+  transition: all var(--v-duration) var(--v-ease);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.v-btn:active { transform: scale(0.97); }
+
+.v-btn-primary {
+  background: var(--v-text);
+  color: var(--v-black);
+}
+.v-btn-primary:hover { background: rgba(255, 255, 255, 0.85); }
+
+.v-btn-secondary {
+  background: var(--v-surface-2);
+  color: var(--v-text);
+  border: 1px solid var(--v-border);
+}
+.v-btn-secondary:hover {
+  background: var(--v-surface-3);
+  border-color: var(--v-border-hover);
+}
+
+.v-btn-ghost {
+  background: transparent;
+  color: var(--v-text-secondary);
+}
+.v-btn-ghost:hover {
+  background: var(--v-separator);
+  color: var(--v-text);
+}
+
+.v-btn-danger {
+  background: var(--v-danger-dim);
+  color: var(--v-danger);
+}
+.v-btn-danger:hover { background: rgba(255, 69, 58, 0.25); }
+
+.v-btn-success {
+  background: var(--v-success-dim);
+  color: var(--v-success);
+}
+.v-btn-success:hover { background: rgba(48, 209, 88, 0.25); }
+
+.v-btn-sm {
+  font-size: var(--v-size-xs);
+  padding: 6px 12px;
+}
+
+.v-btn-lg {
+  font-size: var(--v-size-base);
+  padding: 14px 28px;
+  border-radius: var(--v-radius-md);
+}
+
+.v-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--v-radius-sm);
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.v-card {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  padding: var(--v-space-5);
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-card:hover {
+  border-color: var(--v-border-hover);
+  background: var(--v-surface-2);
+}
+
+.v-card-flat {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-4);
+}
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+.v-input {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-input::placeholder { color: var(--v-text-tertiary); }
+.v-input:focus {
+  border-color: var(--v-text-secondary);
+  background: var(--v-surface-3);
+}
+
+.v-select {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  padding: 10px 36px 10px 14px;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-select:focus { border-color: var(--v-text-secondary); }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.v-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--v-radius-full);
+  line-height: 1;
+}
+
+.v-badge-default { background: var(--v-separator-bold); color: var(--v-text-secondary); }
+.v-badge-danger  { background: var(--v-danger-dim);      color: var(--v-danger); }
+.v-badge-success { background: var(--v-success-dim);     color: var(--v-success); }
+.v-badge-warning { background: var(--v-warning-dim);     color: var(--v-warning); }
+.v-badge-info    { background: var(--v-info-dim);        color: var(--v-info); }
+
+/* Quantity badge (sur un item slot) */
+.v-qty {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--v-text);
+  background: rgba(0, 0, 0, 0.65);
+  padding: 2px 6px;
+  border-radius: var(--v-radius-xs);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.v-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: 3px;
+  width: fit-content;
+}
+
+.v-tab {
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  background: transparent;
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--v-radius-sm);
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+}
+
+.v-tab:hover { color: var(--v-text-secondary); }
+.v-tab.active {
+  background: var(--v-surface-3);
+  color: var(--v-text);
+}
+
+/* ============================================================
+   NAVBAR (fullwidth, haut d'écran)
+   ============================================================ */
+.v-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0 var(--v-space-4);
+  height: 48px;
+  background: rgba(10, 10, 10, 0.85);
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.v-nav-item {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  color: var(--v-text-tertiary);
+  background: transparent;
+  border: none;
+  padding: 0 var(--v-space-5);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  position: relative;
+  text-decoration: none;
+}
+
+.v-nav-item:hover { color: var(--v-text-secondary); }
+.v-nav-item.active { color: var(--v-text); }
+
+.v-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--v-space-5);
+  right: var(--v-space-5);
+  height: 2px;
+  background: var(--v-text);
+  border-radius: 1px;
+}
+
+.v-nav-item svg { width: 14px; height: 14px; opacity: 0.7; }
+.v-nav-item.active svg { opacity: 1; }
+
+/* ============================================================
+   SECTION HEADER
+   ============================================================ */
+.v-section-header {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-4);
+}
+
+/* ============================================================
+   ITEM SLOTS (Inventory)
+   ============================================================ */
+.v-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: var(--v-space-2);
+}
+
+.v-item-slot {
+  position: relative;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--v-duration) var(--v-ease);
+  overflow: hidden;
+}
+
+.v-item-slot:hover {
+  border-color: var(--v-border-hover);
+  background: var(--v-surface-2);
+}
+
+.v-item-slot.empty {
+  border-style: dashed;
+  border-color: var(--v-separator);
+  background: transparent;
+}
+
+.v-item-slot .item-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  opacity: 0.9;
+  margin-bottom: var(--v-space-1);
+}
+
+.v-item-slot .item-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--v-text-secondary);
+  text-align: center;
+  padding: 0 4px;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rarity borders */
+.v-item-slot.rarity-common    { border-color: var(--v-rarity-common); }
+.v-item-slot.rarity-uncommon  { border-color: var(--v-rarity-uncommon); }
+.v-item-slot.rarity-rare      { border-color: var(--v-rarity-rare); }
+.v-item-slot.rarity-legendary { border-color: var(--v-rarity-legendary); }
+
+.v-item-slot.rarity-uncommon:hover  { box-shadow: 0 0 20px rgba(48, 209, 88, 0.08); }
+.v-item-slot.rarity-rare:hover      { box-shadow: 0 0 20px rgba(100, 210, 255, 0.08); }
+.v-item-slot.rarity-legendary:hover { box-shadow: 0 0 20px rgba(255, 214, 10, 0.08); }
+
+/* ============================================================
+   HOTBAR
+   ============================================================ */
+.v-hotbar {
+  display: flex;
+  gap: var(--v-space-2);
+}
+
+.v-hotbar-slot {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--v-duration) var(--v-ease);
+}
+
+.v-hotbar-slot:hover { border-color: var(--v-border-hover); }
+
+.v-hotbar-slot .key {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--v-text-tertiary);
+  line-height: 1;
+}
+
+.v-hotbar-slot .slot-label {
+  font-size: 10px;
+  color: var(--v-text-disabled);
+  font-weight: 500;
+}
+
+/* ============================================================
+   PROGRESS BARS
+   ============================================================ */
+.v-progress {
+  height: 4px;
+  background: var(--v-separator-bold);
+  border-radius: var(--v-radius-full);
+  overflow: hidden;
+  width: 100%;
+}
+
+.v-progress .bar {
+  height: 100%;
+  border-radius: var(--v-radius-full);
+  transition: width 0.4s var(--v-ease);
+}
+
+.v-progress .bar.hp      { background: var(--v-text); }
+.v-progress .bar.armor   { background: var(--v-text-secondary); }
+.v-progress .bar.xp      { background: var(--v-silver); }
+.v-progress .bar.danger  { background: var(--v-danger); }
+.v-progress .bar.success { background: var(--v-success); }
+
+.v-progress-lg { height: 6px; }
+
+/* ============================================================
+   TOASTS / NOTIFICATIONS
+   ============================================================ */
+.v-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  padding: var(--v-space-3) var(--v-space-5);
+  font-family: var(--v-font);
+  font-size: var(--v-size-sm);
+  color: var(--v-text);
+  max-width: 360px;
+  animation: v-fadeIn 0.3s var(--v-ease);
+}
+
+.v-toast-danger  { border-left: 3px solid var(--v-danger); }
+.v-toast-success { border-left: 3px solid var(--v-success); }
+.v-toast-warning { border-left: 3px solid var(--v-warning); }
+.v-toast-info    { border-left: 3px solid var(--v-info); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.v-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.70);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.v-modal {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  padding: var(--v-space-8);
+  max-width: 480px;
+  width: 100%;
+  animation: v-scaleIn 0.25s var(--v-ease);
+}
+
+.v-modal-title {
+  font-size: var(--v-size-lg);
+  font-weight: 600;
+  color: var(--v-text);
+  margin-bottom: var(--v-space-2);
+}
+
+.v-modal-desc {
+  font-size: var(--v-size-sm);
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-6);
+  line-height: 1.6;
+}
+
+.v-modal-actions {
+  display: flex;
+  gap: var(--v-space-3);
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   TOOLTIP
+   ============================================================ */
+.v-tooltip {
+  background: var(--v-surface-3);
+  border: 1px solid var(--v-border-hover);
+  border-radius: var(--v-radius-sm);
+  padding: var(--v-space-2) var(--v-space-3);
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  color: var(--v-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  max-width: 220px;
+  animation: v-fadeIn 0.15s var(--v-ease);
+}
+
+.v-tooltip .tt-title { font-weight: 600; margin-bottom: 2px; }
+.v-tooltip .tt-desc  { color: var(--v-text-secondary); line-height: 1.4; }
+.v-tooltip .tt-rarity {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: var(--v-space-1);
+}
+
+/* ============================================================
+   TOGGLE
+   ============================================================ */
+.v-toggle {
+  width: 44px;
+  height: 26px;
+  background: var(--v-surface-3);
+  border-radius: var(--v-radius-full);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--v-duration) var(--v-ease);
+  border: 1px solid var(--v-border);
+}
+
+.v-toggle.on {
+  background: var(--v-success);
+  border-color: var(--v-success);
+}
+
+.v-toggle .knob {
+  width: 20px;
+  height: 20px;
+  background: var(--v-text);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform var(--v-duration) var(--v-spring);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.v-toggle.on .knob { transform: translateX(18px); }
+
+/* ============================================================
+   STAT ROW (profile)
+   ============================================================ */
+.v-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--v-space-3) 0;
+  border-bottom: 1px solid var(--v-separator);
+}
+
+.v-stat-row .stat-label {
+  font-size: var(--v-size-sm);
+  color: var(--v-text-secondary);
+}
+
+.v-stat-row .stat-value {
+  font-size: var(--v-size-sm);
+  font-weight: 600;
+  color: var(--v-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   DIVIDERS
+   ============================================================ */
+.v-divider {
+  height: 1px;
+  background: var(--v-separator);
+  margin: var(--v-space-6) 0;
+}
+
+.v-divider-bold {
+  height: 1px;
+  background: var(--v-separator-bold);
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+.v-scroll::-webkit-scrollbar { width: 4px; }
+.v-scroll::-webkit-scrollbar-track { background: transparent; }
+.v-scroll::-webkit-scrollbar-thumb {
+  background: var(--v-separator-bold);
+  border-radius: var(--v-radius-full);
+}
+.v-scroll::-webkit-scrollbar-thumb:hover { background: var(--v-border-hover); }
+
+/* ============================================================
+   WATERMARK
+   ============================================================ */
+.v-watermark {
+  position: fixed;
+  top: var(--v-space-5);
+  left: var(--v-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.v-watermark svg { width: 24px; height: 24px; }
+
+.v-watermark span {
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--v-text);
+}

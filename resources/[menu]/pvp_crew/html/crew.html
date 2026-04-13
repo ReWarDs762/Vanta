@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="crew.css">
+    <title>PVP Squad</title>
+</head>
+<body>
+    <div id="squad-overlay" class="hidden">
+        <div id="squad-container">
+            <div id="squad-header">
+                <h1 class="squad-title">ESCOUADE</h1>
+                <button id="btn-close">&times;</button>
+            </div>
+
+            <div id="squad-body">
+                <!-- Invitation reçue -->
+                <div id="squad-invite-banner" class="hidden">
+                    <p><span id="squad-invite-from"></span> vous invite dans son escouade</p>
+                    <div class="squad-invite-btns">
+                        <button id="btn-squad-accept" class="sq-btn-primary">ACCEPTER</button>
+                        <button id="btn-squad-decline" class="sq-btn-action">REFUSER</button>
+                    </div>
+                </div>
+
+                <!-- Pas de squad -->
+                <div id="no-squad">
+                    <div class="empty-squad">
+                        <p class="sq-empty">Pas d'escouade active.<br>Invitez un joueur pour en créer une.</p>
+                        <button id="btn-squad-invite" class="sq-btn-primary">INVITER UN JOUEUR</button>
+                    </div>
+                </div>
+
+                <!-- Dans un squad -->
+                <div id="in-squad" class="hidden">
+                    <div class="squad-count-bar">
+                        <span>MEMBRES</span>
+                        <span id="squad-count">0/4</span>
+                    </div>
+                    <div id="squad-members-list" class="sq-member-list"></div>
+                    <div class="squad-actions">
+                        <button id="btn-squad-invite-more" class="sq-btn-action">INVITER</button>
+                        <button id="btn-squad-leave" class="sq-btn-action sq-btn-danger">QUITTER</button>
+                    </div>
+                </div>
+
+                <!-- Panel invite -->
+                <div id="squad-invite-panel" class="hidden">
+                    <h3 class="sq-h3">Joueurs en ligne</h3>
+                    <div id="squad-online-list" class="sq-member-list"></div>
+                    <button id="btn-squad-cancel-invite" class="sq-btn-action">RETOUR</button>
+                </div>
+            </div>
+
+            <div id="sq-toast" class="hidden"></div>
+        </div>
+    </div>
+
+    <script src="crew.js"></script>
+</body>
+</html>

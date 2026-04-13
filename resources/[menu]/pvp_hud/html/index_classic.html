@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PVP HUD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Rajdhani', sans-serif;
+      user-select: none;
+    }
+
+    :root {
+      --hp-color: #e63946;
+      --armor-color: #4cc9f0;
+      --ammo-color: #f8f9fa;
+      --bg-dark: rgba(0, 0, 0, 0.55);
+      --bg-darker: rgba(0, 0, 0, 0.75);
+      --accent: #e63946;
+    }
+
+    /* ── CONTENEUR PRINCIPAL ── */
+    #hud {
+      position: fixed;
+      bottom: 32px;
+      left: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #hud.visible { opacity: 1; }
+
+    /* ── BLOC VIE + KEVLAR ── */
+    .stats-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--bg-darker);
+      padding: 10px 14px;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+      border-left: 2px solid var(--accent);
+      min-width: 220px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-icon {
+      font-size: 14px;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .stat-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      width: 52px;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 0;
+      transition: width 0.3s ease, background 0.3s ease;
+      position: relative;
+    }
+
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 3px; height: 100%;
+      background: rgba(255,255,255,0.6);
+      border-radius: 0;
+    }
+
+    /* HP */
+    .hp-label  { color: var(--hp-color); }
+    .hp-fill   { background: linear-gradient(90deg, #9b1a24, var(--hp-color)); }
+
+    /* ARMOR */
+    .armor-label { color: var(--armor-color); }
+    .armor-fill  { background: linear-gradient(90deg, #1a6a8a, var(--armor-color)); }
+
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+      letter-spacing: 1px;
+    }
+    .hp-value    { color: var(--hp-color); }
+    .armor-value { color: var(--armor-color); }
+
+    /* ── BLOC ARME ── */
+    .weapon-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-dark);
+      padding: 8px 14px;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+      border-left: 2px solid rgba(248,249,250,0.2);
+    }
+
+    .weapon-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.6);
+      flex: 1;
+      text-transform: uppercase;
+    }
+
+    .ammo-display {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .ammo-current {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      color: #fff;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .ammo-sep {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .ammo-reserve {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 1px;
+    }
+
+    /* Pas d'arme */
+    .no-weapon {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 2px;
+    }
+
+    /* Clignotement munitions basses */
+    @keyframes ammo-blink {
+      0%, 100% { color: #e63946; }
+      50%       { color: rgba(230, 57, 70, 0.3); }
+    }
+    .ammo-low { animation: ammo-blink 0.8s infinite; }
+
+    /* Clignotement vie basse */
+    @keyframes hp-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    .hp-critical { animation: hp-pulse 0.6s infinite; }
+
+    /* ── NOTIFICATION DÉGÂTS ── */
+    #dmg-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(230,57,70,0.25) 100%);
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
+    #dmg-flash.active { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Flash dégâts -->
+  <div id="dmg-flash"></div>
+
+  <!-- HUD principal -->
+  <div id="hud">
+
+    <!-- Vie + Kevlar -->
+    <div class="stats-block">
+      <!-- VIE -->
+      <div class="stat-row" id="hp-row">
+        <span class="stat-icon" style="color:#e63946;">♥</span>
+        <span class="stat-label hp-label">VIE</span>
+        <div class="bar-track">
+          <div class="bar-fill hp-fill" id="hp-bar" style="width:100%"></div>
+        </div>
+        <span class="stat-value hp-value" id="hp-val">100</span>
+      </div>
+
+      <!-- KEVLAR -->
+      <div class="stat-row" id="armor-row">
+        <span class="stat-icon" style="color:#4cc9f0;">⬡</span>
+        <span class="stat-label armor-label">KEVLAR</span>
+        <div class="bar-track">
+          <div class="bar-fill armor-fill" id="armor-bar" style="width:0%"></div>
+        </div>
+        <span class="stat-value armor-value" id="armor-val">0</span>
+      </div>
+    </div>
+
+    <!-- Arme + Munitions -->
+    <div class="weapon-block" id="weapon-block">
+      <span class="weapon-name" id="weapon-name">AUCUNE ARME</span>
+      <div class="ammo-display" id="ammo-display" style="display:none">
+        <span class="ammo-current" id="ammo-current">0</span>
+        <span class="ammo-sep">/</span>
+        <span class="ammo-reserve" id="ammo-reserve">0</span>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const hud        = document.getElementById('hud');
+  const hpBar      = document.getElementById('hp-bar');
+  const hpVal      = document.getElementById('hp-val');
+  const hpRow      = document.getElementById('hp-row');
+  const armorBar   = document.getElementById('armor-bar');
+  const armorVal   = document.getElementById('armor-val');
+  const weaponName = document.getElementById('weapon-name');
+  const ammoDisplay= document.getElementById('ammo-display');
+  const ammoCurrent= document.getElementById('ammo-current');
+  const ammoReserve= document.getElementById('ammo-reserve');
+  const dmgFlash   = document.getElementById('dmg-flash');
+
+  let flashTimer = null;
+
+  function setHP(val) {
+    const pct = Math.max(0, Math.min(100, val));
+    hpBar.style.width = pct + '%';
+    hpVal.textContent = Math.round(pct);
+    // Rouge vif si critique
+    if (pct <= 25) {
+      hpRow.classList.add('hp-critical');
+      hpBar.style.background = 'linear-gradient(90deg, #6b0000, #ff1a1a)';
+    } else {
+      hpRow.classList.remove('hp-critical');
+      hpBar.style.background = '';
+    }
+  }
+
+  function setArmor(val) {
+    const pct = Math.max(0, Math.min(100, val));
+    armorBar.style.width = pct + '%';
+    armorVal.textContent = Math.round(pct);
+  }
+
+  function setWeapon(name, ammo, reserve) {
+    if (!name || name === '' || name === 'UNARMED') {
+      weaponName.textContent = 'AUCUNE ARME';
+      weaponName.style.color = 'rgba(255,255,255,0.2)';
+      ammoDisplay.style.display = 'none';
+    } else {
+      weaponName.textContent = name.toUpperCase();
+      weaponName.style.color = 'rgba(255,255,255,0.6)';
+      ammoDisplay.style.display = 'flex';
+      ammoCurrent.textContent = ammo;
+      ammoReserve.textContent = reserve;
+      // Munitions basses
+      if (ammo <= 5 && ammo > 0) {
+        ammoCurrent.classList.add('ammo-low');
+      } else {
+        ammoCurrent.classList.remove('ammo-low');
+      }
+    }
+  }
+
+  function triggerDamageFlash() {
+    dmgFlash.classList.add('active');
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => dmgFlash.classList.remove('active'), 200);
+  }
+
+  // Écoute les messages depuis Lua
+  window.addEventListener('message', function(event) {
+    const data = event.data;
+
+    if (data.type === 'show') {
+      hud.classList.toggle('visible', data.show);
+    }
+
+    if (data.type === 'update') {
+      if (data.hp      !== undefined) setHP(data.hp);
+      if (data.armor   !== undefined) setArmor(data.armor);
+      if (data.weapon  !== undefined) setWeapon(data.weapon, data.ammo ?? 0, data.reserve ?? 0);
+    }
+
+    if (data.type === 'damage') {
+      triggerDamageFlash();
+    }
+  });
+
+  // Affichage immédiat au chargement
+  hud.classList.add('visible');
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>VANTA HUD</title>
+  <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      overflow: hidden;
+      font-family: var(--v-font, 'Inter', sans-serif);
+      user-select: none;
+    }
+
+    /* ── CONTENEUR PRINCIPAL ── */
+    #hud {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      min-width: 210px;
+    }
+    #hud.visible { opacity: 1; }
+
+    /* ── BLOC GÉNÉRIQUE ── */
+    .hud-block {
+      background: #111111;
+      border: 1px solid #242424;
+      border-radius: 2px;
+      padding: 10px 14px;
+    }
+
+    /* ── STATS (HP + ARMOR) ── */
+    #stats-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-label {
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5a5f66;
+      width: 42px;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 2px;
+      background: #1e1e1e;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .hp-fill   { background: rgba(200, 205, 212, 0.65); }
+    .armor-fill { background: rgba(200, 205, 212, 0.3); }
+
+    .stat-value {
+      font-size: 11px;
+      font-weight: 600;
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+      color: #c8cdd4;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+
+    /* HP critique */
+    .hp-fill.critical   { background: #8b2020; }
+    .stat-value.critical { color: #c0392b; }
+
+    @keyframes hp-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+    .hp-critical .stat-value { animation: hp-pulse 0.7s infinite; }
+
+    /* ── BLOC ARME ── */
+    #weapon-block {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top-color: #1a1a1a;
+    }
+
+    #weapon-name {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #5a5f66;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #weapon-name.armed { color: #c8cdd4; }
+
+    /* Munitions */
+    #ammo-display {
+      display: none;
+      align-items: baseline;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    #ammo-current {
+      font-size: 18px;
+      font-weight: 300;
+      color: #f0f2f4;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #ammo-sep {
+      font-size: 10px;
+      color: #2a2a2a;
+      margin: 0 1px;
+    }
+
+    #ammo-reserve {
+      font-size: 11px;
+      font-weight: 400;
+      color: #3a3a3a;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Munitions basses */
+    @keyframes ammo-blink {
+      0%, 100% { color: #8b2020; }
+      50%       { color: rgba(139, 32, 32, 0.3); }
+    }
+    #ammo-current.ammo-low { animation: ammo-blink 0.75s infinite; }
+
+    /* Infinies (arme mêlée / pas de chargeur) */
+    #ammo-inf {
+      display: none;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #3a3a3a;
+    }
+
+    /* ── FLASH DÉGÂTS ── */
+    #dmg-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 45%, rgba(139, 32, 32, 0.18) 100%);
+      opacity: 0;
+      transition: opacity 0.08s ease;
+    }
+    #dmg-flash.active { opacity: 1; }
+
+    /* ── SÉPARATEUR INTERNE ── */
+    .h-sep {
+      width: 100%;
+      height: 1px;
+      background: #1a1a1a;
+      margin: 2px 0;
+    }
+
+    /* ── NOTIFICATION GRÂCE ZONE SAFE ── */
+    #grace-notice {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0a0a0a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      padding: 10px 14px 8px;
+      min-width: 168px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    #grace-notice.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .grace-label {
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.28);
+      margin-bottom: 5px;
+    }
+
+    .grace-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .grace-text {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(200, 205, 212, 0.70);
+    }
+
+    #grace-timer {
+      font-size: 20px;
+      font-weight: 300;
+      color: #30d158;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .grace-bar-track {
+      margin-top: 8px;
+      width: 100%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    #grace-bar {
+      height: 100%;
+      background: #30d158;
+      transition: width 0.08s linear;
+    }
+  </style>
+</head>
+<body>
+
+<div id="dmg-flash"></div>
+
+<div id="grace-notice">
+  <div class="grace-label">ZONE SAFE</div>
+  <div class="grace-row">
+    <span class="grace-text">IMMUNITÉ</span>
+    <span id="grace-timer">3s</span>
+  </div>
+  <div class="grace-bar-track">
+    <div id="grace-bar" style="width:100%"></div>
+  </div>
+</div>
+
+<div id="hud">
+
+  <!-- Bloc HP + Armor + Arme fusionnés -->
+  <div class="hud-block">
+
+    <!-- HP -->
+    <div class="stat-row" id="hp-row">
+      <span class="stat-label">VIE</span>
+      <div class="bar-track">
+        <div class="bar-fill hp-fill" id="hp-bar" style="width:100%"></div>
+      </div>
+      <span class="stat-value" id="hp-val">100</span>
+    </div>
+
+    <!-- Armor -->
+    <div class="stat-row" id="armor-row">
+      <span class="stat-label">ARMOR</span>
+      <div class="bar-track">
+        <div class="bar-fill armor-fill" id="armor-bar" style="width:0%"></div>
+      </div>
+      <span class="stat-value" id="armor-val">0</span>
+    </div>
+
+    <div class="h-sep"></div>
+
+    <!-- Arme + Munitions -->
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:2px;">
+      <span id="weapon-name">AUCUNE ARME</span>
+      <div id="ammo-display">
+        <span id="ammo-current">0</span>
+        <span id="ammo-sep">/</span>
+        <span id="ammo-reserve">0</span>
+      </div>
+      <span id="ammo-inf">∞</span>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  const hud         = document.getElementById('hud');
+  const hpBar       = document.getElementById('hp-bar');
+  const hpVal       = document.getElementById('hp-val');
+  const hpRow       = document.getElementById('hp-row');
+  const armorBar    = document.getElementById('armor-bar');
+  const armorVal    = document.getElementById('armor-val');
+  const weaponName  = document.getElementById('weapon-name');
+  const ammoDisplay = document.getElementById('ammo-display');
+  const ammoCurrent = document.getElementById('ammo-current');
+  const ammoReserve = document.getElementById('ammo-reserve');
+  const ammoInf     = document.getElementById('ammo-inf');
+  const dmgFlash    = document.getElementById('dmg-flash');
+
+  let flashTimer = null;
+
+  function setHP(val) {
+    const pct = Math.max(0, Math.min(100, val));
+    hpBar.style.width = pct + '%';
+    hpVal.textContent = Math.round(pct);
+    const crit = pct <= 25;
+    hpBar.classList.toggle('critical', crit);
+    hpVal.classList.toggle('critical', crit);
+    hpRow.classList.toggle('hp-critical', crit);
+  }
+
+  function setArmor(val) {
+    const pct = Math.max(0, Math.min(100, val));
+    armorBar.style.width = pct + '%';
+    armorVal.textContent = Math.round(pct);
+  }
+
+  function setWeapon(name, ammo, reserve) {
+    if (!name || name === '' || name === 'UNARMED') {
+      weaponName.textContent = 'AUCUNE ARME';
+      weaponName.classList.remove('armed');
+      ammoDisplay.style.display = 'none';
+      ammoInf.style.display = 'none';
+    } else {
+      weaponName.textContent = name.toUpperCase();
+      weaponName.classList.add('armed');
+      if (ammo === -1) {
+        // Arme de mêlée ou munitions infinies
+        ammoDisplay.style.display = 'none';
+        ammoInf.style.display = 'block';
+      } else {
+        ammoDisplay.style.display = 'flex';
+        ammoInf.style.display = 'none';
+        ammoCurrent.textContent = ammo;
+        ammoReserve.textContent = reserve > 0 ? reserve : '∞';
+        ammoCurrent.classList.toggle('ammo-low', ammo <= 5 && ammo > 0);
+      }
+    }
+  }
+
+  function triggerDamageFlash() {
+    dmgFlash.classList.add('active');
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => dmgFlash.classList.remove('active'), 180);
+  }
+
+  // ── Grace zone safe ──────────────────────────────────────────────────────
+  const graceNotice = document.getElementById('grace-notice');
+  const graceTimerEl = document.getElementById('grace-timer');
+  const graceBarEl   = document.getElementById('grace-bar');
+  let graceRaf = null;
+  let graceStart = 0;
+  let graceDuration = 3000;
+
+  function updateGrace() {
+    const elapsed = Date.now() - graceStart;
+    const remaining = Math.max(0, graceDuration - elapsed);
+    const pct = (remaining / graceDuration) * 100;
+
+    graceTimerEl.textContent = Math.ceil(remaining / 1000) + 's';
+    graceBarEl.style.width = pct + '%';
+
+    if (remaining <= 0) {
+      graceNotice.classList.remove('visible');
+      graceRaf = null;
+      return;
+    }
+    graceRaf = requestAnimationFrame(updateGrace);
+  }
+
+  function showGrace(durationSec) {
+    if (graceRaf) cancelAnimationFrame(graceRaf);
+    graceDuration = durationSec * 1000;
+    graceStart    = Date.now();
+    graceTimerEl.textContent = durationSec + 's';
+    graceBarEl.style.width   = '100%';
+    graceNotice.classList.add('visible');
+    graceRaf = requestAnimationFrame(updateGrace);
+  }
+
+  window.addEventListener('message', function(e) {
+    const d = e.data;
+    if (d.type === 'show')   { hud.classList.toggle('visible', d.show); }
+    if (d.type === 'update') {
+      if (d.hp     !== undefined) setHP(d.hp);
+      if (d.armor  !== undefined) setArmor(d.armor);
+      if (d.weapon !== undefined) setWeapon(d.weapon, d.ammo ?? 0, d.reserve ?? 0);
+    }
+    if (d.type === 'damage')     { triggerDamageFlash(); }
+    if (d.type === 'graceStart') { showGrace(d.duration); }
+  });
+
+  hud.classList.add('visible');
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+/*
+ * VANTA Killfeed — v2 Apple Monochrome
+ * Design System: vanta.css (loaded via nui://vanta_ui/html/vanta.css)
+ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: transparent;
+  font-family: var(--v-font, 'Inter', sans-serif);
+  overflow: hidden;
+  user-select: none;
+  width: 100vw;
+  height: 100vh;
+  color: var(--v-text, #ffffff);
+}
+
+.hidden { display: none !important; }
+
+/* ══ LEADERS (coin supérieur gauche) ══════════════════════════ */
+#leaders {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
+}
+
+.leader-box {
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid #c8cdd4;
+  border-radius: 2px;
+  padding: 8px 12px 8px 14px;
+  min-width: 180px;
+  animation: v-fadeSlideIn 0.25s ease;
+}
+
+.leader-box.crew {
+  border-left-color: rgba(200, 205, 212, 0.40);
+}
+
+.leader-label {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.leader-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.leader-count {
+  font-size: 9px;
+  color: #c8cdd4;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.leader-box.crew .leader-count {
+  color: rgba(200, 205, 212, 0.55);
+}
+
+/* ══ KILLFEED (coin supérieur droit) ══════════════════════════ */
+#killfeed {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.kill-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  padding: 6px 10px;
+  animation: v-fadeSlideInRight 0.2s ease;
+  transition: opacity 0.4s ease;
+  max-width: 380px;
+}
+
+/* État : je suis impliqué (neutre) */
+.kill-entry.is-me {
+  border-right-color: #c8cdd4;
+}
+
+/* État : j'ai kill */
+.kill-entry.i-killed {
+  border-right-color: #30d158;
+  background: rgba(48, 209, 88, 0.08);
+}
+
+/* État : je suis mort */
+.kill-entry.i-died {
+  border-right-color: #ff453a;
+  background: rgba(255, 69, 58, 0.08);
+}
+
+/* État : kill en redzone (priorité visuelle la plus forte) */
+.kill-entry.in-redzone {
+  border-right-color: #ff453a;
+  background: rgba(255, 69, 58, 0.12);
+}
+
+.kf-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  text-transform: uppercase;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kf-name.killer { color: #ffffff; }
+.kf-name.victim { color: rgba(255, 255, 255, 0.55); }
+
+.kill-entry.i-killed .kf-name.killer { color: #30d158; }
+.kill-entry.i-died   .kf-name.victim { color: #ff453a; }
+.kill-entry.in-redzone .kf-name.victim { color: #ff453a; }
+
+.kf-arrow {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.kill-entry.i-killed .kf-arrow { color: #30d158; }
+.kill-entry.i-died   .kf-arrow { color: #ff453a; }
+.kill-entry.in-redzone .kf-arrow { color: #ff453a; }
+
+.kf-weapon {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.kf-rz {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+  border: 1px solid rgba(255, 69, 58, 0.25);
+  border-radius: 2px;
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+
+.kill-entry.fading { opacity: 0; }
+
+/* ══ ANIMATIONS ══════════════════════════════════════════════ */
+@keyframes v-fadeSlideInRight {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes v-fadeSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

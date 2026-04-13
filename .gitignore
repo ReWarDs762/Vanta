@@ -1,0 +1,37 @@
+# FiveM binaries & system
+*.exe
+*.dll
+*.pdb
+citizen/
+cache/
+crashes/
+components.json
+
+# Framework tiers (non versionné — téléchargeable séparément)
+resources/\[base\]/
+resources/\[essential\]/
+resources/\[maps\]/
+
+# Ressources tiers dans [menu]
+resources/\[menu\]/async/
+resources/\[menu\]/spooner/
+resources/\[menu\]/esx_hud/
+resources/\[menu\]/esx_menu_default/
+resources/\[menu\]/esx_menu_dialog-main/
+resources/\[menu\]/esx_menu_list-main/
+
+# Base de données locale
+*.db
+*.sqlite
+
+# Certificats & clés TLS (SENSIBLE — ne jamais commiter)
+*.crt
+*.key
+*.pem
+
+# Historique shell
+.replxx_history
+
+# Divers
+.claude/
+skills-lock.json
