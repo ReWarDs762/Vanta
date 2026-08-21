@@ -210,6 +210,10 @@ end)
 local KIT_ITEMS_SET = { weapon_pistol = true, vehicle_bmx = true }
 
 -- Donner le kit au premier spawn et à chaque respawn
+-- RegisterNetEvent requis : esx:playerLoaded arrive via TriggerClientEvent
+-- (réseau) depuis es_extended/server ; sans ça, FiveM logue "event ... was not
+-- safe for net" et peut refuser de livrer l'event à ce handler.
+RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded', function()
     Citizen.CreateThread(function()
         Citizen.Wait(3000) -- laisser le temps au joueur de spawner

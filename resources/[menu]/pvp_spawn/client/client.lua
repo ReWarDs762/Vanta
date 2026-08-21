@@ -49,14 +49,42 @@ local function unfreezePlayer()
 end
 
 local function teleportToOutpost(sp)
-    local ped = PlayerPedId()
-    RequestCollisionAtCoord(sp.x, sp.y, sp.z)
-    local timer = GetGameTimer()
-    while not HasCollisionLoadedAroundEntity(ped) and (GetGameTimer() - timer) < 3000 do
+    -- IMPORTANT : ne PAS mettre PlayerPedId() en cache ici. pvp_character peut
+    -- appeler SetPlayerModel() en parallèle (login joueur existant/nouveau) pendant
+    -- les attentes ci-dessous, ce qui détruit le ped courant et en recrée un
+    -- nouveau — un handle capturé avant cette recréation devient invalide et
+    -- placer les coordonnées dessus ne fait plus rien (le joueur reste alors sur
+    -- le nouveau ped, resté à sa position d'origine → chute sous la map).
+    -- On récupère donc PlayerPedId() juste avant chaque usage.
+
+    -- Cacher la téléportation (fade), même pattern que pvp_outposts:doTeleport
+    DoScreenFadeOut(300)
+    local fadeTimer = GetGameTimer()
+    while not IsScreenFadedOut() and (GetGameTimer() - fadeTimer) < 1000 do
         Citizen.Wait(0)
     end
-    SetEntityCoordsNoOffset(ped, sp.x, sp.y, sp.z, false, false, false, true)
+
+    -- Retry de la collision (un seul appel ne suffit pas toujours sur un login frais)
+    local timer = GetGameTimer()
+    while not HasCollisionLoadedAroundEntity(PlayerPedId()) and (GetGameTimer() - timer) < 8000 do
+        RequestCollisionAtCoord(sp.x, sp.y, sp.z)
+        Citizen.Wait(50)
+    end
+
+    -- Filet de sécurité : recale le Z sur le sol réel si trouvé (protège aussi
+    -- contre des coords légèrement désynchronisées du terrain dans la config)
+    local z = sp.z
+    local found, groundZ = GetGroundZFor_3dCoord(sp.x, sp.y, sp.z + 5.0, false)
+    if found then
+        z = groundZ
+    end
+
+    local ped = PlayerPedId()
+    SetEntityCoordsNoOffset(ped, sp.x, sp.y, z, false, false, false, true)
     SetEntityHeading(ped, sp.h or 0.0)
+
+    Citizen.Wait(200)
+    DoScreenFadeIn(300)
 end
 
 local function teleportToRandomFallback()

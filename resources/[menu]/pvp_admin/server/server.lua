@@ -779,9 +779,9 @@ AddEventHandler('pvp_admin:action', function(action, data)
 
     elseif action == 'spawnzombies' then
         local count = math.min(tonumber(data.count) or 5, 30)
-        TriggerClientEvent('pvp_zombies:forceSpawn', src, count)
+        TriggerClientEvent('pvp_admin:spawnZombiesOnMe', src, count)
         logAction(src, 'spawnzombies', '', 0, count .. ' zombies')
-        toast(src, count .. ' zombies spawnés.')
+        toast(src, count .. ' zombies spawnés sur vous.')
 
     -- ── OUTILS ADMIN (noclip, god, car) ─────────────────────────────────
 
@@ -870,7 +870,8 @@ RegisterCommand('ahelp', function(src)
         '/drop — Forcer un drop de ravitaillement',
         '/rzrotate — Forcer la rotation des redzones',
         '/killzombies — Tuer les zombies proches',
-        '/spawnzombies [n] — Spawn N zombies',
+        '/spawnzombies [n] — Spawn N zombies sur vous',
+        '/testped [modèle] — Changer votre ped (sans arg ou "reset" = revenir à la normale)',
         '/weather [type] — Changer la météo',
         '/time [h] — Changer l\'heure',
         '/announce [msg] — Annonce serveur',
@@ -1056,9 +1057,23 @@ end, false)
 RegisterCommand('spawnzombies', function(src, args)
     if src == 0 or not hasPerm(src, 'spawnzombies') then if src > 0 then denyAccess(src) end return end
     local count = math.min(tonumber(args[1]) or 5, 30)
-    TriggerClientEvent('pvp_zombies:forceSpawn', src, count)
+    TriggerClientEvent('pvp_admin:spawnZombiesOnMe', src, count)
     logAction(src, 'spawnzombies', '', 0, count .. ' zombies')
-    adminMsg(src, count .. ' zombies spawnés.')
+    adminMsg(src, count .. ' zombies spawnés sur vous.')
+end, false)
+
+RegisterCommand('testped', function(src, args)
+    if src == 0 or not hasPerm(src, 'testped') then if src > 0 then denyAccess(src) end return end
+    local model = args[1]
+    if not model or model == 'reset' then
+        TriggerClientEvent('pvp_admin:testPedConfirmed', src, nil)
+        logAction(src, 'testped', '', 0, 'reset')
+        adminMsg(src, 'Apparence réinitialisée.')
+        return
+    end
+    TriggerClientEvent('pvp_admin:testPedConfirmed', src, model)
+    logAction(src, 'testped', '', 0, model)
+    adminMsg(src, 'Modèle de ped : ' .. model)
 end, false)
 
 RegisterCommand('weather', function(src, args)

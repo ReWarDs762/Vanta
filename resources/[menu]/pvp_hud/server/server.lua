@@ -1,24 +1,7 @@
 -- =============================================
 --   PVP HUD - Server Side
---   Wanted level bloqué à 0 côté serveur
 -- =============================================
-
--- Bloquer le wanted level max dès le démarrage
-AddEventHandler('onResourceStart', function(resourceName)
-    if resourceName == GetCurrentResourceName() then
-        SetMaxWantedLevel(0)
-    end
-end)
-
--- Réappliquer à chaque connexion joueur
-AddEventHandler('playerConnecting', function()
-    SetMaxWantedLevel(0)
-end)
-
--- Réappliquer périodiquement (sécurité)
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(30000)
-        SetMaxWantedLevel(0)
-    end
-end)
+-- SetMaxWantedLevel est un native CLIENT uniquement — l'appeler ici plantait
+-- (SCRIPT ERROR) au démarrage, à chaque connexion joueur et toutes les 30s.
+-- Le retrait du wanted level est déjà géré côté client, chaque frame
+-- (voir pvp_hud/client/client.lua, thread de nettoyage du monde ambiant).

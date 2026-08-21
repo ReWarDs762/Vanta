@@ -1,5 +1,7 @@
 # VANTA — Serveur FiveM Zombie Survival PVP
 
+> **Statut actuel du projet** (bugs connus, roadmap, resources testées en jeu) : voir `STATUS.md`.
+
 ## Infos Projet
 - **Nom** : VANTA
 - **Type** : Serveur FiveM PVP Zombie Survival — public
@@ -17,26 +19,31 @@
 ```
 resources/
 ├── [base]        — Resources FiveM de base (mapmanager, spawnmanager, chat, etc.)
-├── [essential]   — ESX core (es_extended, mysql-async, essentialmode, esx_identity, esx_addonaccount)
-├── [menu]        — Resources custom PVP :
-│   ├── vanta_ui       — Design system partagé v2 (CSS tokens, variables --v-*, font Inter)
-│   ├── pvp_hud        — HUD minimaliste coin bas-gauche (HP, armor, arme, munitions) + restrictions combat
-│   ├── pvp_inventory  — Inventaire NUI complet (sac, coffre protégé, coffre avant-poste, hotbar, profil, paramètres)
-│   ├── pvp_spawn      — Spawn aléatoire aux avant-postes (login = random, mort = plus proche)
-│   ├── pvp_outposts   — Avant-postes avec zones safe, NPCs (shop/stash), custom armes (NUI + persistance DB)
-│   ├── pvp_zombies    — Système zombie (spawn, IA, loot pondéré)
-│   ├── pvp_market     — Marché joueur (listings persistants) — design à retravailler
-│   ├── pvp_drops      — Caisses de ravitaillement larguées par avion — fonctionnel, polish en cours
-│   ├── pvp_redzones   — 3 zones rouges PVP rotatives (loot x2) — fonctionnel, détails manquants
-│   ├── pvp_killfeed   — Killfeed haut-droite (killer/victime + couleur zone) — créé, non testé
-│   ├── pvp_crew       — Système de crew (créer/rejoindre, tag visible) — fonctionnel, à approfondir
-│   ├── pvp_garage     — Personnalisation véhicule NUI + concessionnaire
-│   ├── pvp_admin      — Outil admin complet (panel NUI F7, noclip, spectate, god, commandes)
-│   └── spooner        — Map editor en jeu
-└── [maps]        — Mappings :
-    ├── base_v15           — Base zombie Murietta Heights (1519 props, converti depuis Menyoo XML)
-    └── total_apocalypse/  — Mapping apocalyptique global (pack1, pack2, pack3 — 163 ymaps)
+├── [essential]   — ESX core (es_extended, mysql-async, essentialmode, esx_addonaccount)
+└── [menu]        — Resources custom PVP :
+    ├── vanta_ui       — Design system partagé v2 (CSS tokens, variables --v-*, font Inter)
+    ├── vanta_loading  — Écran de chargement
+    ├── vanta_xp       — XP, niveaux 1-100, prestige 0-5 — source unique de progression
+    ├── pvp_character  — Création de personnage (pseudo + genre), remplace esx_identity
+    ├── pvp_hud        — HUD coin bas-gauche (HP, armor, arme, munitions) + restrictions combat + nettoyage du monde
+    ├── pvp_inventory  — Inventaire NUI complet (sac, coffre protégé, coffre avant-poste, hotbar, profil, paramètres)
+    ├── pvp_spawn      — Spawn aléatoire aux avant-postes (login = random, mort = plus proche)
+    ├── pvp_outposts   — Avant-postes avec zones safe, NPCs (shop/stash), custom armes (NUI + persistance DB)
+    ├── pvp_zombies    — Système zombie (spawn, IA, loot pondéré)
+    ├── pvp_market     — Marché joueur (listings persistants)
+    ├── pvp_drops      — Caisses de ravitaillement larguées par avion
+    ├── pvp_redzones   — 3 zones rouges PVP rotatives (loot x2)
+    ├── pvp_killfeed   — Killfeed haut-droite (killer/victime + couleur zone)
+    ├── pvp_crew       — Système de crew (créer/rejoindre, tag visible)
+    ├── pvp_garage     — Personnalisation véhicule NUI + concessionnaire
+    ├── pvp_vcoins     — Monnaie premium, abonnements Gold/Diamond, marché VCoins
+    ├── pvp_admin      — Outil admin complet (panel NUI F7, noclip, spectate, god, commandes)
+    └── spooner        — Map editor en jeu
 ```
+
+> Il n'y a pas de dossier `[maps]` : les mappings custom ont été expérimentés puis retirés
+> volontairement (non concluants). Les avant-postes tournent sur la carte GTA V standard.
+> À reprendre plus tard si besoin.
 
 ---
 
@@ -55,54 +62,13 @@ Toutes les resources importent la feuille de style via :
 **Toutes les resources sont sur v2.** Ne jamais utiliser les anciennes variables v1 (`--bg-primary`, `--accent-silver`, etc.).
 
 ### Palette de couleurs (variables v2)
-```css
-:root {
-  /* Backgrounds */
-  --v-black:        #000000;
-  --v-bg:           #0a0a0a;
-  --v-surface:      #141414;
-  --v-surface-2:    #1c1c1e;
-  --v-surface-3:    #242426;
-  --v-elevated:     #2c2c2e;
-
-  /* Borders */
-  --v-separator:       rgba(255, 255, 255, 0.06);
-  --v-separator-bold:  rgba(255, 255, 255, 0.10);
-  --v-border:          rgba(255, 255, 255, 0.08);
-  --v-border-hover:    rgba(255, 255, 255, 0.15);
-
-  /* Text */
-  --v-text:           #ffffff;
-  --v-text-secondary: rgba(255, 255, 255, 0.55);
-  --v-text-tertiary:  rgba(255, 255, 255, 0.28);
-  --v-text-disabled:  rgba(255, 255, 255, 0.15);
-
-  /* Brand */
-  --v-silver:       #c8cdd4;
-  --v-silver-dim:   rgba(200, 205, 212, 0.40);
-  --v-silver-glow:  rgba(200, 205, 212, 0.06);
-
-  /* Semantic */
-  --v-danger:       #ff453a;
-  --v-danger-dim:   rgba(255, 69, 58, 0.15);
-  --v-success:      #30d158;
-  --v-success-dim:  rgba(48, 209, 88, 0.15);
-  --v-warning:      #ffd60a;
-  --v-warning-dim:  rgba(255, 214, 10, 0.15);
-  --v-info:         #64d2ff;
-  --v-info-dim:     rgba(100, 210, 255, 0.15);
-
-  /* Rarités */
-  --v-rarity-common:           rgba(255, 255, 255, 0.10);
-  --v-rarity-common-solid:     #3a3a3e;
-  --v-rarity-uncommon:         rgba(48, 209, 88, 0.25);
-  --v-rarity-uncommon-solid:   #1a5c32;
-  --v-rarity-rare:             rgba(100, 210, 255, 0.25);
-  --v-rarity-rare-solid:       #1a4a6e;
-  --v-rarity-legendary:        rgba(255, 214, 10, 0.25);
-  --v-rarity-legendary-solid:  #6e5a10;
-}
-```
+Valeurs complètes : [resources/[menu]/vanta_ui/html/vanta.css](resources/[menu]/vanta_ui/html/vanta.css).
+Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `bg`,
+`surface`/`surface-2`/`surface-3`, `elevated`), Borders (`separator`, `separator-bold`,
+`border`, `border-hover`), Text (`text`, `text-secondary`, `text-tertiary`,
+`text-disabled`), Brand (`silver`, `silver-dim`, `silver-glow`), Semantic (`danger`,
+`success`, `warning`, `info`, chacune avec une variante `-dim`), Rarités (`common`,
+`uncommon`, `rare`, `legendary`, chacune avec une variante `-solid`).
 
 ### Typographie
 - **Font** : `Inter` (Google Fonts) — toutes les UIs
@@ -140,57 +106,37 @@ Toutes les resources importent la feuille de style via :
 
 ### Profil joueur (pvp_inventory → onglet PROFIL)
 - **Carte identité** : avatar Discord, nom, identifier, badge actif, label prestige
-- **Barre XP** : 20 niveaux par cycle, barre animée, seuil prestige à 30 000 XP
-- **Stats** : Kills, Morts, K/D, Zombies tués total
-- **Records** : Kill streak record (suivi en mémoire serveur, persisté en DB)
+- **Barre XP / Niveaux / Prestige** : gérée par `vanta_xp` (voir section dédiée) — pas par pvp_inventory
+- **Stats** : Kills, Morts, K/D, Zombies tués total (table `pvp_player_stats`)
+- **Records** : Kill streak record (suivi en mémoire serveur, persisté dans `pvp_player_stats.kill_streak_record`)
 - **Classement personnel** : rang #X en kills, zombies, K/D
-- **XP** : +50 par kill PVP, +15 par zombie tué
-- **Prestige** : 5 niveaux max, reset XP à 0, badge débloqué automatiquement
-- **15 badges déblocables** :
+- **15 badges déblocables** (`pvp_player_stats.badges_unlocked`, JSON) :
   - Saison : `survivor_s1`
   - Kills PVP : `first_blood` (1), `killer_10` (10), `killer_50` (50), `predator_100` (100)
   - Zombies : `zombie_hunter` (100), `exterminator` (500), `annihilator` (1000)
   - Streak : `streak_5` (5), `unstoppable` (10)
   - Prestige : `prestige_1` à `prestige_5`
 - Saison en cours : `CURRENT_SEASON = 1`
-- DB colonnes : `kill_streak_record`, `xp`, `prestige`, `active_badge`, `badges_unlocked` (JSON)
 
-### Armes (31 total, 4 tiers de rareté)
+> **Piège** : `pvp_player_stats` a aussi des colonnes `xp` et `prestige` — ce sont des
+> **restes de l'ancien système**, avant la création de `vanta_xp`. Elles ne pilotent plus
+> rien. Bug actif lié à ces colonnes mortes : voir `STATUS.md`.
 
-**Commun (mêlée + pistolets) :**
-- `weapon_knife`, `weapon_bat`, `weapon_crowbar`, `weapon_switchblade`, `weapon_hatchet`, `weapon_machete`
-- `weapon_pistol`, `weapon_snspistol`, `weapon_vintagepistol`, `weapon_machinepistol`
-
-**Peu Commun (shotguns + SMG) :**
-- `weapon_combatpistol`, `weapon_heavypistol`, `weapon_revolver`, `weapon_doubleaction`
-- `weapon_pumpshotgun`, `weapon_sawnoffshotgun`, `weapon_dbshotgun`, `weapon_assaultshotgun`
-- `weapon_microsmg`, `weapon_minismg`, `weapon_smg`, `weapon_combatpdw`
-
-**Rare (fusils d'assaut + MG) :**
-- `weapon_assaultrifle`, `weapon_carbinerifle`, `weapon_compactrifle`
-- `weapon_combatmg`, `weapon_mg`
-
-**Légendaire (explosifs + sniper) :**
-- `weapon_rpg`, `weapon_grenadelauncher`, `weapon_grenade`
-- `weapon_sniperrifle`
+### Armes et véhicules — pas de liste unique, voir le code directement
 
 **Munitions :** infinies sauf sniper/RPG/lance-grenades (LIMITED_AMMO). Seule munition lootable : `ammo_sniper`.
 
-### Véhicules Lootables (par rareté)
-
-**Commun :** `vehicle_ratloader`, `vehicle_bodhi2`, `vehicle_emperor`, `vehicle_tornado`, `vehicle_bmx`, `vehicle_blazer`
-
-**Peu Commun :** `vehicle_sanchez`, `vehicle_bati`, `vehicle_mesa`, `vehicle_dubsta`, `vehicle_brawler`, `vehicle_kamacho`, `vehicle_kuruma`, `vehicle_buffalo`
-
-**Rare :** `vehicle_insurgent`, `vehicle_buffalo3`, `vehicle_hellion`, `vehicle_dominator`, `vehicle_guardian`, `vehicle_nightshark`
-
-**Rare — Blindés :** `vehicle_baller3`, `vehicle_baller6`, `vehicle_schafter5`, `vehicle_schafter6`
-
-**Rare — Apocalypse :** `vehicle_deathbike`, `vehicle_dominator4`, `vehicle_impaler2`, `vehicle_imperator`, `vehicle_bruiser`, `vehicle_brutus`, `vehicle_slamvan4`, `vehicle_zr380`
-
-**Légendaire :** `vehicle_deluxo`, `vehicle_scarab`, `vehicle_vigilante`, `vehicle_oppressor2`
-
 **Système véhicules :** lootables sur zombies → item dans inventaire → hotbar pour spawn → touche K pour ranger → despawn instantané
+
+> ⚠️ Il n'existe pas une liste unique et à jour des armes/véhicules par rareté — deux
+> sources différentes coexistent selon le besoin, et aucune n'est exhaustive à elle seule :
+> - **Armes en vente** : `pvp_outposts/config.lua` (`Config.WeaponShopItems`, armurerie)
+> - **Armes autorisées côté serveur** (whitelist anti-triche, plus large, inclut les
+>   variantes MK2) : `pvp_inventory/server/server.lua`, table `WEAPONS`
+> - **Véhicules lootables sur zombies** (table de loot pondérée complète) :
+>   `pvp_zombies/config.lua`
+>
+> Détail de cet écart : voir `STATUS.md` → « Écarts de documentation connus ».
 
 ### Zombies (pvp_zombies)
 - **1 seul type de zombie** (pas de Walker/Runner/Brute)
@@ -206,8 +152,24 @@ Toutes les resources importent la feuille de style via :
   - Légendaire (~0.01%) : Sniper, RPG, Homing Launcher + Véhicules légendaires
 - **Zones d'exclusion** : `Config.ExclusionZones` dans pvp_zombies/config.lua (coords + rayon). À maintenir si les avant-postes bougent.
 - **Boost redzone** : items rares (chance < 10) × `Config.LootMultiplier` (x2)
-- **XP** : +15 XP par zombie tué
+- **XP** : +50 XP par zombie tué (via `vanta_xp`, event interne `vanta_xp:internalZombieKill`)
 - AWP/AWP MK2 : exclusifs aux caisses de ravitaillement (pvp_drops), pas sur zombies
+
+### Système XP (vanta_xp) — source unique de progression
+- **Niveaux** : 1 à 100. XP requis pour un niveau = `100 × niveau^1.5` (cumulatif)
+- **Prestige** : 0 à 5. Chaque prestige ajoute un bonus de capacité cumulatif :
+  - P1 : +6kg sac / +4kg conteneur · P2 : +12/+8 · P3 : +18/+12 · P4 : +24/+16 · P5 (VANTA) : +30/+20
+  - Capacité de base : 50kg (sac), 20kg (conteneur), avant bonus prestige
+- **Gain d'XP** : +300 par kill joueur, +50 par kill zombie (`VantaXP.XPSources` dans `vanta_xp/config.lua`)
+- **Sécurité** : les kills sont notifiés à `vanta_xp` via des `AddEventHandler` internes
+  (`vanta_xp:internalPlayerKill`, `vanta_xp:internalZombieKill`), jamais via `RegisterNetEvent`
+  — un client ne peut donc pas se déclencher de l'XP lui-même
+- **Table** : `vanta_xp` (identifier, xp, level, prestige_level, total_xp_earned)
+- **Exports** : `addXP(identifier, amount, source)`, `getProfile(identifier)`,
+  `getBagBonus(identifier)`, `getContainerBonus(identifier)` — utilisés par `pvp_inventory`
+  pour les bonus de poids
+
+> ⚠️ Bug actif connu sur la commande `/givexp` (collision avec `pvp_admin`) : voir `STATUS.md`.
 
 ### Mort
 - Perd tout l'inventaire sac
@@ -220,7 +182,7 @@ Toutes les resources importent la feuille de style via :
 **2 Grandes bases (tous services) :**
 | # | ID | Label | Emplacement | Zone safe |
 |---|----|-------|-------------|-----------|
-| 1 | `murietta_base` | Murietta Heights Base | Ville (mapping base_v15) | 60m |
+| 1 | `murietta_base` | Murietta Heights Base | Ville (carte GTA V standard — mapping custom retiré) | 60m |
 | 2 | `zancudo_base` | Zancudo Valley Base | Campagne | 60m |
 
 **3 Petits camps (spécialité unique) :**
@@ -237,37 +199,32 @@ Toutes les resources importent la feuille de style via :
 - Blips différenciés par type
 - Téléportation entre avant-postes via NPC pilote
 
-### Drops de ravitaillement (pvp_drops) — fonctionnel, polish en cours
+*Statut d'avancement de chaque resource ci-dessous (fonctionnel/en cours/testé ou non) :
+voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
+
+### Drops de ravitaillement (pvp_drops)
 - Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap
 - Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 3 min
 - **Loot exclusif** : items légendaires uniquement (armes + véhicules légendaires, AWP/AWP MK2)
-- **À finir** : UI d'annonce, animations, sons, polish visuel général
 
-### Redzones (pvp_redzones) — fonctionnel, détails à définir
+### Redzones (pvp_redzones)
 - 3 zones rouges actives en permanence sur la carte
 - Loot doublé dans les zones (`Config.LootMultiplier` x2)
 - Rotation automatique toutes les heures
 - Killfeed affiche une couleur différente pour les kills en redzone
-- **À polish** : visuels carte/minimap, notifications de rotation, timer visible — à définir
 
-### Killfeed (pvp_killfeed) — créé, non testé
+### Killfeed (pvp_killfeed)
 - **Vision** : haut-droite de l'écran, affiche "KILLER → VICTIME"
 - Couleur neutre pour kill en zone normale
 - Couleur distincte pour kill en redzone
 - Intégré au style VANTA v2
 
-### Crew (pvp_crew) — fonctionnel, à approfondir
+### Crew (pvp_crew)
 - Créer / rejoindre un crew
 - Tag de crew visible sur le joueur
-- **Vision long terme** :
-  - Hiérarchie : leader + membres
-  - Coffre partagé crew
-  - Système d'affrontement entre crews (à brainstormer)
-  - Stats de crew
 
-### Marché joueur (pvp_market) — opérationnel, design à retravailler
+### Marché joueur (pvp_market)
 - Listings persistants (joueur → joueur)
-- **À faire** : refonte visuelle pour plus de lisibilité et de présence
 
 ### Customisation armes (pvp_outposts) — style VANTA v2
 - **NUI** : panel latéral droit (30% écran), fond semi-transparent (`rgba(10,10,10,0.85)`), joueur visible à 70%
@@ -298,6 +255,31 @@ Toutes les resources importent la feuille de style via :
 - **Events inter-resources** : `pvp_drops:forceStart`, `pvp_redzones:forceRotate`
 - `AdminConfig.OpenKey = 168` (F7)
 
+### Création de personnage (pvp_character)
+- Remplace `esx_identity` (supprimé) : pas d'identité civile GTA, juste pseudo + genre
+- NUI bloquant : `pvp_spawn` attend l'événement de fin de création avant de faire apparaître le joueur
+- **Modération pseudo** : liste de mots interdits vérifiée en sous-chaîne, insensible à la casse
+- **Renommage** : payant (5000$) sauf abonnement VCoins Diamond (gratuit, illimité) — dépend de `pvp_vcoins`
+- Saison courante : `CURRENT_SEASON = 1` (indépendante de celle de `pvp_inventory`)
+- Table : `characters` (identifier, firstname, lastname, dateofbirth, sex, height)
+- Ajoute par migration des colonnes à `pvp_player_stats` : `skin_tone`, `hair_style`, `rename_free_season`, `rename_last_week`, `ped_model`, `hud_type`, `hotbar`
+
+### VCoins (pvp_vcoins) — monnaie premium
+- Deux abonnements : **Gold** (800 VC/30j, bonus stash +5%) et **Diamond** (1500 VC/30j, bonus stash +10%)
+- Marché VCoins entre joueurs : jusqu'à 5 offres actives par vendeur (`MARKET_MAX_OFFERS`)
+- Intégration Tebex prévue (webhook `pvp_vcoins/tebex/<secret>`) — **secret par défaut non changé**
+  dans `pvp_vcoins/server/server.lua` (`TEBEX_URL_SECRET = 'CHANGE_ME_TO_A_LONG_RANDOM_STRING...'`).
+  À générer avant toute mise en production si l'intégration Tebex est activée.
+- Exports consommés par d'autres resources : `GetTier`, `HasDiamond`, `HasGoldOrDiamond`,
+  `GetSubscriptionTier`, `GetVCoins`, `GetStashBonus`
+- Tables : `vcoin_market`, `vcoin_pending_bank`, `vcoin_tebex_transactions`, colonnes `vcoins`/`subscription`/`sub_expires_at` sur `users`
+- Chargé avant `pvp_inventory` et `pvp_outposts` dans `server.cfg` (bonus stash consommé par eux)
+
+### Écran de chargement (vanta_loading)
+- `loadscreen` FiveM standard, thème VANTA v2
+- Aucune dépendance d'autres resources envers lui
+- Statut d'activation actuel : voir `STATUS.md`
+
 ---
 
 ## Config ESX
@@ -311,18 +293,74 @@ Toutes les resources importent la feuille de style via :
 ---
 
 ## Base de données
-- Table `pvp_player_stash` — coffre protégé personnel (JSON items)
-- Table `pvp_outpost_stash` — coffre avant-poste (JSON items, par outpost_id par joueur)
-- Table `pvp_weapon_customs` — customisation armes (identifier + weapon_name → custom_json avec components[] et tint)
-- Table `items` — items ESX (armes + véhicules enregistrés au démarrage)
-- Colonnes `users` ajoutées : `kill_streak_record`, `xp`, `prestige`, `active_badge`, `badges_unlocked` (JSON)
+
+**Toutes les tables ci-dessous sont créées automatiquement au démarrage**
+(`CREATE TABLE IF NOT EXISTS` + migrations `ALTER TABLE` par les resources elles-mêmes).
+Perdre la base perd les données joueurs, pas la structure.
+
+### Table `users` (ESX core)
+Pas de colonnes custom ajoutées par VANTA. Contient uniquement les champs standards ESX
+(`identifier`, `money`, `bank`, `job`, `group`, `firstname`, `lastname`...) + `vcoins`,
+`subscription`, `sub_expires_at` ajoutés par `pvp_vcoins`.
+⚠️ Ne contient **pas** `xp`, `prestige`, `active_badge`, `badges_unlocked`,
+`kill_streak_record` — contrairement à une ancienne version de cette doc. Ces champs sont
+dans `pvp_player_stats` (voir ci-dessous).
+
+### Progression & profil
+- `pvp_player_stats` — stats joueur : `kills`, `deaths`, `zombies_killed`, `redzone_kills`,
+  `redzone_deaths`, `redzone_zombies`, `kill_streak_record`, `active_badge`,
+  `badges_unlocked` (JSON), `hotbar` (JSON), `hud_type`, `skin_tone`, `hair_style`,
+  `rename_free_season`, `rename_last_week`, `ped_model`, `display_name`
+  — ⚠️ contient aussi `xp` et `prestige`, **legacy non utilisés** (voir « Système XP »)
+- `vanta_xp` — progression réelle : `xp`, `level`, `prestige_level`, `total_xp_earned`
+- `characters` — identité personnage (`pvp_character`) : prénom, nom, date de naissance, sexe, taille
+
+### Inventaire & customisation
+- `pvp_player_stash` — coffre protégé personnel (JSON items)
+- `pvp_outpost_stash` — coffre avant-poste (JSON items, par outpost_id par joueur)
+- `pvp_weapon_customs` — customisation armes (identifier + weapon_name → custom_json avec components[] et tint)
+- `pvp_vehicle_customs` — customisation véhicules (identifier + vehicle_model → mods_json)
+- `user_inventory` — inventaire ESX standard (identifier, item, count)
+- `items` — items ESX (armes + véhicules enregistrés au démarrage)
+
+### Économie
+- `vcoin_market` — annonces marché VCoins entre joueurs
+- `vcoin_pending_bank` — paiements VCoins en attente
+- `vcoin_tebex_transactions` — transactions Tebex traitées (idempotence)
+- `pvp_market_listings` — annonces marché joueur classique (argent)
+- `pvp_market_pending_payments` — paiements marché en attente
+- `society_moneywash` — blanchiment société (hérité ESX, jobs désactivés sur ce serveur)
+
+### Crew
+- `pvp_crews` — crew : nom, tag, owner, stats agrégées, xp/level/bank de crew
+- `pvp_crew_members`, `pvp_crew_invites`, `pvp_crew_stash`, `pvp_crew_activity`,
+  `pvp_crew_events`, `pvp_crew_objectives`
+
+### Admin & logs
+- `pvp_admin_bans` — bannissements (identifier, raison, durée, actif)
+- `pvp_admin_logs` — journal des actions admin
+- `pvp_redzone_control_log` — historique de contrôle des redzones par crew
 
 ---
 
-## HUD (pvp_hud) — Restrictions combat
-Thread dédié chaque frame dans `pvp_hud/client/client.lua` :
-- **Coups de crosse désactivés** : contrôles 140/141/142 bloqués sauf arme de mêlée équipée
-- **Tir en véhicule désactivé** : contrôles 24/25/69/70/92/93 bloqués quand `IsPedInAnyVehicle`
+## HUD (pvp_hud)
+
+Actif. Fait bien plus que l'affichage — tout tourne dans `pvp_hud/client/client.lua` :
+
+- **Affichage** : HP, armor, arme équipée, munitions (chargeur + réserve), coin bas-gauche
+- **Restrictions de combat** (voulu, actif) :
+  - Coups de crosse désactivés : contrôles 140/141/142 bloqués sauf arme de mêlée équipée
+  - Tir en véhicule désactivé : contrôles 24/25/69/70/92/93 bloqués quand `IsPedInAnyVehicle`
+- **Nettoyage du monde ambiant** (thread `Wait(0)`, chaque frame) :
+  - Densité PNJ/véhicules/PNJ scénario forcée à 0
+  - Niveau de recherché (wanted level) retiré en continu
+  - Roue des armes et touches 1-9 désactivées en permanence
+- **Nettoyage périodique** (toutes les 5s) : supprime les PNJ et véhicules ambiants résiduels
+  non pilotés par un joueur
+- **Dispatch désactivé** au démarrage : police/services, bateaux, camions poubelle, trains aléatoires
+
+`/togglehud` — masquer/afficher le HUD visuel (utile pour les streams). N'affecte ni les
+restrictions ni le nettoyage du monde.
 
 ---
 
@@ -341,21 +379,7 @@ Thread dédié chaque frame dans `pvp_hud/client/client.lua` :
 
 ## Roadmap
 
-### Priorité actuelle : rendre toutes les features existantes fonctionnelles et cohérentes avant d'en ajouter de nouvelles.
-
-- [x] Phase 1 — Base solide (server.cfg, ESX config PVP)
-- [x] Phase 2 — Zombies (spawn, IA, loot pondéré)
-- [x] Phase 2.5 — Inventaire NUI complet + armes + véhicules
-- [x] Phase 3 — Avant-postes, garage, admin, profil, badges, XP/prestige
-- [ ] **En cours — Polish & consolidation** :
-  - [ ] pvp_drops : UI d'annonce, sons, animations
-  - [ ] pvp_redzones : polish visuel, notifications rotation, timer
-  - [ ] pvp_killfeed : tester et finaliser
-  - [ ] pvp_crew : tester, corriger, brainstormer la vision long terme
-  - [ ] pvp_market : refonte design (plus lisible/visible)
-- [ ] Phase 4 — Crew system avancé (hiérarchie, coffre partagé, affrontements)
-- [ ] Phase 5 — Mapping avant-postes (CodeWalker)
-- [ ] Phase 6 — Lancement public
+Voir `STATUS.md` — mise à jour plus fréquente, section « Roadmap ».
 
 ---
 

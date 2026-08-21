@@ -30,7 +30,7 @@ AdminConfig.RolePermissions = {
     admin = {
         -- hérite de mod +
         'slay', 'revive', 'give', 'givemoney', 'givexp', 'clearinv',
-        'spawncar', 'deletecar', 'spawnzombies',
+        'spawncar', 'deletecar', 'spawnzombies', 'testped',
         'announce', 'setweather', 'settime',
         'forcedrop', 'rzrotate',
         'ban', 'unban',

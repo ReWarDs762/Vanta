@@ -219,6 +219,50 @@ AddEventHandler('pvp_admin:deleteCarConfirmed', function()
     end
 end)
 
+-- ══ TEST PED — Confirmé par le serveur ════════════════════════════════════
+-- Change temporairement le modèle du ped pour tester des animations/modèles.
+-- Sans argument (ou "reset") : revient au modèle d'origine (mémorisé au 1er changement).
+
+local testPedOriginalModel = nil
+
+RegisterNetEvent('pvp_admin:testPedConfirmed')
+AddEventHandler('pvp_admin:testPedConfirmed', function(model)
+    local ped = PlayerPedId()
+
+    if not model then
+        if not testPedOriginalModel then return end
+        model = testPedOriginalModel
+        testPedOriginalModel = nil
+    elseif not testPedOriginalModel then
+        testPedOriginalModel = GetEntityModel(ped)
+    end
+
+    local hash = type(model) == 'number' and model or GetHashKey(model)
+    RequestModel(hash)
+    local timeout = GetGameTimer()
+    while not HasModelLoaded(hash) do
+        if GetGameTimer() - timeout > 5000 then
+            TriggerEvent('chat:addMessage', { args = { '^1[ADMIN]', 'Modèle de ped invalide.' } })
+            return
+        end
+        Citizen.Wait(50)
+    end
+
+    local coords  = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+
+    SetPlayerModel(PlayerId(), hash)
+    SetModelAsNoLongerNeeded(hash)
+
+    local newPed = PlayerPedId()
+    SetEntityCoordsNoOffset(newPed, coords.x, coords.y, coords.z, false, false, false, true)
+    SetEntityHeading(newPed, heading)
+    SetEntityVisible(newPed, true, false)
+    SetEntityCollision(newPed, true, true)
+    SetEntityHealth(newPed, GetEntityMaxHealth(newPed))
+    SetPedDefaultComponentVariation(newPed)
+end)
+
 -- ══ TP WAYPOINT — Confirmé par le serveur ═════════════════════════════════
 
 RegisterNetEvent('pvp_admin:tpwpConfirmed')

@@ -666,9 +666,11 @@ AddEventHandler('pvp_inventory:requestData', function()
     local pending    = 5  -- stats, stash, market, hotbar, avatar
     local responded  = false
 
-    local function tryFinish()
-        pending = pending - 1
-        if pending > 0 or responded then return end
+    -- Filet de sécurité : si un des 5 callbacks async ne répond jamais (ex: l'appel
+    -- HTTP de resolveAvatar qui ne revient pas), l'UI doit quand même s'ouvrir avec
+    -- les données déjà disponibles plutôt que de rester bloquée indéfiniment.
+    local function finish()
+        if responded then return end
         responded = true
 
         -- Assembler le profil avec les stats
@@ -709,6 +711,14 @@ AddEventHandler('pvp_inventory:requestData', function()
             maxStashWeight = getEffectiveStashWeight(xPlayer.identifier),
         })
     end
+
+    local function tryFinish()
+        pending = pending - 1
+        if pending <= 0 then finish() end
+    end
+
+    -- Watchdog : force l'ouverture après 4s même si un callback n'a jamais répondu
+    SetTimeout(4000, finish)
 
     -- ① Stats joueur (async)
     MySQL.Async.fetchAll(
