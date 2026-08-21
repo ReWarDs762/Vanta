@@ -5,6 +5,15 @@
 
 local ESX = nil
 
+-- Jetons de spawn (anti-triche) — déclaré tôt car référencé par le callback
+-- ESX enregistré juste en dessous. Les zombies sont des peds 100% locaux
+-- (isNetwork = false), invisibles pour les autres joueurs : le serveur ne
+-- peut plus vérifier une entité réseau au moment du kill. À la place,
+-- chaque zombie spawné se voit attribuer un jeton unique par le serveur ;
+-- seul ce jeton (à usage unique) permet de réclamer la récompense/le loot
+-- à la fouille.
+local pendingTokens = {}  -- [src] = { [token] = issuedAt }
+
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
 -- Attente ESX prêt avant de traiter des events
@@ -20,11 +29,22 @@ CreateThread(function()
     end
     if ESX then
         print('[pvp_zombies] ESX chargé avec succès.')
+        ESX.RegisterServerCallback('pvp_zombies:getSpawnToken', function(source, cb)
+            local src = source
+            if not src or src <= 0 then return cb(nil) end
+
+            local token = ('%d_%d_%d'):format(src, os.time(), math.random(100000, 999999))
+            pendingTokens[src] = pendingTokens[src] or {}
+            pendingTokens[src][token] = os.time()
+
+            cb(token)
+        end)
     end
 end)
 
 -- ── Tirage du loot : 1 seul item par zombie (pondéré par chance) ──────────
--- Si inRedzone = true, les items rares/légendaires ont leurs chances multipliées
+-- Si inRedzone = true, tout ce qui n'est pas 'tres_commun' a son poids
+-- multiplié (commun/rare/épic/légendaire boostés, très commun inchangé).
 local function rollLoot(inRedzone)
     local lootTable = Config.LootTable
     if not lootTable or #lootTable == 0 then return {} end
@@ -38,13 +58,12 @@ local function rollLoot(inRedzone)
         multiplier = (ok and rzMult) or 2.0
     end
 
-    -- Calcul du poids total (avec boost redzone pour items rares)
+    -- Calcul du poids total (avec boost redzone sur commun/rare/épic/légendaire)
     local totalWeight = 0
     local weights = {}
     for i, entry in ipairs(lootTable) do
         local w = entry.chance
-        -- En redzone : boost les items avec chance < 10 (rares/légendaires)
-        if inRedzone and w < 10 then
+        if inRedzone and entry.category ~= 'tres_commun' then
             w = w * multiplier
         end
         weights[i] = w
@@ -64,101 +83,62 @@ local function rollLoot(inRedzone)
     return { lootTable[#lootTable] }
 end
 
--- ── Anti-exploit : tracking des kills pour éviter le spam ─────────────────
-local recentKills   = {}  -- [src] = { lastKillTime, killCount }
-local usedZombieIds = {}  -- [netId] = os.time() (empêche double-claim)
+local TOKEN_TTL_S = 1800  -- 30 min : purge des jetons jamais réclamés (zombie despawn, joueur parti, etc.)
 
-local KILL_COOLDOWN    = 500   -- ms minimum entre 2 kills
-local MAX_KILLS_WINDOW = 30    -- max kills par fenêtre de 30s
-local KILL_WINDOW_MS   = 30000
-local USED_NETID_TTL_S = 1800  -- 30 min : au-delà, le netId est sûrement recyclé
-
--- SÉCURITÉ : nettoyage par TTL au lieu d'un wipe global. Un wipe toutes les
--- 5 min ouvrait une fenêtre où un netId déjà claim pouvait être re-claim.
--- Ici on purge seulement les entrées > 30 min, le temps qu'un netId puisse
--- être légitimement recyclé par le moteur GTA.
 CreateThread(function()
     while true do
         Wait(60000)  -- toutes les minutes
         local now = os.time()
-        for netId, ts in pairs(usedZombieIds) do
-            if (now - ts) > USED_NETID_TTL_S then
-                usedZombieIds[netId] = nil
+        for src, tokens in pairs(pendingTokens) do
+            for token, issuedAt in pairs(tokens) do
+                if (now - issuedAt) > TOKEN_TTL_S then
+                    tokens[token] = nil
+                end
             end
         end
     end
 end)
 
--- SÉCURITÉ : set des models zombie autorisés (hash GTA) pour valider que
--- l'entité tuée est bien un zombie spawné par le serveur — et pas une
--- entité arbitraire (joueur, PNJ civil, chien, etc.) que le client ment.
-local ZOMBIE_MODEL_HASHES = {}
-CreateThread(function()
-    if not Config or not Config.ZombieType or not Config.ZombieType.models then return end
-    for _, modelName in ipairs(Config.ZombieType.models) do
-        ZOMBIE_MODEL_HASHES[GetHashKey(modelName)] = true
-    end
-end)
+-- ── Anti-exploit : tracking des fouilles pour éviter le spam ──────────────
+local recentLoots  = {}  -- [src] = { lastLoot, count, windowStart }
 
--- ── Appelé quand un joueur tue un zombie ───────────────────────────────────
-RegisterNetEvent('pvp_zombies:onKill')
-AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
+local LOOT_COOLDOWN    = 500   -- ms minimum entre 2 fouilles
+local MAX_LOOTS_WINDOW = 30    -- max fouilles par fenêtre de 30s
+local LOOT_WINDOW_MS   = 30000
+
+-- ── Appelé quand un joueur fouille un cadavre de zombie (touche E) ─────────
+RegisterNetEvent('pvp_zombies:claimLoot')
+AddEventHandler('pvp_zombies:claimLoot', function(token)
     if not ESX then return end  -- ESX pas encore chargé
-    local src      = source
-    local xPlayer  = ESX.GetPlayerFromId(src)
+    local src     = source
+    local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
-    -- ── VALIDATION 1 : netId obligatoire ──
-    if not zombieNetId or type(zombieNetId) ~= 'number' then return end
+    -- ── VALIDATION 1 : jeton obligatoire et valide pour ce joueur ──
+    if not token or type(token) ~= 'string' then return end
+    local tokens = pendingTokens[src]
+    if not tokens or not tokens[token] then return end
+    tokens[token] = nil  -- usage unique : consommé immédiatement (anti double-claim)
 
-    -- ── VALIDATION 2 : netId pas déjà utilisé (anti double-claim) ──
-    if usedZombieIds[zombieNetId] then return end
-    usedZombieIds[zombieNetId] = os.time()
-
-    -- ── VALIDATION 3 : anti-spam (cooldown + rate limit) ──
+    -- ── VALIDATION 2 : anti-spam (cooldown + rate limit) ──
     local now = GetGameTimer()
-    local record = recentKills[src]
+    local record = recentLoots[src]
     if not record then
-        record = { lastKill = 0, count = 0, windowStart = now }
-        recentKills[src] = record
+        record = { lastLoot = 0, count = 0, windowStart = now }
+        recentLoots[src] = record
     end
-    -- Cooldown entre 2 kills
-    if (now - record.lastKill) < KILL_COOLDOWN then return end
-    -- Reset fenêtre si expirée
-    if (now - record.windowStart) > KILL_WINDOW_MS then
+    if (now - record.lastLoot) < LOOT_COOLDOWN then return end
+    if (now - record.windowStart) > LOOT_WINDOW_MS then
         record.count = 0
         record.windowStart = now
     end
     record.count = record.count + 1
-    record.lastKill = now
-    -- Trop de kills dans la fenêtre → suspect
-    if record.count > MAX_KILLS_WINDOW then
-        print(('[ZOMBIE-ANTICHEAT] %s (id:%d) a dépassé %d kills en %ds — bloqué'):format(
-            xPlayer.identifier, src, MAX_KILLS_WINDOW, KILL_WINDOW_MS / 1000))
+    record.lastLoot = now
+    if record.count > MAX_LOOTS_WINDOW then
+        print(('[ZOMBIE-ANTICHEAT] %s (id:%d) a dépassé %d fouilles en %ds — bloqué'):format(
+            xPlayer.identifier, src, MAX_LOOTS_WINDOW, LOOT_WINDOW_MS / 1000))
         return
     end
-
-    -- ── VALIDATION 4 : vérifier l'entité réseau + model + distance ──
-    local zombieEntity = NetworkGetEntityFromNetworkId(zombieNetId)
-    if zombieEntity and zombieEntity ~= 0 and DoesEntityExist(zombieEntity) then
-        -- SÉCURITÉ : le model doit être un zombie connu.
-        -- Empêche un client de forger un netId pointant vers un autre joueur
-        -- ou un PNJ quelconque pour claim reward + loot.
-        local model = GetEntityModel(zombieEntity)
-        if model and model ~= 0 and not ZOMBIE_MODEL_HASHES[model] then
-            return
-        end
-        -- Vérifier la distance (max 200m)
-        local playerPed = GetPlayerPed(src)
-        if playerPed and playerPed ~= 0 then
-            local pCoords = GetEntityCoords(playerPed)
-            local zCoords = GetEntityCoords(zombieEntity)
-            local dist = #(pCoords - zCoords)
-            if dist > 200.0 then return end
-        end
-    end
-    -- Note : si l'entité n'existe plus côté serveur (OneSync scope),
-    -- on accepte quand même car les validations 1-3 protègent contre le spam
 
     local typeData = Config.ZombieType
 
@@ -221,14 +201,15 @@ AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
 
     -- Stats (optionnel : log serveur)
     local rzTag = inRedzone and ' [REDZONE]' or ''
-    print(('[ZOMBIE]%s %s a tué un Zombie | +%d$ | loot: %s'):format(
+    print(('[ZOMBIE]%s %s a fouillé un Zombie | +%d$ | loot: %s'):format(
         rzTag, xPlayer.identifier, reward, table.concat(lootNames, ', ')
     ))
 end)
 
 -- ── Nettoyage anti-spam à la déconnexion ────────────────────────────────────
 AddEventHandler('playerDropped', function()
-    recentKills[source] = nil
+    recentLoots[source]   = nil
+    pendingTokens[source] = nil
 end)
 
 -- ── Shot Attracteur : route l'event vers le client source ─────────────────

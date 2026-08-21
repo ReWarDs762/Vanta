@@ -1,0 +1,34 @@
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.loot-toast {
+  position: fixed;
+  bottom: 230px;
+  left: 20px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.loot-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.loot-toast__amount {
+  font-weight: 600;
+  color: var(--v-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.loot-toast__item {
+  color: var(--v-text-secondary);
+  margin-left: var(--v-space-3);
+  padding-left: var(--v-space-3);
+  border-left: 1px solid var(--v-separator-bold);
+}

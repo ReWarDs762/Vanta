@@ -5,13 +5,13 @@
 Config = {}
 
 -- Max zombies actifs autour d'un joueur
-Config.MaxZombiesPerPlayer  = 12
+Config.MaxZombiesPerPlayer  = 40
 
 -- Distance de spawn (min/max autour du joueur)
 Config.SpawnRadiusMin       = 40.0
 Config.SpawnRadiusMax       = 80.0
 
--- Distance au-delà de laquelle un zombie est supprimé
+-- Distance au-delà de laquelle un zombie (ou son cadavre non-fouillé) est supprimé
 Config.DespawnRadius        = 120.0
 
 -- Fréquence de spawn (ms) - toutes les 8s on tente de spawner
@@ -19,6 +19,9 @@ Config.SpawnInterval        = 8000
 
 -- Fréquence de check des zombies morts (ms)
 Config.UpdateInterval       = 500
+
+-- Distance (m) à laquelle le prompt "[E] Fouiller" apparaît sur un cadavre
+Config.LootPromptRadius     = 3.0
 
 -- Ne pas spawner dans les zones safe des avant-postes
 Config.RespectSafeZones     = true
@@ -51,121 +54,117 @@ Config.ZombieType = {
     label       = 'Zombie',
     models      = {
         'u_m_y_zombie_01',
-        'u_m_y_corpse_01',
-        'a_m_m_tramp_01',
-        'a_f_m_tramp_01',
-        'u_m_y_militarybum',
-        'a_m_m_fatbla_01',
-        's_m_y_prisoner_01',
     },
     health      = 200,
     moveClipset = 'move_m@drunk@verydrunk',
     speed       = 1.0,
-    damage      = 15,
+    damage      = 15, -- documentaire uniquement : le dégât réel vient du combo anim + WEAPON_UNARMED géré par GTA
     reward      = { min = 20, max = 60 },
 }
 
 -- ══════════════════════════════════════════════════════════════════════════
 --  TABLE DE LOOT — 1 item par zombie, tirage pondéré
 --
---  Taux d'apparition exacts par catégorie :
---  Légendaire   0.01%   Snipers, RPG, Lance-missiles + Véhicules légendaires
---  Épic          0.5%   Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
+--  Taux d'apparition cibles par catégorie :
+--  Très Commun    90%   Soins, Shots, Pistols, SMG, Molotov
+--  Commun          8%   AK47, Carabine, Carabine Spécial
 --  Rare          1.5%   MK2 fusils, M60, Mitrailleuse, Pistolet paralysant + Véhicules rares
---  Commun         15%   AK47, Carabine, Carabine Spécial
---  Très Commun  ~83%   Pistols, SMG, Molotov + Soins + Shots
+--  Épic          0.4%   Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
+--  Légendaire   0.01%   Snipers, RPG, Lance-missiles + Véhicules légendaires
+--
+--  Total poids ≈ 9993 → taux réels :
+--    Très Commun : 9001 /9993 = 90.07% ✓
+--    Commun      :  800 /9993 =  8.01% ✓
+--    Rare        :  151 /9993 =  1.51% ✓
+--    Épic        :   40 /9993 =  0.40% ✓
+--    Légendaire  :    1 /9993 =  0.01% ✓
+--
+--  `category` sert au boost redzone : en redzone, tout ce qui n'est PAS
+--  'tres_commun' voit son poids multiplié (voir server.lua / rollLoot).
 -- ══════════════════════════════════════════════════════════════════════════
-
--- ── Calcul des chance values ───────────────────────────────────────────────
--- Total poids ≈ 9922 → taux réels :
---   Légendaire  :   1.00 /9922 = 0.0101%  ✓
---   Épic        :  50.00 /9922 = 0.504%   ✓
---   Rare        : 151.00 /9922 = 1.52%    ✓
---   Commun      : 1500   /9922 = 15.1%    ✓
---   TC+soins+shots: 8220 /9922 = 82.8%    ✓
 Config.LootTable = {
-    -- ══ TRÈS COMMUN + SOINS + SHOTS (≈ 82.8%) ══════════════════════════
+    -- ══ TRÈS COMMUN (≈ 90%) — jamais boosté en redzone ═══════════════════
 
     -- Soins
-    { item = 'bandage',                  chance = 1500, count = 1 },
-    { item = 'medkit',                   chance = 800,  count = 1 },
-    { item = 'kevlar',                   chance = 500,  count = 1 },
+    { item = 'bandage',                  chance = 1642, count = 1, category = 'tres_commun' },
+    { item = 'medkit',                   chance = 876,  count = 1, category = 'tres_commun' },
+    { item = 'kevlar',                   chance = 547,  count = 1, category = 'tres_commun' },
     -- Shots
-    { item = 'shot_repel',               chance = 400,  count = 1 },
-    { item = 'shot_attract',             chance = 300,  count = 1 },
-    { item = 'shot_speed',               chance = 400,  count = 1 },
-    { item = 'shot_health',              chance = 350,  count = 1 },
+    { item = 'shot_repel',               chance = 438,  count = 1, category = 'tres_commun' },
+    { item = 'shot_attract',             chance = 328,  count = 1, category = 'tres_commun' },
+    { item = 'shot_speed',               chance = 438,  count = 1, category = 'tres_commun' },
+    { item = 'shot_health',              chance = 383,  count = 1, category = 'tres_commun' },
     -- Pistols + Molotov
-    { item = 'weapon_molotov',           chance = 250,  count = 1 },
-    { item = 'weapon_appistol',          chance = 300,  count = 1 },
-    { item = 'weapon_pistol',            chance = 350,  count = 1 },
-    { item = 'weapon_pistol_mk2',        chance = 280,  count = 1 },
-    { item = 'weapon_snspistol',         chance = 320,  count = 1 },
-    { item = 'weapon_snspistol_mk2',     chance = 250,  count = 1 },
-    { item = 'weapon_vintagepistol',     chance = 270,  count = 1 },
-    { item = 'weapon_combatpistol',      chance = 270,  count = 1 },
-    { item = 'weapon_heavypistol',       chance = 250,  count = 1 },
+    { item = 'weapon_molotov',           chance = 274,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_appistol',          chance = 328,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_pistol',            chance = 383,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_pistol_mk2',        chance = 307,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_snspistol',         chance = 350,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_snspistol_mk2',     chance = 274,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_vintagepistol',     chance = 296,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_combatpistol',      chance = 296,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_heavypistol',       chance = 274,  count = 1, category = 'tres_commun' },
     -- SMG
-    { item = 'weapon_microsmg',          chance = 290,  count = 1 },
-    { item = 'weapon_minismg',           chance = 290,  count = 1 },
-    { item = 'weapon_smg',              chance = 300,  count = 1 },
-    { item = 'weapon_smg_mk2',           chance = 270,  count = 1 },
-    { item = 'weapon_machinepistol',     chance = 280,  count = 1 },
+    { item = 'weapon_microsmg',          chance = 318,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_minismg',           chance = 318,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_smg',               chance = 328,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_smg_mk2',           chance = 296,  count = 1, category = 'tres_commun' },
+    { item = 'weapon_machinepistol',     chance = 307,  count = 1, category = 'tres_commun' },
 
-    -- ══ COMMUN (≈ 15%) ══════════════════════════════════════════════════
-    { item = 'weapon_assaultrifle',      chance = 500,  count = 1 },
-    { item = 'weapon_carbinerifle',      chance = 500,  count = 1 },
-    { item = 'weapon_specialcarbine',    chance = 500,  count = 1 },
+    -- ══ COMMUN (≈ 8%) ═══════════════════════════════════════════════════
+    { item = 'weapon_assaultrifle',      chance = 267,  count = 1, category = 'commun' },
+    { item = 'weapon_carbinerifle',      chance = 267,  count = 1, category = 'commun' },
+    { item = 'weapon_specialcarbine',    chance = 266,  count = 1, category = 'commun' },
 
     -- ══ RARE (≈ 1.5%) ═══════════════════════════════════════════════════
-    { item = 'weapon_assaultrifle_mk2',  chance = 13,   count = 1 },
-    { item = 'weapon_carbinerifle_mk2',  chance = 13,   count = 1 },
-    { item = 'weapon_specialcarbine_mk2',chance = 12,   count = 1 },
-    { item = 'weapon_stungun',           chance = 8,    count = 1 },
-    { item = 'weapon_combatmg',          chance = 13,   count = 1 },
-    { item = 'weapon_mg',                chance = 12,   count = 1 },
+    { item = 'weapon_assaultrifle_mk2',  chance = 13,   count = 1, category = 'rare' },
+    { item = 'weapon_carbinerifle_mk2',  chance = 13,   count = 1, category = 'rare' },
+    { item = 'weapon_specialcarbine_mk2',chance = 12,   count = 1, category = 'rare' },
+    { item = 'weapon_stungun',           chance = 8,    count = 1, category = 'rare' },
+    { item = 'weapon_combatmg',          chance = 13,   count = 1, category = 'rare' },
+    { item = 'weapon_mg',                chance = 12,   count = 1, category = 'rare' },
     -- Véhicules rares
-    { item = 'vehicle_ztype',            chance = 12,   count = 1 },
-    { item = 'vehicle_mule',             chance = 13,   count = 1 },
-    { item = 'vehicle_blazer5',          chance = 12,   count = 1 },
-    { item = 'vehicle_dominator4',       chance = 11,   count = 1 },
-    { item = 'vehicle_revolter',         chance = 11,   count = 1 },
-    { item = 'vehicle_ultralight',       chance = 11,   count = 1 },
-    { item = 'vehicle_speedo2',          chance = 10,   count = 1 },
+    { item = 'vehicle_ztype',            chance = 12,   count = 1, category = 'rare' },
+    { item = 'vehicle_mule',             chance = 13,   count = 1, category = 'rare' },
+    { item = 'vehicle_blazer5',          chance = 12,   count = 1, category = 'rare' },
+    { item = 'vehicle_dominator4',       chance = 11,   count = 1, category = 'rare' },
+    { item = 'vehicle_revolter',         chance = 11,   count = 1, category = 'rare' },
+    { item = 'vehicle_ultralight',       chance = 11,   count = 1, category = 'rare' },
+    { item = 'vehicle_speedo2',          chance = 10,   count = 1, category = 'rare' },
 
-    -- ══ ÉPIC (≈ 0.5%) ═══════════════════════════════════════════════════
-    { item = 'weapon_precisionrifle',    chance = 3,    count = 1 },
-    { item = 'weapon_compactlauncher',   chance = 2.5,  count = 1 },
-    { item = 'weapon_emplauncher',       chance = 2.5,  count = 1 },
-    { item = 'weapon_combatmg_mk2',      chance = 3,    count = 1 },
-    { item = 'weapon_musket',            chance = 2.5,  count = 1 },
+    -- ══ ÉPIC (≈ 0.4%) ═══════════════════════════════════════════════════
+    { item = 'weapon_precisionrifle',    chance = 2.42, count = 1, category = 'epic' },
+    { item = 'weapon_compactlauncher',   chance = 2.02, count = 1, category = 'epic' },
+    { item = 'weapon_emplauncher',       chance = 2.02, count = 1, category = 'epic' },
+    { item = 'weapon_combatmg_mk2',      chance = 2.42, count = 1, category = 'epic' },
+    { item = 'weapon_musket',            chance = 2.02, count = 1, category = 'epic' },
     -- Véhicules épic
-    { item = 'vehicle_schafter5',        chance = 3,    count = 1 },
-    { item = 'vehicle_baller6',          chance = 3,    count = 1 },
-    { item = 'vehicle_xls2',             chance = 2.5,  count = 1 },
-    { item = 'vehicle_voltic2',          chance = 2.5,  count = 1 },
-    { item = 'vehicle_cerberus',         chance = 3,    count = 1 },
-    { item = 'vehicle_zr380',            chance = 3,    count = 1 },
-    { item = 'vehicle_cog552',           chance = 2.5,  count = 1 },
-    { item = 'vehicle_sasquatch',        chance = 2.5,  count = 1 },
-    { item = 'vehicle_thruster',         chance = 2,    count = 1 },
-    { item = 'vehicle_vigilante',        chance = 3,    count = 1 },
-    { item = 'vehicle_buzzard2',         chance = 3,    count = 1 },
-    { item = 'vehicle_maverick',         chance = 3.5,  count = 1 },
-    { item = 'vehicle_havok',            chance = 2.5,  count = 1 },
+    { item = 'vehicle_schafter5',        chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_baller6',          chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_xls2',             chance = 2.02, count = 1, category = 'epic' },
+    { item = 'vehicle_voltic2',          chance = 2.02, count = 1, category = 'epic' },
+    { item = 'vehicle_cerberus',         chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_zr380',            chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_cog552',           chance = 2.02, count = 1, category = 'epic' },
+    { item = 'vehicle_sasquatch',        chance = 2.02, count = 1, category = 'epic' },
+    { item = 'vehicle_thruster',         chance = 1.62, count = 1, category = 'epic' },
+    { item = 'vehicle_vigilante',        chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_buzzard2',         chance = 2.42, count = 1, category = 'epic' },
+    { item = 'vehicle_maverick',         chance = 2.83, count = 1, category = 'epic' },
+    { item = 'vehicle_havok',            chance = 2.02, count = 1, category = 'epic' },
 
     -- ══ LÉGENDAIRE (≈ 0.01%) ════════════════════════════════════════════
-    { item = 'weapon_sniperrifle',       chance = 0.15, count = 1 },
-    { item = 'weapon_marksmanrifle_mk2', chance = 0.12, count = 1 },
+    { item = 'weapon_sniperrifle',       chance = 0.183, count = 1, category = 'legendaire' },
+    { item = 'weapon_marksmanrifle_mk2', chance = 0.146, count = 1, category = 'legendaire' },
     -- weapon_heavysniper (AWP) et weapon_heavysniper_mk2 (AWP MK2)
     -- → droppables uniquement dans les caisses de ravitaillement (pvp_drops)
-    { item = 'weapon_rpg',               chance = 0.10, count = 1 },
-    { item = 'weapon_hominglauncher',    chance = 0.05, count = 1 },
+    { item = 'weapon_rpg',               chance = 0.122, count = 1, category = 'legendaire' },
+    { item = 'weapon_hominglauncher',    chance = 0.061, count = 1, category = 'legendaire' },
     -- Véhicules légendaires
-    { item = 'vehicle_deluxo',           chance = 0.07, count = 1 },
-    { item = 'vehicle_oppressor2',       chance = 0.05, count = 1 },
-    { item = 'vehicle_nightshark',       chance = 0.08, count = 1 },
-    { item = 'vehicle_scarab',           chance = 0.06, count = 1 },
-    { item = 'vehicle_insurgent3',       chance = 0.07, count = 1 },
-    { item = 'vehicle_dukes2',           chance = 0.07, count = 1 },
+    { item = 'vehicle_deluxo',           chance = 0.085, count = 1, category = 'legendaire' },
+    { item = 'vehicle_oppressor2',       chance = 0.061, count = 1, category = 'legendaire' },
+    { item = 'vehicle_nightshark',       chance = 0.098, count = 1, category = 'legendaire' },
+    { item = 'vehicle_scarab',           chance = 0.073, count = 1, category = 'legendaire' },
+    { item = 'vehicle_insurgent3',       chance = 0.085, count = 1, category = 'legendaire' },
+    { item = 'vehicle_dukes2',           chance = 0.085, count = 1, category = 'legendaire' },
 }

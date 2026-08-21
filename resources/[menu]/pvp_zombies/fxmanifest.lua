@@ -18,7 +18,16 @@ server_scripts {
     'server/server.lua'
 }
 
+ui_page 'html/index.html'
+
+files {
+    'html/index.html',
+    'html/style.css',
+    'html/app.js'
+}
+
 dependencies {
     'es_extended',
-    'pvp_outposts'
+    'pvp_outposts',
+    'vanta_ui'
 }

@@ -1,26 +1,33 @@
 -- =============================================
 --   PVP ZOMBIES - Client
---   Spawn, IA, détection mort, loot
+--   Spawn, IA, détection mort, fouille au corps
 -- =============================================
 
-local activeZombies  = {}   -- { ped, dead }
+local ESX = nil
+Citizen.CreateThread(function()
+    while ESX == nil do
+        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+        Citizen.Wait(200)
+    end
+end)
+
+local activeZombies   = {}   -- { ped, dead, looted, token }
 local zombieGroupHash = nil
 local playerGroupHash = nil
 
--- ── Relation groups (zombies attaquent les joueurs) ────────────────────────
+-- ── Relation groups (zombies attaquent les joueurs, pas de flics sur ce serveur) ──
 local function setupRelationships()
     AddRelationshipGroup('ZOMBIE_HORDE')
     zombieGroupHash = GetHashKey('ZOMBIE_HORDE')
     playerGroupHash = GetHashKey('PLAYER')
 
-    -- Zombies attaquent joueurs et joueurs peuvent attaquer zombies
     SetRelationshipBetweenGroups(5, zombieGroupHash, playerGroupHash)
     SetRelationshipBetweenGroups(5, playerGroupHash, zombieGroupHash)
-    -- Zombies attaquent aussi les cops (pour éviter qu'ils les ignorent)
-    SetRelationshipBetweenGroups(5, zombieGroupHash, GetHashKey('COP'))
 end
 
 -- ── Spawn d'un zombie ──────────────────────────────────────────────────────
+-- Ped local uniquement (isNetwork = false) : invisible et non-interactible
+-- pour les autres joueurs, seul le client qui l'a spawné le voit/gère.
 local function spawnZombie(x, y, z)
     local typeData = Config.ZombieType
     local models   = typeData.models
@@ -37,7 +44,7 @@ local function spawnZombie(x, y, z)
     local ped = CreatePed(4, model,
         x, y, z - 1.0,
         math.random(0, 360) * 1.0,
-        true, false
+        false, false
     )
 
     if not DoesEntityExist(ped) then
@@ -49,15 +56,12 @@ local function spawnZombie(x, y, z)
     SetEntityMaxHealth(ped, 400)
     SetEntityHealth(ped, typeData.health + 100) -- +100 car GTA ajoute 100 au min
 
-    -- Comportement zombie
+    -- Comportement zombie : agressif sans condition de vue/portée
     SetBlockingOfNonTemporaryEvents(ped, true)
     SetPedFleeAttributes(ped, 0, false)
     SetPedCombatAttributes(ped, 46, true)   -- Attaque même si sans arme
     SetPedCombatAttributes(ped, 5, true)    -- Toujours combattre
     SetPedCombatAttributes(ped, 52, true)   -- Pas de couverture
-    SetPedCombatRange(ped, 2)               -- Range 100m
-    SetPedSeeingRange(ped, 80.0)
-    SetPedHearingRange(ped, 40.0)
 
     -- Animation de marche zombie
     RequestClipSet(typeData.moveClipset)
@@ -77,16 +81,26 @@ local function spawnZombie(x, y, z)
     GiveWeaponToPed(ped, GetHashKey('WEAPON_UNARMED'), 0, false, true)
     SetPedArmour(ped, 0)
 
-    -- Ordre d'attaquer le joueur
+    -- Ordre d'attaquer le joueur (aggro immédiate, pas de détection à simuler)
     local playerPed = PlayerPedId()
     TaskCombatPed(ped, playerPed, 0, 16)
 
     SetModelAsNoLongerNeeded(model)
 
-    table.insert(activeZombies, {
-        ped  = ped,
-        dead = false,
-    })
+    local zombieEntry = {
+        ped    = ped,
+        dead   = false,
+        looted = false,
+        token  = nil,
+    }
+    table.insert(activeZombies, zombieEntry)
+
+    -- Jeton anti-triche serveur, attaché de façon asynchrone (n'affecte pas le spawn)
+    if ESX then
+        ESX.TriggerServerCallback('pvp_zombies:getSpawnToken', function(token)
+            zombieEntry.token = token
+        end)
+    end
 end
 
 -- ── Position de spawn aléatoire autour du joueur ──────────────────────────
@@ -121,7 +135,7 @@ local function isInSafeZone(x, y, z)
 end
 
 -- ── Vérifie si une position est dans le killRadius d'un avant-poste ──────────
--- (pour supprimer les zombies qui s'infiltrent dans la zone safe)
+-- (pour supprimer les zombies/cadavres qui s'infiltrent dans la zone safe)
 local function isInsideKillZone(x, y, z)
     local pos = vector3(x, y, z)
     for _, zone in ipairs(Config.ExclusionZones) do
@@ -130,6 +144,27 @@ local function isInsideKillZone(x, y, z)
         end
     end
     return false
+end
+
+-- ── Texte 3D flottant (prompt de fouille) ─────────────────────────────────
+local function DrawText3D(x, y, z, text)
+    local onScreen, sx, sy = GetScreenCoordFromWorldCoord(x, y, z)
+    if not onScreen then return end
+
+    local camCoords = GetGameplayCamCoords()
+    local dist  = #(camCoords - vector3(x, y, z))
+    local scale = (1 / dist) * 2 * ((1 / GetGameplayCamFov()) * 100)
+
+    SetTextScale(0.55 * scale, 0.55 * scale)
+    SetTextFont(4)
+    SetTextProportional(1)
+    SetTextColour(255, 255, 255, 215)
+    SetTextDropshadow(0, 0, 0, 0, 255)
+    SetTextEdge(2, 0, 0, 0, 150)
+    SetTextEntry('STRING')
+    SetTextCentre(1)
+    AddTextComponentString(text)
+    DrawText(sx, sy)
 end
 
 -- ── Initialisation ─────────────────────────────────────────────────────────
@@ -156,7 +191,7 @@ Citizen.CreateThread(function()
     while true do
         Citizen.Wait(Config.SpawnInterval)
 
-        -- Compte les zombies encore vivants
+        -- Compte les zombies encore vivants (les cadavres non fouillés ne comptent pas)
         local living = 0
         for _, z in ipairs(activeZombies) do
             if not z.dead and DoesEntityExist(z.ped) and not IsEntityDead(z.ped) then
@@ -186,31 +221,21 @@ Citizen.CreateThread(function()
         Citizen.Wait(Config.UpdateInterval)
 
         local playerCoords = GetEntityCoords(PlayerPedId())
-        local toRemove     = {}
+        local toRemove      = {}
 
         for i, z in ipairs(activeZombies) do
             if not DoesEntityExist(z.ped) then
                 table.insert(toRemove, i)
 
-            elseif IsEntityDead(z.ped) and not z.dead then
-                -- Zombie vient de mourir
-                z.dead = true
-                z.deathTime = GetGameTimer()
-                -- Envoie le netId du zombie pour validation serveur (avec check validité)
-                local netId = NetworkGetNetworkIdFromEntity(z.ped)
-                if netId and netId > 0 then
-                    TriggerServerEvent('pvp_zombies:onKill', netId)
-                end
-                -- NE PAS retirer de la table ici : on garde le ped pour le supprimer dans la boucle
+            elseif z.dead and z.looted then
+                -- Fouillé : suppression immédiate du cadavre
+                DeleteEntity(z.ped)
+                table.insert(toRemove, i)
 
-            elseif z.dead and z.deathTime then
-                -- Nettoyage des morts après 8 secondes
-                if (GetGameTimer() - z.deathTime) > 8000 then
-                    if DoesEntityExist(z.ped) then
-                        DeleteEntity(z.ped)
-                    end
-                    table.insert(toRemove, i)
-                end
+            elseif IsEntityDead(z.ped) and not z.dead then
+                -- Zombie vient de mourir : devient un cadavre fouillable
+                -- (aucun contact serveur ici, le loot se règle au moment du "E")
+                z.dead = true
 
             else
                 local zCoords = GetEntityCoords(z.ped)
@@ -220,19 +245,15 @@ Citizen.CreateThread(function()
                     DeleteEntity(z.ped)
                     table.insert(toRemove, i)
                 else
-                    -- Nettoyage des zombies trop loin
+                    -- Nettoyage (vivant ou cadavre non fouillé) si trop loin du joueur
                     local d = #(playerCoords - zCoords)
                     if d > Config.DespawnRadius then
                         DeleteEntity(z.ped)
                         table.insert(toRemove, i)
-                    else
-                        -- Si le zombie ne combat plus, relance la tâche
-                        if not IsPedInCombat(z.ped, PlayerPedId()) and not z.dead then
-                            local playerPed = PlayerPedId()
-                            local dist = #(zCoords - GetEntityCoords(playerPed))
-                            if dist < 60.0 then
-                                TaskCombatPed(z.ped, playerPed, 0, 16)
-                            end
+                    elseif not z.dead then
+                        -- Relance la tâche de combat si elle s'est arrêtée
+                        if not IsPedInCombat(z.ped, PlayerPedId()) then
+                            TaskCombatPed(z.ped, PlayerPedId(), 0, 16)
                         end
                     end
                 end
@@ -246,23 +267,46 @@ Citizen.CreateThread(function()
     end
 end)
 
+-- ── Boucle de fouille : prompt "[E] Fouiller" + interaction ────────────────
+-- Seul le propriétaire des zombies peut voir/interagir (peds non-réseau).
+Citizen.CreateThread(function()
+    while true do
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        local nearest, nearestDist = nil, Config.LootPromptRadius
+
+        for _, z in ipairs(activeZombies) do
+            if z.dead and not z.looted and DoesEntityExist(z.ped) then
+                local d = #(playerCoords - GetEntityCoords(z.ped))
+                if d < nearestDist then
+                    nearest, nearestDist = z, d
+                end
+            end
+        end
+
+        if nearest then
+            local zc = GetEntityCoords(nearest.ped)
+            DrawText3D(zc.x, zc.y, zc.z + 1.0, '[E] Fouiller')
+
+            if IsControlJustPressed(0, 38) and nearest.token then -- INPUT_CONTEXT (E)
+                nearest.looted = true
+                TriggerServerEvent('pvp_zombies:claimLoot', nearest.token)
+            end
+
+            Citizen.Wait(0)
+        else
+            Citizen.Wait(300)
+        end
+    end
+end)
+
 -- ── Réception du loot depuis le serveur ────────────────────────────────────
 RegisterNetEvent('pvp_zombies:receiveLoot')
 AddEventHandler('pvp_zombies:receiveLoot', function(zombieLabel, reward, lootItems)
-    -- Notification kill + argent
-    local msg = '~r~[KILL]~s~ ' .. zombieLabel .. '  ~y~+' .. reward .. ' Butin'
-    if #lootItems > 0 then
-        local itemNames = {}
-        for _, item in ipairs(lootItems) do
-            table.insert(itemNames, item)
-        end
-        msg = msg .. '  ~w~| ' .. table.concat(itemNames, ', ')
-    end
-
-    -- Affiche en haut à droite type "kill feed"
-    SetNotificationTextEntry('STRING')
-    AddTextComponentString(msg)
-    DrawNotification(false, true)
+    SendNUIMessage({
+        action = 'showLootToast',
+        amount = reward,
+        item   = lootItems[1], -- 1 seul item par zombie
+    })
 end)
 
 -- ── Shot Attracteur : force le spawn de N zombies supplémentaires ──────────
@@ -273,6 +317,25 @@ AddEventHandler('pvp_zombies:forceSpawn', function(count)
         local x, y, z = getSpawnPosition(playerCoords)
         spawnZombie(x, y, z)
         Citizen.Wait(100)
+    end
+end)
+
+-- ── Test admin : spawn N zombies collés à la position du joueur ──────────
+-- Distinct de forceSpawn (utilisé aussi par l'item shot_attract côté joueur) :
+-- ici on ignore le rayon normal et les zones d'exclusion pour un test rapide.
+RegisterNetEvent('pvp_admin:spawnZombiesOnMe')
+AddEventHandler('pvp_admin:spawnZombiesOnMe', function(count)
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    count = math.min(math.max(1, math.floor(tonumber(count) or 5)), 30)
+    for i = 1, count do
+        local angle = (i / count) * 2 * math.pi
+        local x = playerCoords.x + math.cos(angle) * 2.0
+        local y = playerCoords.y + math.sin(angle) * 2.0
+        local z = playerCoords.z
+        local found, groundZ = GetGroundZFor_3dCoord(x, y, z + 5.0, false)
+        if found then z = groundZ end
+        spawnZombie(x, y, z)
+        Citizen.Wait(50)
     end
 end)
 
@@ -292,7 +355,7 @@ AddEventHandler('onResourceStop', function(res)
     cleanupAllZombies()
 end)
 
--- Nettoyage quand le joueur meurt (les zombies seront respawn au prochain cycle)
+-- Nettoyage quand le joueur meurt (zombies ET cadavres non fouillés)
 AddEventHandler('gameEventTriggered', function(name, args)
     if name == 'CEventNetworkEntityDamage' then
         local victim = args[1]
