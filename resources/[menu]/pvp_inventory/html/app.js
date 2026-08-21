@@ -2,8 +2,11 @@
 //   PVP INVENTORY — app.js
 // =============================================
 
-let MAX_WEIGHT   = 50.0; // default, updated from server via data.maxWeight
-const STASH_MAX_KG = 20.0;
+let MAX_WEIGHT    = 50.0;  // default, updated from server via data.maxWeight
+let STASH_MAX_KG  = 20.0;  // default, updated from server via data.maxStashWeight
+
+// ── VCoins state ─────────────────────────────────────────────────────────
+let vcData = { tier: 'none', vcoins: 0, expires: null, market: [], myOffers: [] };
 
 const ICONS = {
   bandage:'🩹', medkit:'💊',
@@ -14,15 +17,25 @@ const ICONS = {
 };
 
 const WEAPON_SET = new Set([
-  'weapon_pistol','weapon_snspistol','weapon_vintagepistol','weapon_machinepistol',
-  'weapon_combatpistol','weapon_heavypistol','weapon_revolver','weapon_doubleaction',
-  'weapon_knife','weapon_bat','weapon_crowbar','weapon_switchblade','weapon_hatchet','weapon_machete',
-  'weapon_pumpshotgun','weapon_sawnoffshotgun','weapon_dbshotgun','weapon_assaultshotgun',
-  'weapon_microsmg','weapon_minismg','weapon_smg','weapon_combatpdw',
-  'weapon_assaultrifle','weapon_carbinerifle','weapon_compactrifle',
-  'weapon_combatmg','weapon_mg',
-  'weapon_rpg','weapon_grenadelauncher','weapon_grenade',
-  'weapon_sniperrifle',
+  // Pistolets + lancers (très commun)
+  'weapon_molotov','weapon_appistol',
+  'weapon_pistol','weapon_pistol_mk2','weapon_snspistol','weapon_snspistol_mk2',
+  'weapon_vintagepistol','weapon_combatpistol','weapon_heavypistol',
+  'weapon_machinepistol',
+  // SMG (très commun)
+  'weapon_microsmg','weapon_minismg','weapon_smg','weapon_smg_mk2',
+  // Fusils d'assaut (commun)
+  'weapon_assaultrifle','weapon_carbinerifle','weapon_specialcarbine',
+  // Rare
+  'weapon_assaultrifle_mk2','weapon_carbinerifle_mk2','weapon_specialcarbine_mk2',
+  'weapon_stungun','weapon_combatmg','weapon_mg',
+  // Épique
+  'weapon_precisionrifle','weapon_compactlauncher','weapon_emplauncher',
+  'weapon_combatmg_mk2','weapon_musket',
+  // Légendaire
+  'weapon_sniperrifle','weapon_marksmanrifle_mk2',
+  'weapon_heavysniper','weapon_heavysniper_mk2',
+  'weapon_rpg','weapon_hominglauncher',
 ]);
 
 // ══ Poids items — MIROIR EXACT de server.lua ITEM_WEIGHTS ═══════════════
@@ -81,51 +94,118 @@ function isVehicle(name) { return name && name.startsWith('vehicle_'); }
 
 // ══ Rareté ═══════════════════════════════════════════════════════════════
 const RARITY = {
-  // Consommables
-  bandage:'common', medkit:'uncommon', kevlar:'uncommon',
-  ammo_sniper:'uncommon', lockpick:'common',
-  // Mêlée
-  weapon_knife:'common', weapon_bat:'common', weapon_crowbar:'common',
-  weapon_switchblade:'common', weapon_hatchet:'common', weapon_machete:'common',
-  // Pistolets
-  weapon_pistol:'common', weapon_snspistol:'common',
-  weapon_vintagepistol:'common', weapon_machinepistol:'common',
-  weapon_combatpistol:'uncommon', weapon_heavypistol:'uncommon',
-  weapon_revolver:'uncommon', weapon_doubleaction:'uncommon',
-  // Shotguns + SMG
-  weapon_pumpshotgun:'uncommon', weapon_sawnoffshotgun:'uncommon',
-  weapon_dbshotgun:'uncommon', weapon_assaultshotgun:'uncommon',
-  weapon_microsmg:'uncommon', weapon_minismg:'uncommon',
-  weapon_smg:'uncommon', weapon_combatpdw:'uncommon',
-  // Fusils
-  weapon_assaultrifle:'rare', weapon_carbinerifle:'rare', weapon_compactrifle:'rare',
-  weapon_combatmg:'rare', weapon_mg:'rare',
-  // Légendaires
-  weapon_rpg:'legendary', weapon_grenadelauncher:'legendary',
-  weapon_grenade:'rare', weapon_sniperrifle:'legendary',
-  // Véhicules communs
-  vehicle_ratloader:'common', vehicle_bodhi2:'common', vehicle_emperor:'common',
-  vehicle_tornado:'common', vehicle_bmx:'common', vehicle_blazer:'common',
-  // Véhicules peu communs
-  vehicle_sanchez:'uncommon', vehicle_bati:'uncommon', vehicle_mesa:'uncommon',
-  vehicle_dubsta:'uncommon', vehicle_brawler:'uncommon', vehicle_kamacho:'uncommon',
-  vehicle_kuruma:'uncommon', vehicle_buffalo:'uncommon',
+  // Consommables (très commun)
+  bandage:'common', medkit:'common', kevlar:'common',
+  ammo_sniper:'uncommon',
+  // Shots (très commun)
+  shot_repel:'common', shot_attract:'common', shot_speed:'common', shot_health:'common',
+  // Pistolets + lancers (très commun)
+  weapon_molotov:'common', weapon_appistol:'common',
+  weapon_pistol:'common', weapon_pistol_mk2:'common',
+  weapon_snspistol:'common', weapon_snspistol_mk2:'common',
+  weapon_vintagepistol:'common', weapon_combatpistol:'common', weapon_heavypistol:'common',
+  weapon_machinepistol:'common',
+  // SMG (très commun)
+  weapon_microsmg:'common', weapon_minismg:'common',
+  weapon_smg:'common', weapon_smg_mk2:'common',
+  // Fusils d'assaut (commun → peu commun)
+  weapon_assaultrifle:'uncommon', weapon_carbinerifle:'uncommon', weapon_specialcarbine:'uncommon',
+  // Armes rares
+  weapon_assaultrifle_mk2:'rare', weapon_carbinerifle_mk2:'rare', weapon_specialcarbine_mk2:'rare',
+  weapon_stungun:'rare', weapon_combatmg:'rare', weapon_mg:'rare',
+  // Armes épiques
+  weapon_precisionrifle:'epic', weapon_compactlauncher:'epic', weapon_emplauncher:'epic',
+  weapon_combatmg_mk2:'epic', weapon_musket:'epic',
+  // Armes légendaires
+  weapon_sniperrifle:'legendary', weapon_marksmanrifle_mk2:'legendary',
+  weapon_heavysniper:'legendary', weapon_heavysniper_mk2:'legendary',
+  weapon_rpg:'legendary', weapon_hominglauncher:'legendary',
   // Véhicules rares
-  vehicle_insurgent:'rare', vehicle_buffalo3:'rare', vehicle_hellion:'rare',
-  vehicle_dominator:'rare', vehicle_guardian:'rare', vehicle_nightshark:'rare',
-  vehicle_baller3:'rare', vehicle_baller6:'rare',
-  vehicle_schafter5:'rare', vehicle_schafter6:'rare',
-  vehicle_deathbike:'rare', vehicle_dominator4:'rare', vehicle_impaler2:'rare',
-  vehicle_imperator:'rare', vehicle_bruiser:'rare', vehicle_brutus:'rare',
-  vehicle_scarab:'rare', vehicle_slamvan4:'rare', vehicle_zr380:'rare',
+  vehicle_ztype:'rare', vehicle_mule:'rare', vehicle_blazer5:'rare',
+  vehicle_dominator4:'rare', vehicle_revolter:'rare', vehicle_ultralight:'rare', vehicle_speedo2:'rare',
+  // Véhicules épiques
+  vehicle_schafter5:'epic', vehicle_baller6:'epic', vehicle_xls2:'epic', vehicle_voltic2:'epic',
+  vehicle_cerberus:'epic', vehicle_zr380:'epic', vehicle_cog552:'epic', vehicle_sasquatch:'epic',
+  vehicle_thruster:'epic', vehicle_vigilante:'epic', vehicle_buzzard2:'epic', vehicle_maverick:'epic', vehicle_havok:'epic',
   // Véhicules légendaires
-  vehicle_zentorno:'legendary', vehicle_t20:'legendary',
-  vehicle_vigilante:'legendary', vehicle_oppressor2:'legendary',
+  vehicle_deluxo:'legendary', vehicle_oppressor2:'legendary', vehicle_nightshark:'legendary',
+  vehicle_scarab:'legendary', vehicle_insurgent3:'legendary', vehicle_dukes2:'legendary',
 };
 function getRarity(n) { return RARITY[n] || 'common'; }
-const RARITY_LABEL = { common:'', uncommon:'PEU COMMUN', rare:'RARE', legendary:'LÉGENDAIRE' };
+const RARITY_LABEL = { common:'', uncommon:'PEU COMMUN', rare:'RARE', epic:'ÉPIQUE', legendary:'LÉGENDAIRE' };
 
 // ══ Badges ════════════════════════════════════════════════════════════════
+// Cadre octogonal VANTA v2 (partagé entre tous les rank badges premium)
+const _rankFrame = (color, inner) => `
+<svg class="rank-svg" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z" fill="#0a0a0a" stroke="${color}" stroke-width="2"/>
+  <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z" fill="none" stroke="${color}" stroke-opacity="0.25" stroke-width="1.5"/>
+  <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
+  <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
+  <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
+  <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
+  ${inner}
+</svg>`;
+
+const RANK_SVGS = {
+  gold_member: _rankFrame('#e8c860', `
+    <g transform="translate(60, 70)" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M -32 12 L 32 12 L 32 24 L -32 24 Z" fill="#e8c860" fill-opacity="0.2" stroke="#e8c860" stroke-width="3"/>
+      <path d="M -32 12 L -32 -14 L -16 4 L 0 -22 L 16 4 L 32 -14 L 32 12 Z" fill="#e8c860" fill-opacity="0.1" stroke="#e8c860" stroke-width="3"/>
+      <circle cx="-32" cy="-14" r="3" fill="#e8c860"/>
+      <circle cx="0" cy="-22" r="4" fill="#e8c860"/>
+      <circle cx="32" cy="-14" r="3" fill="#e8c860"/>
+    </g>
+  `),
+  diamond_member: _rankFrame('#64d2ff', `
+    <g transform="translate(60, 68)">
+      <path d="M 0 -34 L 32 -8 L 0 34 L -32 -8 Z" fill="#64d2ff" fill-opacity="0.12" stroke="#64d2ff" stroke-width="3" stroke-linejoin="miter"/>
+      <path d="M -32 -8 L 32 -8" stroke="#64d2ff" stroke-width="2"/>
+      <path d="M -16 -8 L 0 -34 L 16 -8 L 0 34 Z" fill="none" stroke="#64d2ff" stroke-opacity="0.55" stroke-width="1.5"/>
+      <circle cx="0" cy="-8" r="2.5" fill="#64d2ff"/>
+    </g>
+  `),
+  prestige_1: _rankFrame('#c8cdd4', `
+    <g transform="translate(60, 74)" fill="none" stroke="#c8cdd4" stroke-width="5" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M -30 10 L 0 -20 L 30 10"/>
+      <path d="M -30 24 L 0 -6 L 30 24" stroke-opacity="0.35" stroke-width="3"/>
+    </g>
+  `),
+  prestige_2: _rankFrame('#d4a017', `
+    <g transform="translate(60, 74)" fill="none" stroke="#d4a017" stroke-width="5" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M -30 -6 L 0 -32 L 30 -6"/>
+      <path d="M -30 18 L 0 -8 L 30 18"/>
+    </g>
+  `),
+  prestige_3: _rankFrame('#22aacc', `
+    <g transform="translate(60, 74)" fill="none" stroke="#22aacc" stroke-width="4.5" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M -30 -16 L 0 -42 L 30 -16"/>
+      <path d="M -30 2 L 0 -24 L 30 2"/>
+      <path d="M -30 20 L 0 -6 L 30 20"/>
+    </g>
+  `),
+  prestige_4: _rankFrame('#cc22aa', `
+    <g transform="translate(60, 70)">
+      <path d="M 0 -40 L 40 0 L 0 40 L -40 0 Z" fill="none" stroke="#cc22aa" stroke-opacity="0.3" stroke-width="1.5"/>
+      <path d="M 0 -32 L 8 -8 L 32 0 L 8 8 L 0 32 L -8 8 L -32 0 L -8 -8 Z" fill="#cc22aa" fill-opacity="0.18" stroke="#cc22aa" stroke-width="3" stroke-linejoin="miter"/>
+      <circle cx="0" cy="0" r="4" fill="#cc22aa"/>
+    </g>
+  `),
+  prestige_5: _rankFrame('#ff4400', `
+    <g transform="translate(60, 70)">
+      <g stroke="#ff4400" stroke-opacity="0.55" stroke-width="1.5">
+        <line x1="0" y1="-44" x2="0" y2="-32"/><line x1="0" y1="32" x2="0" y2="44"/>
+        <line x1="-44" y1="0" x2="-32" y2="0"/><line x1="32" y1="0" x2="44" y2="0"/>
+        <line x1="-31" y1="-31" x2="-22" y2="-22"/><line x1="31" y1="-31" x2="22" y2="-22"/>
+        <line x1="-31" y1="31" x2="-22" y2="22"/><line x1="31" y1="31" x2="22" y2="22"/>
+      </g>
+      <path d="M 0 -30 L 8 -8 L 30 0 L 8 8 L 0 30 L -8 8 L -30 0 L -8 -8 Z" fill="#ff4400" fill-opacity="0.28" stroke="#ff4400" stroke-width="3" stroke-linejoin="miter"/>
+      <path d="M 0 -18 L 5 -5 L 18 0 L 5 5 L 0 18 L -5 5 L -18 0 L -5 -5 Z" fill="none" stroke="#ff4400" stroke-opacity="0.7" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="3.5" fill="#ffffff"/>
+    </g>
+  `),
+};
+
 const BADGE_DEFS = {
   // Saison
   survivor_s1:   { label:'Survivant Saison 1', icon:'🏅', color:'#c8a840', tier:'season' },
@@ -143,12 +223,15 @@ const BADGE_DEFS = {
   // Streak
   streak_5:      { label:'Sur une Lancée',      icon:'🔥', color:'#cc6600', tier:'uncommon' },
   unstoppable:   { label:'Inarrêtable',         icon:'⚡', color:'#ddcc00', tier:'rare' },
-  // Prestige
-  prestige_1:    { label:'Prestige I',          icon:'✦',   color:'#888888', tier:'prestige' },
-  prestige_2:    { label:'Prestige II',         icon:'✦✦',  color:'#cc9900', tier:'prestige' },
-  prestige_3:    { label:'Prestige III',        icon:'✦✦✦', color:'#22aacc', tier:'prestige' },
-  prestige_4:    { label:'Prestige IV',         icon:'★',   color:'#cc22aa', tier:'prestige' },
-  prestige_5:    { label:'Prestige V — MAÎTRE', icon:'★★',  color:'#ff4400', tier:'prestige' },
+  // Abonnements VCoins (SVG)
+  gold_member:   { label:'Abonné Gold',         icon:'👑', svg: RANK_SVGS.gold_member,    color:'#e8c860', tier:'premium' },
+  diamond_member:{ label:'Abonné Diamond',      icon:'💎', svg: RANK_SVGS.diamond_member, color:'#64d2ff', tier:'premium' },
+  // Prestige (SVG)
+  prestige_1:    { label:'Prestige I',          icon:'✦',   svg: RANK_SVGS.prestige_1, color:'#c8cdd4', tier:'prestige' },
+  prestige_2:    { label:'Prestige II',         icon:'✦✦',  svg: RANK_SVGS.prestige_2, color:'#d4a017', tier:'prestige' },
+  prestige_3:    { label:'Prestige III',        icon:'✦✦✦', svg: RANK_SVGS.prestige_3, color:'#22aacc', tier:'prestige' },
+  prestige_4:    { label:'Prestige IV',         icon:'★',   svg: RANK_SVGS.prestige_4, color:'#cc22aa', tier:'prestige' },
+  prestige_5:    { label:'Prestige V — MAÎTRE', icon:'★★',  svg: RANK_SVGS.prestige_5, color:'#ff4400', tier:'prestige' },
 };
 
 const PRESTIGE_ROMAN = ['I','II','III','IV','V'];
@@ -197,96 +280,89 @@ function getWeight(n) {
 const wOf  = (n, qty) => (getWeight(n) * qty).toFixed(1);
 
 // Items du kit de départ — invendables sur le marché
-const KIT_ITEMS = new Set(['weapon_pistol', 'vehicle_bmx']);
+const KIT_ITEMS = new Set(['weapon_pistol']);
 
 // ══ Catalogue marché — items disponibles ingame (CLAUDE.md) ══════════════
 const CATALOG = [
-  // ── Équipement ──
+  // ── Soins & Équipement ──
   { name:'bandage',     label:'Bandage' },
   { name:'medkit',      label:'Medkit' },
   { name:'kevlar',      label:'Kevlar' },
   { name:'ammo_sniper', label:'Munitions Sniper' },
-  // ── Mêlée (Commun) ──
-  { name:'weapon_knife',        label:'Couteau' },
-  { name:'weapon_bat',          label:'Batte' },
-  { name:'weapon_crowbar',      label:'Pied-de-biche' },
-  { name:'weapon_switchblade',  label:'Cran d\'arrêt' },
-  { name:'weapon_hatchet',      label:'Hachette' },
-  { name:'weapon_machete',      label:'Machette' },
-  // ── Pistolets communs ──
+  // ── Shots ──
+  { name:'shot_repel',   label:'Shot Répulsif' },
+  { name:'shot_attract', label:'Shot Attracteur' },
+  { name:'shot_speed',   label:'Shot de Vitesse' },
+  { name:'shot_health',  label:'Shot de Santé' },
+  // ── Pistolets & Lancers (Commun) ──
+  { name:'weapon_molotov',       label:'Molotov' },
+  { name:'weapon_appistol',      label:'AP Pistol' },
   { name:'weapon_pistol',        label:'Pistol' },
+  { name:'weapon_pistol_mk2',    label:'Pistol MK2' },
   { name:'weapon_snspistol',     label:'SNS Pistol' },
+  { name:'weapon_snspistol_mk2', label:'SNS Pistol MK2' },
   { name:'weapon_vintagepistol', label:'Vintage Pistol' },
-  { name:'weapon_machinepistol', label:'Machine Pistol' },
-  // ── Pistolets peu communs ──
   { name:'weapon_combatpistol',  label:'Combat Pistol' },
   { name:'weapon_heavypistol',   label:'Heavy Pistol' },
-  { name:'weapon_revolver',      label:'Revolver' },
-  { name:'weapon_doubleaction',  label:'Double Action' },
-  // ── Shotguns (Peu commun) ──
-  { name:'weapon_pumpshotgun',    label:'Pump Shotgun' },
-  { name:'weapon_sawnoffshotgun', label:'Sawed-Off Shotgun' },
-  { name:'weapon_dbshotgun',      label:'Double Barrel Shotgun' },
-  { name:'weapon_assaultshotgun', label:'Assault Shotgun' },
-  // ── SMG (Peu commun) ──
-  { name:'weapon_microsmg',  label:'Micro SMG' },
-  { name:'weapon_minismg',   label:'Mini SMG' },
-  { name:'weapon_smg',       label:'SMG' },
-  { name:'weapon_combatpdw', label:'Combat PDW' },
-  // ── Fusils d'assaut (Rare) ──
-  { name:'weapon_assaultrifle', label:'Assault Rifle' },
-  { name:'weapon_carbinerifle', label:'Carbine Rifle' },
-  { name:'weapon_compactrifle', label:'Compact Rifle' },
-  // ── Mitrailleuses (Rare) ──
-  { name:'weapon_combatmg', label:'Combat MG' },
-  { name:'weapon_mg',        label:'MG' },
-  // ── Légendaires ──
-  { name:'weapon_rpg',             label:'RPG' },
-  { name:'weapon_grenadelauncher', label:'Lance-Grenades' },
-  { name:'weapon_grenade',         label:'Grenade' },
-  { name:'weapon_sniperrifle',     label:'Sniper Rifle' },
-  // ── Véhicules communs ──
-  { name:'vehicle_ratloader', label:'Rat-Loader' },
-  { name:'vehicle_bodhi2',    label:'Bodhi' },
-  { name:'vehicle_emperor',   label:'Emperor' },
-  { name:'vehicle_tornado',   label:'Tornado' },
-  { name:'vehicle_bmx',       label:'BMX' },
-  { name:'vehicle_blazer',    label:'Blazer' },
-  // ── Véhicules peu communs ──
-  { name:'vehicle_sanchez', label:'Sanchez' },
-  { name:'vehicle_bati',    label:'Bati 801' },
-  { name:'vehicle_mesa',    label:'Mesa' },
-  { name:'vehicle_dubsta',  label:'Dubsta' },
-  { name:'vehicle_brawler', label:'Brawler' },
-  { name:'vehicle_kamacho', label:'Kamacho' },
-  { name:'vehicle_kuruma',  label:'Kuruma' },
-  { name:'vehicle_buffalo', label:'Buffalo' },
-  // ── Véhicules rares ──
-  { name:'vehicle_insurgent',  label:'Insurgent' },
-  { name:'vehicle_buffalo3',   label:'Buffalo S' },
-  { name:'vehicle_hellion',    label:'Hellion' },
-  { name:'vehicle_dominator',  label:'Dominator' },
-  { name:'vehicle_guardian',   label:'Guardian' },
-  { name:'vehicle_nightshark', label:'Nightshark' },
-  // ── Véhicules rares — blindés ──
-  { name:'vehicle_baller3',   label:'Baller Blindé' },
-  { name:'vehicle_baller6',   label:'Baller LE Blindé' },
-  { name:'vehicle_schafter5', label:'Schafter V12 Blindé' },
-  { name:'vehicle_schafter6', label:'Schafter LWB Blindé' },
-  // ── Véhicules rares — apocalypse ──
-  { name:'vehicle_deathbike',  label:'Deathbike' },
+  // ── SMG (Commun) ──
+  { name:'weapon_microsmg',      label:'Micro SMG' },
+  { name:'weapon_minismg',       label:'Mini SMG' },
+  { name:'weapon_smg',           label:'SMG' },
+  { name:'weapon_smg_mk2',       label:'SMG MK2' },
+  { name:'weapon_machinepistol', label:'Machine Pistol' },
+  // ── Fusils d'assaut (Peu commun) ──
+  { name:'weapon_assaultrifle',   label:'AK-47' },
+  { name:'weapon_carbinerifle',   label:'Carabine' },
+  { name:'weapon_specialcarbine', label:'Carabine Spéciale' },
+  // ── Armes Rares ──
+  { name:'weapon_assaultrifle_mk2',   label:'AK-47 MK2' },
+  { name:'weapon_carbinerifle_mk2',   label:'Carabine MK2' },
+  { name:'weapon_specialcarbine_mk2', label:'Carabine Spéciale MK2' },
+  { name:'weapon_stungun',            label:'Pistolet Paralysant' },
+  { name:'weapon_combatmg',           label:'M60' },
+  { name:'weapon_mg',                 label:'Mitrailleuse' },
+  // ── Armes Épiques ──
+  { name:'weapon_precisionrifle',  label:'Fusil de Précision' },
+  { name:'weapon_compactlauncher', label:'Lance-Grenades Compact' },
+  { name:'weapon_emplauncher',     label:'Lanceur IEM' },
+  { name:'weapon_combatmg_mk2',   label:'M60 MK2' },
+  { name:'weapon_musket',          label:'Mousquet' },
+  // ── Armes Légendaires ──
+  { name:'weapon_sniperrifle',       label:'Fusil à Lunette' },
+  { name:'weapon_marksmanrifle_mk2', label:'Marksman MK2' },
+  { name:'weapon_heavysniper',       label:'AWP' },
+  { name:'weapon_heavysniper_mk2',   label:'AWP MK2' },
+  { name:'weapon_rpg',               label:'Lance-Roquettes' },
+  { name:'weapon_hominglauncher',    label:'Lance-Missiles' },
+  // ── Véhicules Rares ──
+  { name:'vehicle_ztype',      label:'Z-Type' },
+  { name:'vehicle_mule',       label:'Mule' },
+  { name:'vehicle_blazer5',    label:'Blazer Aqua' },
   { name:'vehicle_dominator4', label:'Dominator Apocalypse' },
-  { name:'vehicle_impaler2',   label:'Impaler Apocalypse' },
-  { name:'vehicle_imperator',  label:'Imperator' },
-  { name:'vehicle_bruiser',    label:'Bruiser' },
-  { name:'vehicle_brutus',     label:'Brutus' },
-  { name:'vehicle_slamvan4',   label:'Slamvan Apocalypse' },
+  { name:'vehicle_revolter',   label:'Revolter' },
+  { name:'vehicle_ultralight', label:'Ultralight' },
+  { name:'vehicle_speedo2',    label:'Speedo Custom' },
+  // ── Véhicules Épiques ──
+  { name:'vehicle_schafter5',  label:'Schafter V12 Blindé' },
+  { name:'vehicle_baller6',    label:'Baller LE Blindé' },
+  { name:'vehicle_xls2',       label:'XLS Blindé' },
+  { name:'vehicle_voltic2',    label:'Voltic Rocket' },
+  { name:'vehicle_cerberus',   label:'Cerberus' },
   { name:'vehicle_zr380',      label:'ZR380' },
-  // ── Véhicules légendaires ──
-  { name:'vehicle_deluxo',     label:'Deluxo' },
-  { name:'vehicle_scarab',     label:'Scarab' },
+  { name:'vehicle_cog552',     label:'Cognoscenti Blindé' },
+  { name:'vehicle_sasquatch',  label:'Sasquatch' },
+  { name:'vehicle_thruster',   label:'Thruster' },
   { name:'vehicle_vigilante',  label:'Vigilante' },
+  { name:'vehicle_buzzard2',   label:'Buzzard' },
+  { name:'vehicle_maverick',   label:'Maverick' },
+  { name:'vehicle_havok',      label:'Havok' },
+  // ── Véhicules Légendaires ──
+  { name:'vehicle_deluxo',     label:'Deluxo' },
   { name:'vehicle_oppressor2', label:'Oppressor MK II' },
+  { name:'vehicle_nightshark', label:'Nightshark' },
+  { name:'vehicle_scarab',     label:'Scarab' },
+  { name:'vehicle_insurgent3', label:'Insurgent Pick-Up Custom' },
+  { name:'vehicle_dukes2',     label:'Duke O\'Death' },
 ];
 
 let hotbar = [null,null,null,null,null,null,null,null];
@@ -392,7 +468,8 @@ function openUI(data) {
   outpostMode  = null;
   dropMode     = null;
   deathBagMode = null;
-  if (data.maxWeight) MAX_WEIGHT = data.maxWeight;
+  if (data.maxWeight)      MAX_WEIGHT   = data.maxWeight;
+  if (data.maxStashWeight) STASH_MAX_KG = data.maxStashWeight;
   state = {...state, ...data};
   leaderboardLoaded = false;
   marketMode = 'browse';
@@ -482,7 +559,8 @@ function forceClose() {
 }
 function onRefresh(data) {
   transferLocked = false; // débloquer le verrou de transfert
-  if (data.maxWeight) MAX_WEIGHT = data.maxWeight;
+  if (data.maxWeight)      MAX_WEIGHT   = data.maxWeight;
+  if (data.maxStashWeight) STASH_MAX_KG = data.maxStashWeight;
   const hasMarket = data.market !== undefined;
   state = {...state, ...data};
   renderInventory();
@@ -1065,13 +1143,23 @@ function renderProfile() {
     const bId = p.activeBadge||'';
     const bDef = bId && BADGE_DEFS[bId];
     if (bDef) {
-      activeBadgeEl.textContent = bDef.icon + ' ' + bDef.label;
+      const iconHtml = bDef.svg
+        ? `<span class="active-badge-svg">${bDef.svg}</span>`
+        : (bDef.icon + ' ');
+      activeBadgeEl.innerHTML = iconHtml + bDef.label;
       activeBadgeEl.style.borderColor = bDef.color;
       activeBadgeEl.style.color = bDef.color;
-      activeBadgeEl.style.display = 'inline-block';
+      activeBadgeEl.style.display = 'inline-flex';
     } else {
       activeBadgeEl.style.display = 'none';
     }
+  }
+
+  // Ped actuel
+  const pedModelEl = document.getElementById('ped-current-model');
+  if (pedModelEl) {
+    const pm = p.pedModel || '';
+    pedModelEl.textContent = pm ? pm.toUpperCase().replace(/^(A_|S_|G_|IG_|CSB_|U_|MP_)/, '') : 'FREEMODE';
   }
 
   // Classement personnel
@@ -1141,9 +1229,11 @@ function renderBadgesGrid(unlocked, activeBadgeId) {
   grid.innerHTML = unlocked.map(id => {
     const b = BADGE_DEFS[id] || { label: id, icon: '🏷️', color: '#666666', tier: 'common' };
     const isActive = id === activeBadgeId;
+    const iconHtml = b.svg ? b.svg : b.icon;
+    const iconClass = b.svg ? 'badge-icon badge-icon-svg' : 'badge-icon';
     return `<div class="badge-card ${isActive?'badge-active':''}" style="border-color:${b.color}"
                onclick="setActiveBadge('${id}')" title="${b.label}">
-      <div class="badge-icon">${b.icon}</div>
+      <div class="${iconClass}">${iconHtml}</div>
       <div class="badge-label">${b.label}</div>
       ${isActive?'<div class="badge-active-dot"></div>':''}
     </div>`;
@@ -1183,6 +1273,7 @@ function leaderboardMetricValue(entry) {
   if (leaderboardCategory === 'kd') return Number(entry.kd || 0);
   if (leaderboardCategory === 'redzoneKills') return Number(entry.redzoneKills || 0);
   if (leaderboardCategory === 'redzoneZombies') return Number(entry.redzoneZombies || 0);
+  if (leaderboardCategory === 'controls') return Number(entry.controls || 0);
   return Number(entry.kills || 0);
 }
 
@@ -1192,6 +1283,7 @@ function leaderboardCategoryLabel() {
   if (leaderboardCategory === 'kd') return 'K/D';
   if (leaderboardCategory === 'redzoneKills') return 'RZ KILLS';
   if (leaderboardCategory === 'redzoneZombies') return 'RZ ZOMBIES';
+  if (leaderboardCategory === 'controls') return 'RZ CONTROL';
   return 'KILLS';
 }
 
@@ -1937,120 +2029,114 @@ function loadCrewTab() {
     crewPlayers = r.players || [];
     crewCost = r.crewCost || 5000;
     renderCrewTab();
-  });
+  }).catch(() => toast('Erreur chargement crew.', false));
 }
 
 function renderCrewTab() {
   const noCrew = document.getElementById('crew-no-crew');
   const inCrew = document.getElementById('crew-in-crew');
+  if (!noCrew || !inCrew) return;
 
   if (!crewData) {
     noCrew.style.display = '';
     inCrew.style.display = 'none';
-    document.getElementById('crew-cost-val').textContent = '$' + crewCost.toLocaleString('fr-FR');
+    const cost = document.getElementById('crew-cost-val');
+    if (cost) cost.textContent = '$' + Number(crewCost || 5000).toLocaleString('fr-FR');
     renderCrewInvites();
     return;
   }
 
   noCrew.style.display = 'none';
   inCrew.style.display = '';
-  document.getElementById('crew-invite-panel').style.display = 'none';
+  const invitePanel = document.getElementById('crew-invite-panel');
+  if (invitePanel) invitePanel.style.display = 'none';
   crewMyRank = crewData.myRank;
 
-  // Bannière
   const crewColor = crewData.color || '#a0a0a8';
   const tagEl = document.getElementById('crew-tag-disp');
-  tagEl.textContent = crewData.tag;
-  tagEl.style.color = crewColor;
-  tagEl.style.background = crewColor + '18';
-  tagEl.style.borderColor = crewColor + '55';
-  document.getElementById('crew-name-disp').textContent = crewData.name;
+  if (tagEl) {
+    tagEl.textContent = crewData.tag || '';
+    tagEl.style.color = crewColor;
+    tagEl.style.background = crewColor + '18';
+    tagEl.style.borderColor = crewColor + '55';
+  }
+  const nameEl = document.getElementById('crew-name-disp');
+  if (nameEl) nameEl.textContent = crewData.name || 'Crew';
 
-  // Date
   const dateEl = document.getElementById('crew-date-disp');
-  if (crewData.created_at) {
-    const d = new Date(crewData.created_at);
-    dateEl.textContent = 'Créé le ' + d.toLocaleDateString('fr-FR');
-  } else {
-    dateEl.textContent = '';
+  if (dateEl) {
+    dateEl.textContent = crewData.created_at ? 'Créé le ' + new Date(crewData.created_at).toLocaleDateString('fr-FR') : '';
   }
 
-  // Couleur (chef uniquement)
   const colorArea = document.getElementById('crew-color-area');
-  if (crewMyRank === 'owner') {
-    colorArea.style.display = '';
-    document.getElementById('crew-color-input').value = crewColor;
-  } else {
-    colorArea.style.display = 'none';
-  }
+  if (colorArea) colorArea.style.display = crewMyRank === 'owner' ? '' : 'none';
+  const colorInput = document.getElementById('crew-color-input');
+  if (colorInput) colorInput.value = crewColor;
 
-  // MOTD
   const motdText = document.getElementById('crew-motd-text');
   const motdEdit = document.getElementById('crew-motd-edit');
-  motdText.textContent = crewData.motd || 'Aucun message défini.';
-  document.getElementById('crew-motd-box').style.borderLeftColor = crewColor;
-  if (crewMyRank === 'owner') {
-    motdEdit.style.display = 'flex';
-    document.getElementById('crew-motd-input').value = crewData.motd || '';
-  } else {
-    motdEdit.style.display = 'none';
-  }
+  if (motdText) motdText.textContent = crewData.motd || 'Aucun message défini.';
+  const motdBox = document.getElementById('crew-motd-box');
+  if (motdBox) motdBox.style.borderLeftColor = crewColor;
+  if (motdEdit) motdEdit.style.display = (crewMyRank === 'owner' || crewMyRank === 'officer') ? 'flex' : 'none';
+  const motdInput = document.getElementById('crew-motd-input');
+  if (motdInput) motdInput.value = crewData.motd || '';
 
-  // Stats globales
-  const kills = crewData.kills_total || 0;
-  const deaths = crewData.deaths_total || 0;
+  const kills = Number(crewData.kills_total || 0);
+  const deaths = Number(crewData.deaths_total || 0);
   const kd = deaths > 0 ? (kills / deaths).toFixed(2) : kills.toFixed(2);
-  document.getElementById('crew-s-kills').textContent = kills.toLocaleString('fr-FR');
-  document.getElementById('crew-s-deaths').textContent = deaths.toLocaleString('fr-FR');
-  document.getElementById('crew-s-kd').textContent = kd;
-  document.getElementById('crew-s-zombies').textContent = (crewData.zombies_total || 0).toLocaleString('fr-FR');
-  document.getElementById('crew-s-count').textContent = crewData.members ? crewData.members.length : 0;
-  document.getElementById('crew-s-best').textContent = crewData.bestPlayer || '—';
+  const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  setText('crew-s-kills', kills.toLocaleString('fr-FR'));
+  setText('crew-s-deaths', deaths.toLocaleString('fr-FR'));
+  setText('crew-s-kd', kd);
+  setText('crew-s-zombies', Number(crewData.zombies_total || 0).toLocaleString('fr-FR'));
+  setText('crew-s-count', crewData.members ? crewData.members.length : 0);
+  setText('crew-s-best', crewData.bestPlayer || '---');
+  const best = document.getElementById('crew-s-best');
+  if (best) best.title = 'Niveau ' + (crewData.level || 1) + ' | XP ' + (crewData.xp || 0) + ' | Banque crew $' + (crewData.bank || 0);
 
-  // Actions
-  document.getElementById('crew-btn-invite').style.display = crewMyRank === 'member' ? 'none' : '';
-  document.getElementById('crew-btn-disband').style.display = crewMyRank === 'owner' ? '' : 'none';
+  const inviteBtn = document.getElementById('crew-btn-invite');
+  if (inviteBtn) inviteBtn.style.display = crewMyRank === 'member' || crewMyRank === 'recruit' || crewMyRank === 'quartermaster' ? 'none' : '';
+  const disbandBtn = document.getElementById('crew-btn-disband');
+  if (disbandBtn) disbandBtn.style.display = crewMyRank === 'owner' ? '' : 'none';
 
   renderCrewMembers();
   renderCrewActivity();
+  renderCrewStash();
+  renderCrewObjectives();
+  renderCrewEvents();
+}
+
+function roleLabel(rank) {
+  const labels = { owner:'CHEF', officer:'OFFICIER', quartermaster:'INTENDANT', recruiter:'RECRUTEUR', member:'MEMBRE', recruit:'RECRUE' };
+  return labels[rank] || 'MEMBRE';
 }
 
 function renderCrewMembers() {
   const list = document.getElementById('crew-members-list');
+  if (!list) return;
   if (!crewData || !crewData.members || crewData.members.length === 0) {
     list.innerHTML = '<p class="crew-empty">Aucun membre</p>';
     return;
   }
   list.innerHTML = crewData.members.map((m, i) => {
     const rc = 'crew-rank-' + m.rank;
-    const rl = m.rank === 'owner' ? 'CHEF' : m.rank === 'officer' ? 'OFFICIER' : 'MEMBRE';
+    const rl = roleLabel(m.rank);
     const kd = (m.deaths || 0) > 0 ? ((m.kills || 0) / m.deaths).toFixed(2) : (m.kills || 0).toFixed(2);
     const onClass = m.online ? 'on' : 'off';
-    const isTop = i === 0;
     let acts = '';
     if (crewMyRank === 'owner' && m.rank !== 'owner') {
-      const pl = m.rank === 'member' ? '▲' : '▼';
-      const pr = m.rank === 'member' ? 'officer' : 'member';
-      acts = `<button class="crew-btn-sm promote" onclick="crewPromote('${m.identifier}','${pr}')" title="${m.rank === 'member' ? 'Promouvoir' : 'Rétrograder'}">${pl}</button>` +
-             `<button class="crew-btn-sm danger" onclick="crewKick('${m.identifier}')" title="Exclure">✕</button>`;
-    } else if (crewMyRank === 'officer' && m.rank === 'member') {
-      acts = `<button class="crew-btn-sm danger" onclick="crewKick('${m.identifier}')" title="Exclure">✕</button>`;
+      const ranks = ['officer', 'quartermaster', 'recruiter', 'member', 'recruit'];
+      acts = ranks.map(r => `<button class="crew-btn-sm promote" onclick="crewPromote('${esc(m.identifier)}','${r}')" title="${roleLabel(r)}">${roleLabel(r).slice(0,3)}</button>`).join('') +
+        `<button class="crew-btn-sm danger" onclick="crewKick('${esc(m.identifier)}')" title="Exclure">X</button>`;
+    } else if (crewMyRank === 'officer' && (m.rank === 'member' || m.rank === 'recruit')) {
+      acts = `<button class="crew-btn-sm danger" onclick="crewKick('${esc(m.identifier)}')" title="Exclure">X</button>`;
     }
-    const memberAvatar = m.avatarUrl
-      ? `<img src="${esc(m.avatarUrl)}" class="cm-avatar" onerror="this.style.display='none'">`
-      : `<div class="cm-avatar cm-avatar-placeholder"></div>`;
-    return `<div class="crew-member-row${isTop ? ' top1' : ''}">
-      <span class="cm-rank-num${isTop ? ' gold' : ''}">${i + 1}</span>
-      <div class="cm-info">
-        ${memberAvatar}
-        <span class="cm-online ${onClass}"></span>
-        <span class="cm-name">${m.name}</span>
-        <span class="crew-rank ${rc}">${rl}</span>
-      </div>
-      <span class="cm-stat">${(m.kills||0)}</span>
-      <span class="cm-stat">${(m.deaths||0)}</span>
-      <span class="cm-stat">${kd}</span>
-      <span class="cm-stat">${(m.zombies_killed||0)}</span>
+    const avatar = m.avatarUrl ? `<img src="${esc(m.avatarUrl)}" class="cm-avatar" onerror="this.style.display='none'">` : `<div class="cm-avatar cm-avatar-placeholder"></div>`;
+    return `<div class="crew-member-row${i === 0 ? ' top1' : ''}">
+      <span class="cm-rank-num${i === 0 ? ' gold' : ''}">${i + 1}</span>
+      <div class="cm-info">${avatar}<span class="cm-online ${onClass}"></span><span class="cm-name">${esc(m.name || 'Joueur')}</span><span class="crew-rank ${rc}">${rl}</span></div>
+      <span class="cm-stat">${fmt(m.kills || 0)}</span><span class="cm-stat">${fmt(m.deaths || 0)}</span><span class="cm-stat">${kd}</span><span class="cm-stat">${fmt(m.zombies_killed || 0)}</span>
       <div class="cm-actions">${acts}</div>
     </div>`;
   }).join('');
@@ -2058,163 +2144,1028 @@ function renderCrewMembers() {
 
 function renderCrewActivity() {
   const list = document.getElementById('crew-activity-list');
+  if (!list) return;
   if (!crewData || !crewData.activity || crewData.activity.length === 0) {
     list.innerHTML = '<p class="crew-empty">Aucune activité récente</p>';
     return;
   }
-  const icons = { create:'🏴', join:'📥', kick:'🚫', leave:'📤', motd:'💬', promote:'⭐', kill:'💀', zombie:'🧟' };
+  const icons = { create:'+', join:'+', kick:'-', leave:'-', motd:'msg', promote:'*', kill:'KO', zombie:'Z', stash:'BOX', objective:'OBJ', event:'EVT' };
   list.innerHTML = crewData.activity.map(a => {
-    const icon = icons[a.type] || '📋';
     const d = new Date(a.created_at);
     const time = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
-    return `<div class="crew-activity-row">
-      <span class="ca-icon">${icon}</span>
-      <span class="ca-msg">${a.message}</span>
-      <span class="ca-time">${time}</span>
-    </div>`;
+    return `<div class="crew-activity-row"><span class="ca-icon">${icons[a.type] || 'LOG'}</span><span class="ca-msg">${esc(a.message || '')}</span><span class="ca-time">${time}</span></div>`;
   }).join('');
+}
+
+function renderCrewStash() {
+  const list = document.getElementById('crew-stash-list');
+  if (!list) return;
+  const stash = crewData && crewData.stash ? crewData.stash : [];
+  if (!stash.length) {
+    list.innerHTML = '<p class="crew-empty">Coffre vide</p>';
+    return;
+  }
+  list.innerHTML = stash.map(s => `<div class="crew-member-row" onclick="document.getElementById('crew-stash-item').value='${esc(s.item)}'">
+    <span class="cm-info"><span class="cm-name">${esc(s.item)}</span></span><span class="cm-stat">x${fmt(s.count || 0)}</span>
+  </div>`).join('');
+}
+
+function renderCrewObjectives() {
+  const list = document.getElementById('crew-objectives-list');
+  if (!list) return;
+  const objectives = crewData && crewData.objectives ? crewData.objectives : [];
+  if (!objectives.length) {
+    list.innerHTML = '<p class="crew-empty">Aucun objectif actif</p>';
+    return;
+  }
+  list.innerHTML = objectives.map(o => {
+    const progress = Number(o.progress || 0);
+    const target = Math.max(1, Number(o.target || 1));
+    const pct = Math.min(100, Math.floor((progress / target) * 100));
+    const done = Number(o.completed || 0) === 1;
+    return `<div class="crew-objective-row ${done ? 'done' : ''}"><div class="crew-objective-head"><strong>${esc(o.label || 'Objectif')}</strong><span>${done ? 'TERMINE' : pct + '%'}</span></div><div class="crew-progress"><i style="width:${pct}%"></i></div><div class="crew-objective-meta">${fmt(progress)} / ${fmt(target)} | +${fmt(o.reward_xp || 0)} XP | +$${fmt(o.reward_bank || 0)}</div></div>`;
+  }).join('');
+}
+
+function renderCrewEvents() {
+  const list = document.getElementById('crew-events-list');
+  if (!list) return;
+  const events = crewData && crewData.events ? crewData.events : [];
+  if (!events.length) {
+    list.innerHTML = '<p class="crew-empty">Aucun evenement planifie</p>';
+    return;
+  }
+  list.innerHTML = events.map(ev => `<div class="crew-event-row"><div><strong>${esc(ev.title || 'Event')}</strong><span>${esc(ev.starts_at || 'Date libre')} | ${esc(ev.status || 'planned')}</span></div><div class="crew-event-actions"><button class="crew-btn-sm promote" onclick="crewSetEventStatus(${Number(ev.id)}, 'active')">START</button><button class="crew-btn-sm promote" onclick="crewSetEventStatus(${Number(ev.id)}, 'won')">WIN</button><button class="crew-btn-sm danger" onclick="crewSetEventStatus(${Number(ev.id)}, 'cancelled')">X</button></div></div>`).join('');
 }
 
 function renderCrewInvites() {
   const list = document.getElementById('crew-invites-list');
+  if (!list) return;
   if (!crewInvites || crewInvites.length === 0) {
     list.innerHTML = '<p class="crew-empty">Aucune invitation</p>';
     return;
   }
-  list.innerHTML = crewInvites.map(inv => `
-    <div class="crew-invite-row">
-      <div class="crew-invite-info">
-        <span class="crew-invite-name">${inv.crew_name}</span>
-        <span class="crew-invite-tag">[${inv.crew_tag}]</span>
-      </div>
-      <div class="crew-invite-btns">
-        <button class="crew-btn-sm promote" onclick="crewAcceptInvite(${inv.crew_id})">Accepter</button>
-        <button class="crew-btn-sm danger" onclick="crewDeclineInvite(${inv.crew_id})">Refuser</button>
-      </div>
-    </div>
-  `).join('');
+  list.innerHTML = crewInvites.map(inv => `<div class="crew-invite-row"><div class="crew-invite-info"><span class="crew-invite-name">${esc(inv.crew_name || 'Crew')}</span><span class="crew-invite-tag">[${esc(inv.crew_tag || '')}]</span></div><div class="crew-invite-btns"><button class="crew-btn-sm promote" onclick="crewAcceptInvite(${Number(inv.crew_id)})">Accepter</button><button class="crew-btn-sm danger" onclick="crewDeclineInvite(${Number(inv.crew_id)})">Refuser</button></div></div>`).join('');
 }
 
 function renderCrewOnlinePlayers() {
   const list = document.getElementById('crew-online-list');
+  if (!list) return;
   if (!crewPlayers || crewPlayers.length === 0) {
     list.innerHTML = '<p class="crew-empty">Aucun joueur en ligne</p>';
     return;
   }
-  list.innerHTML = crewPlayers.map(p => `
-    <div class="crew-player-row" onclick="crewInvitePlayer(${p.id})">
-      <span class="crew-player-name">${p.name}</span>
-      <span class="crew-player-id">ID: ${p.id}</span>
-    </div>
-  `).join('');
+  list.innerHTML = crewPlayers.map(p => `<div class="crew-player-row" onclick="crewInvitePlayer(${Number(p.id)})"><span class="crew-player-name">${esc(p.name || 'Joueur')}</span><span class="crew-player-id">ID: ${Number(p.id)}</span></div>`).join('');
 }
 
-// ── Actions crew ──────────────────────────────────────────────────────
+function bindCrewButton(id, handler) {
+  const el = document.getElementById(id);
+  if (el && !el.dataset.bound) {
+    el.dataset.bound = '1';
+    el.addEventListener('click', handler);
+  }
+}
 
-document.getElementById('crew-btn-create').addEventListener('click', () => {
+bindCrewButton('crew-btn-create', () => {
   const name = document.getElementById('crew-input-name').value.trim();
-  const tag  = document.getElementById('crew-input-tag').value.trim();
+  const tag = document.getElementById('crew-input-tag').value.trim();
   if (!name || !tag) { toast('Remplissez le nom et le tag.', false); return; }
-  crewFetch('crewCreate', { name, tag }).then(r => {
-    toast(r.message, r.ok);
-    if (r.ok) setTimeout(loadCrewTab, 800);
-  });
+  crewFetch('crewCreate', { name, tag }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); });
 });
 
-// ── Sous-tabs Classement / Activité ──
 document.querySelectorAll('.crew-subtab').forEach(t => {
+  if (t.dataset.bound) return;
+  t.dataset.bound = '1';
   t.addEventListener('click', () => {
     document.querySelectorAll('.crew-subtab').forEach(s => s.classList.remove('active'));
     t.classList.add('active');
     const sub = t.dataset.subtab;
-    document.getElementById('crew-sub-members').style.display = sub === 'members' ? '' : 'none';
-    document.getElementById('crew-sub-activity').style.display = sub === 'activity' ? '' : 'none';
+    ['members', 'activity', 'stash', 'objectives', 'events'].forEach(name => {
+      const el = document.getElementById('crew-sub-' + name);
+      if (el) el.style.display = sub === name ? '' : 'none';
+    });
   });
 });
 
-// ── Couleur du crew ──
-document.getElementById('crew-color-input').addEventListener('change', (e) => {
-  const color = e.target.value;
-  crewFetch('crewSetColor', { color }).then(r => {
-    toast(r.message, r.ok);
-    if (r.ok) setTimeout(loadCrewTab, 500);
-  });
-});
+const crewColorInput = document.getElementById('crew-color-input');
+if (crewColorInput && !crewColorInput.dataset.bound) {
+  crewColorInput.dataset.bound = '1';
+  crewColorInput.addEventListener('change', e => crewFetch('crewSetColor', { color: e.target.value }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); }));
+}
 
-// ── MOTD ──
-document.getElementById('crew-motd-save').addEventListener('click', () => {
+bindCrewButton('crew-motd-save', () => {
   const motd = document.getElementById('crew-motd-input').value.trim();
-  crewFetch('crewSetMotd', { motd }).then(r => {
-    toast(r.message, r.ok);
-    if (r.ok) setTimeout(loadCrewTab, 500);
-  });
+  crewFetch('crewSetMotd', { motd }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 });
 
-document.getElementById('crew-btn-invite').addEventListener('click', () => {
-  document.getElementById('crew-invite-panel').style.display = '';
-  renderCrewOnlinePlayers();
+bindCrewButton('crew-btn-invite', () => { document.getElementById('crew-invite-panel').style.display = ''; renderCrewOnlinePlayers(); });
+bindCrewButton('crew-btn-cancel-invite', () => { document.getElementById('crew-invite-panel').style.display = 'none'; });
+bindCrewButton('crew-stash-deposit', () => {
+  const item = document.getElementById('crew-stash-item').value.trim();
+  const qty = Number(document.getElementById('crew-stash-qty').value || 1);
+  crewFetch('crewStashDeposit', { item, qty }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 });
-
-document.getElementById('crew-btn-cancel-invite').addEventListener('click', () => {
-  document.getElementById('crew-invite-panel').style.display = 'none';
+bindCrewButton('crew-stash-withdraw', () => {
+  const item = document.getElementById('crew-stash-item').value.trim();
+  const qty = Number(document.getElementById('crew-stash-qty').value || 1);
+  crewFetch('crewStashWithdraw', { item, qty }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 });
-
-document.getElementById('crew-btn-leave').addEventListener('click', () => {
-  crewShowConfirm('Voulez-vous quitter le crew ?', () => {
-    crewFetch('crewLeave').then(r => {
-      toast(r.message, r.ok);
-      if (r.ok) setTimeout(loadCrewTab, 800);
-    });
-  });
+bindCrewButton('crew-event-create', () => {
+  const title = document.getElementById('crew-event-title').value.trim();
+  const startsAt = document.getElementById('crew-event-start').value.trim();
+  crewFetch('crewCreateEvent', { title, type: 'operation', startsAt }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 });
+bindCrewButton('crew-btn-leave', () => crewShowConfirm('Voulez-vous quitter le crew ?', () => crewFetch('crewLeave').then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); })));
+bindCrewButton('crew-btn-disband', () => crewShowConfirm('DISSOUDRE le crew ? Cette action est irreversible !', () => crewFetch('crewDisband').then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); })));
 
-document.getElementById('crew-btn-disband').addEventListener('click', () => {
-  crewShowConfirm('DISSOUDRE le crew ? Cette action est irréversible !', () => {
-    crewFetch('crewDisband').then(r => {
-      toast(r.message, r.ok);
-      if (r.ok) setTimeout(loadCrewTab, 800);
-    });
-  });
-});
+window.crewInvitePlayer = targetId => crewFetch('crewInvitePlayer', { targetId }).then(r => toast(r.message, r.ok));
+window.crewAcceptInvite = crewId => crewFetch('crewAcceptInvite', { crewId }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); });
+window.crewDeclineInvite = crewId => crewFetch('crewDeclineInvite', { crewId }).then(r => { toast(r.message, r.ok); if (r.ok) { crewInvites = crewInvites.filter(i => i.crew_id !== crewId); renderCrewInvites(); } });
+window.crewPromote = (identifier, rank) => crewShowConfirm('Changer le role de ce joueur ?', () => crewFetch('crewPromote', { identifier, rank }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); }));
+window.crewKick = identifier => crewShowConfirm('Exclure ce membre du crew ?', () => crewFetch('crewKick', { identifier }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); }));
+window.crewSetEventStatus = (eventId, status) => crewFetch('crewSetEventStatus', { eventId, status }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
+// ══════════════════════════════════════════════════════════════════════════
 
-window.crewInvitePlayer = function(targetId) {
-  crewFetch('crewInvitePlayer', { targetId }).then(r => {
-    toast(r.message, r.ok);
-  });
-};
-
-window.crewAcceptInvite = function(crewId) {
-  crewFetch('crewAcceptInvite', { crewId }).then(r => {
-    toast(r.message, r.ok);
-    if (r.ok) setTimeout(loadCrewTab, 800);
-  });
-};
-
-window.crewDeclineInvite = function(crewId) {
-  crewFetch('crewDeclineInvite', { crewId }).then(r => {
-    toast(r.message, r.ok);
-    if (r.ok) {
-      crewInvites = crewInvites.filter(i => i.crew_id !== crewId);
-      renderCrewInvites();
+// Syncs depuis pvp_vcoins client (via NUI message relayé par le client Lua)
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'vcSync') {
+    if (e.data.tier    !== undefined) vcData.tier    = e.data.tier;
+    if (e.data.vcoins  !== undefined) vcData.vcoins  = e.data.vcoins;
+    if (e.data.expires !== undefined) vcData.expires = e.data.expires;
+    if (document.getElementById('view-vcoins').classList.contains('active')) {
+      renderVCoinsStatus();
     }
-  });
+    // Rafraîchit le poids stash affiché si le stash est ouvert
+    if (e.data.maxStashWeight) {
+      STASH_MAX_KG = e.data.maxStashWeight;
+      renderInventory();
+    }
+  }
+});
+
+// Charge les données depuis le serveur (à l'ouverture de l'onglet)
+function loadVCoinsTab() {
+  fetch('https://pvp_inventory/vcGetData', { method: 'POST', body: '{}' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data) return;
+      vcData = { ...vcData, ...data };
+      renderVCoinsStatus();
+      renderVCoinsMarket();
+    })
+    .catch(() => {});
+}
+
+// ── Rendu statut abonnement ───────────────────────────────────────────────
+function renderVCoinsStatus() {
+  const badge   = document.getElementById('vc-tier-badge');
+  const balance = document.getElementById('vc-balance');
+  const expiry  = document.getElementById('vc-expiry');
+
+  // Badge tier
+  badge.className = 'vc-tier-badge';
+  if (vcData.tier === 'gold') {
+    badge.className += ' vc-tier-gold';
+    badge.textContent = 'GOLD';
+  } else if (vcData.tier === 'diamond') {
+    badge.className += ' vc-tier-diamond';
+    badge.textContent = 'DIAMOND';
+  } else {
+    badge.textContent = 'AUCUN ABONNEMENT';
+  }
+
+  // Solde
+  balance.textContent = Number(vcData.vcoins || 0).toLocaleString('fr-FR') + ' VC';
+
+  // Expiry
+  if (vcData.expires && vcData.tier !== 'none') {
+    expiry.textContent = 'Expire le ' + vcData.expires;
+    expiry.style.display = '';
+  } else {
+    expiry.style.display = 'none';
+  }
+}
+
+// ── Rendu marché ──────────────────────────────────────────────────────────
+function renderVCoinsMarket() {
+  const list     = document.getElementById('vc-market-list');
+  const mySection = document.getElementById('vc-my-offers-section');
+  const myList   = document.getElementById('vc-my-offers-list');
+
+  // Mes offres
+  if (vcData.myOffers && vcData.myOffers.length > 0) {
+    mySection.style.display = '';
+    myList.innerHTML = vcData.myOffers.map(o => `
+      <div class="vc-offer-row vc-offer-mine">
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <button class="vc-offer-cancel" onclick="vcCancelOffer(${o.id})">ANNULER</button>
+      </div>
+    `).join('');
+  } else {
+    mySection.style.display = 'none';
+  }
+
+  // Marché global
+  if (!vcData.market || vcData.market.length === 0) {
+    list.innerHTML = '<div class="vc-market-empty">Aucune offre disponible</div>';
+    return;
+  }
+  list.innerHTML = vcData.market.map(o => {
+    const rate = o.vcoin_amount > 0 ? Math.round(o.price_ingame / o.vcoin_amount) : 0;
+    return `
+      <div class="vc-offer-row">
+        <span class="vc-offer-seller">${o.seller_name}</span>
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <span class="vc-offer-rate">${rate} $/VC</span>
+        <button class="vc-offer-buy" onclick="vcBuyOffer(${o.id})">ACHETER</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+window.vcSubscribe = function(tier) {
+  fetch('https://pvp_inventory/vcSubscribe', {
+    method: 'POST',
+    body: JSON.stringify({ tier })
+  }).then(r => r.json()).then(res => {
+    if (res && res.ok === false) {
+      toast(res.msg || 'Erreur', false);
+    }
+  }).catch(() => {});
 };
 
-window.crewPromote = function(identifier, rank) {
-  const lbl = rank === 'officer' ? 'promouvoir en officier' : 'rétrograder en membre';
-  crewShowConfirm('Voulez-vous ' + lbl + ' ce joueur ?', () => {
-    crewFetch('crewPromote', { identifier, rank }).then(r => {
-      toast(r.message, r.ok);
-      if (r.ok) setTimeout(loadCrewTab, 800);
-    });
-  });
+window.vcCreateOffer = function() {
+  const amt   = parseInt(document.getElementById('vc-offer-amount').value) || 0;
+  const price = parseInt(document.getElementById('vc-offer-price').value)  || 0;
+  if (amt < 10)   { toast('Minimum 10 VC', false); return; }
+  if (price < 100){ toast('Prix minimum 100$', false); return; }
+  fetch('https://pvp_inventory/vcCreateOffer', {
+    method: 'POST',
+    body: JSON.stringify({ vcoinAmount: amt, priceIngame: price })
+  }).then(() => {
+    document.getElementById('vc-offer-amount').value = '';
+    document.getElementById('vc-offer-price').value  = '';
+    setTimeout(loadVCoinsTab, 500);
+  }).catch(() => {});
 };
 
-window.crewKick = function(identifier) {
-  crewShowConfirm('Exclure ce membre du crew ?', () => {
-    crewFetch('crewKick', { identifier }).then(r => {
-      toast(r.message, r.ok);
-      if (r.ok) setTimeout(loadCrewTab, 800);
-    });
-  });
+window.vcCancelOffer = function(id) {
+  fetch('https://pvp_inventory/vcCancelOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
 };
+
+window.vcBuyOffer = function(id) {
+  fetch('https://pvp_inventory/vcBuyOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
+};
+
+// Hook sur le clic de l'onglet VCOINS pour charger les données
+document.addEventListener('DOMContentLoaded', function() {
+  const vcTab = document.querySelector('[data-tab="vcoins"]');
+  if (vcTab) {
+    vcTab.addEventListener('click', function() {
+      loadVCoinsTab();
+    });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//   PED SELECTOR
+// ══════════════════════════════════════════════════════════════════════════
+
+var PED_CATEGORIES = {
+  all:      'TOUS',
+  freemode: 'FREEMODE',
+  military: 'MILITAIRE',
+  law:      'POLICE',
+  gang:     'GANGS',
+  street:   'RUE',
+  business: 'BUSINESS',
+  worker:   'TRAVAIL',
+  beach:    'PLAGE',
+  story:    'HISTOIRE',
+  heist:    'BRAQUAGES',
+  horror:   'HORREUR',
+  animal:   'ANIMAUX',
+  misc:     'DIVERS',
+};
+
+// Le catalogue complet sera chargé depuis ped_catalog.js
+// Fallback si non chargé
+if (typeof PED_CATALOG === 'undefined') {
+  var PED_CATALOG = [
+    { model: 'mp_m_freemode_01', name: 'Homme Freemode', cat: 'freemode', tier: 'free' },
+    { model: 'mp_f_freemode_01', name: 'Femme Freemode', cat: 'freemode', tier: 'free' },
+  ];
+}
+
+var pedSelectorActive = false;
+var pedSelectedModel  = '';
+var pedCurrentCategory = 'all';
+
+function getPedAccess(pedTier) {
+  const t = vcData.tier || 'none';
+  if (pedTier === 'free') return true;
+  if (pedTier === 'gold') return t === 'gold' || t === 'diamond';
+  if (pedTier === 'diamond') return t === 'diamond';
+  return false;
+}
+
+function openPedSelector() {
+  pedSelectorActive = true;
+  pedSelectedModel  = (state.profile && state.profile.pedModel) || '';
+  pedCurrentCategory = 'all';
+
+  document.getElementById('ped-selector-overlay').style.display = 'flex';
+
+  // Tier info
+  const tierEl = document.getElementById('ped-tier-info');
+  const t = vcData.tier || 'none';
+  const total = PED_CATALOG.length;
+  const accessible = PED_CATALOG.filter(p => getPedAccess(p.tier)).length;
+  const tierLabel = t === 'diamond' ? '💎 DIAMOND — TOUS LES PEDS' :
+                    t === 'gold' ? '👑 GOLD — CATALOGUE DE BASE' :
+                    '🔒 GRATUIT — FREEMODE UNIQUEMENT';
+  tierEl.innerHTML = `${tierLabel} <span style="margin-left:8px;opacity:0.5">${accessible}/${total} disponibles</span>`;
+
+  // Categories
+  renderPedCategories();
+  renderPedGrid();
+
+  // Activer la caméra preview côté client
+  lua('openPedSelector', {});
+}
+
+function closePedSelector() {
+  pedSelectorActive = false;
+  document.getElementById('ped-selector-overlay').style.display = 'none';
+}
+
+function cancelPedSelection() {
+  closePedSelector();
+  lua('cancelPedSelector', {});
+}
+
+function confirmPedSelection() {
+  closePedSelector();
+  lua('confirmPedModel', { model: pedSelectedModel });
+  if (state.profile) state.profile.pedModel = pedSelectedModel;
+  renderProfile();
+}
+
+function renderPedCategories() {
+  const container = document.getElementById('ped-categories');
+  container.innerHTML = Object.entries(PED_CATEGORIES).map(([key, label]) =>
+    `<button class="ped-cat-btn ${key === pedCurrentCategory ? 'active' : ''}"
+            onclick="setPedCategory('${key}')">${label}</button>`
+  ).join('');
+}
+
+function setPedCategory(cat) {
+  pedCurrentCategory = cat;
+  renderPedCategories();
+  renderPedGrid();
+}
+
+function filterPedGrid() {
+  renderPedGrid();
+}
+
+function renderPedGrid() {
+  const grid = document.getElementById('ped-grid');
+  const search = (document.getElementById('ped-search').value || '').toLowerCase().trim();
+
+  var peds = PED_CATALOG;
+  if (pedCurrentCategory !== 'all') {
+    peds = peds.filter(p => p.cat === pedCurrentCategory);
+  }
+  if (search) {
+    peds = peds.filter(p => p.model.includes(search) || p.name.toLowerCase().includes(search));
+  }
+
+  // Limiter à 200 pour la perf (CEF)
+  const displayed = peds.slice(0, 200);
+  const hasMore = peds.length > 200;
+
+  grid.innerHTML = displayed.map(p => {
+    const accessible = getPedAccess(p.tier);
+    const selected   = pedSelectedModel === p.model;
+    const tierTag = p.tier === 'gold' ? '<span class="ped-card-tier ped-tier-gold">G</span>' :
+                    p.tier === 'diamond' ? '<span class="ped-card-tier ped-tier-diamond">D</span>' : '';
+    const lockIcon = !accessible ? '<div class="ped-lock-icon">🔒</div>' : '';
+
+    return `<div class="ped-card ${selected ? 'ped-selected' : ''} ${!accessible ? 'ped-locked' : ''}"
+                onclick="${accessible ? `selectPed('${p.model}')` : `toast('Abonnement ${p.tier === 'diamond' ? 'Diamond' : 'Gold'} requis')`}">
+      ${tierTag}
+      ${lockIcon}
+      <div class="ped-card-name">${p.name}</div>
+    </div>`;
+  }).join('') + (hasMore ? '<div style="grid-column:1/-1;text-align:center;color:var(--v-text-tertiary);font-size:10px;padding:8px;">Affinez votre recherche...</div>' : '');
+}
+
+function selectPed(model) {
+  pedSelectedModel = model;
+  renderPedGrid();
+  // Preview en temps réel
+  lua('previewPed', { model: model });
+}
+//   VCOINS — Onglet abonnements & marché
+// ══════════════════════════════════════════════════════════════════════════
+
+// Syncs depuis pvp_vcoins client (via NUI message relayé par le client Lua)
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'vcSync') {
+    if (e.data.tier    !== undefined) vcData.tier    = e.data.tier;
+    if (e.data.vcoins  !== undefined) vcData.vcoins  = e.data.vcoins;
+    if (e.data.expires !== undefined) vcData.expires = e.data.expires;
+    if (document.getElementById('view-vcoins').classList.contains('active')) {
+      renderVCoinsStatus();
+    }
+    // Rafraîchit le poids stash affiché si le stash est ouvert
+    if (e.data.maxStashWeight) {
+      STASH_MAX_KG = e.data.maxStashWeight;
+      renderInventory();
+    }
+  }
+});
+
+// Charge les données depuis le serveur (à l'ouverture de l'onglet)
+function loadVCoinsTab() {
+  fetch('https://pvp_inventory/vcGetData', { method: 'POST', body: '{}' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data) return;
+      vcData = { ...vcData, ...data };
+      renderVCoinsStatus();
+      renderVCoinsMarket();
+    })
+    .catch(() => {});
+}
+
+// ── Rendu statut abonnement ───────────────────────────────────────────────
+function renderVCoinsStatus() {
+  const badge   = document.getElementById('vc-tier-badge');
+  const balance = document.getElementById('vc-balance');
+  const expiry  = document.getElementById('vc-expiry');
+
+  // Badge tier
+  badge.className = 'vc-tier-badge';
+  if (vcData.tier === 'gold') {
+    badge.className += ' vc-tier-gold';
+    badge.textContent = 'GOLD';
+  } else if (vcData.tier === 'diamond') {
+    badge.className += ' vc-tier-diamond';
+    badge.textContent = 'DIAMOND';
+  } else {
+    badge.textContent = 'AUCUN ABONNEMENT';
+  }
+
+  // Solde
+  balance.textContent = Number(vcData.vcoins || 0).toLocaleString('fr-FR') + ' VC';
+
+  // Expiry
+  if (vcData.expires && vcData.tier !== 'none') {
+    expiry.textContent = 'Expire le ' + vcData.expires;
+    expiry.style.display = '';
+  } else {
+    expiry.style.display = 'none';
+  }
+}
+
+// ── Rendu marché ──────────────────────────────────────────────────────────
+function renderVCoinsMarket() {
+  const list     = document.getElementById('vc-market-list');
+  const mySection = document.getElementById('vc-my-offers-section');
+  const myList   = document.getElementById('vc-my-offers-list');
+
+  // Mes offres
+  if (vcData.myOffers && vcData.myOffers.length > 0) {
+    mySection.style.display = '';
+    myList.innerHTML = vcData.myOffers.map(o => `
+      <div class="vc-offer-row vc-offer-mine">
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <button class="vc-offer-cancel" onclick="vcCancelOffer(${o.id})">ANNULER</button>
+      </div>
+    `).join('');
+  } else {
+    mySection.style.display = 'none';
+  }
+
+  // Marché global
+  if (!vcData.market || vcData.market.length === 0) {
+    list.innerHTML = '<div class="vc-market-empty">Aucune offre disponible</div>';
+    return;
+  }
+  list.innerHTML = vcData.market.map(o => {
+    const rate = o.vcoin_amount > 0 ? Math.round(o.price_ingame / o.vcoin_amount) : 0;
+    return `
+      <div class="vc-offer-row">
+        <span class="vc-offer-seller">${o.seller_name}</span>
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <span class="vc-offer-rate">${rate} $/VC</span>
+        <button class="vc-offer-buy" onclick="vcBuyOffer(${o.id})">ACHETER</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+window.vcSubscribe = function(tier) {
+  fetch('https://pvp_inventory/vcSubscribe', {
+    method: 'POST',
+    body: JSON.stringify({ tier })
+  }).then(r => r.json()).then(res => {
+    if (res && res.ok === false) {
+      toast(res.msg || 'Erreur', false);
+    }
+  }).catch(() => {});
+};
+
+window.vcCreateOffer = function() {
+  const amt   = parseInt(document.getElementById('vc-offer-amount').value) || 0;
+  const price = parseInt(document.getElementById('vc-offer-price').value)  || 0;
+  if (amt < 10)   { toast('Minimum 10 VC', false); return; }
+  if (price < 100){ toast('Prix minimum 100$', false); return; }
+  fetch('https://pvp_inventory/vcCreateOffer', {
+    method: 'POST',
+    body: JSON.stringify({ vcoinAmount: amt, priceIngame: price })
+  }).then(() => {
+    document.getElementById('vc-offer-amount').value = '';
+    document.getElementById('vc-offer-price').value  = '';
+    setTimeout(loadVCoinsTab, 500);
+  }).catch(() => {});
+};
+
+window.vcCancelOffer = function(id) {
+  fetch('https://pvp_inventory/vcCancelOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
+};
+
+window.vcBuyOffer = function(id) {
+  fetch('https://pvp_inventory/vcBuyOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
+};
+
+// Hook sur le clic de l'onglet VCOINS pour charger les données
+document.addEventListener('DOMContentLoaded', function() {
+  const vcTab = document.querySelector('[data-tab="vcoins"]');
+  if (vcTab) {
+    vcTab.addEventListener('click', function() {
+      loadVCoinsTab();
+    });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//   PED SELECTOR
+// ══════════════════════════════════════════════════════════════════════════
+
+var PED_CATEGORIES = {
+  all:      'TOUS',
+  freemode: 'FREEMODE',
+  military: 'MILITAIRE',
+  law:      'POLICE',
+  gang:     'GANGS',
+  street:   'RUE',
+  business: 'BUSINESS',
+  worker:   'TRAVAIL',
+  beach:    'PLAGE',
+  story:    'HISTOIRE',
+  heist:    'BRAQUAGES',
+  horror:   'HORREUR',
+  animal:   'ANIMAUX',
+  misc:     'DIVERS',
+};
+
+// Le catalogue complet sera chargé depuis ped_catalog.js
+// Fallback si non chargé
+if (typeof PED_CATALOG === 'undefined') {
+  var PED_CATALOG = [
+    { model: 'mp_m_freemode_01', name: 'Homme Freemode', cat: 'freemode', tier: 'free' },
+    { model: 'mp_f_freemode_01', name: 'Femme Freemode', cat: 'freemode', tier: 'free' },
+  ];
+}
+
+var pedSelectorActive = false;
+var pedSelectedModel  = '';
+var pedCurrentCategory = 'all';
+
+function getPedAccess(pedTier) {
+  const t = vcData.tier || 'none';
+  if (pedTier === 'free') return true;
+  if (pedTier === 'gold') return t === 'gold' || t === 'diamond';
+  if (pedTier === 'diamond') return t === 'diamond';
+  return false;
+}
+
+function openPedSelector() {
+  pedSelectorActive = true;
+  pedSelectedModel  = (state.profile && state.profile.pedModel) || '';
+  pedCurrentCategory = 'all';
+
+  document.getElementById('ped-selector-overlay').style.display = 'flex';
+
+  // Tier info
+  const tierEl = document.getElementById('ped-tier-info');
+  const t = vcData.tier || 'none';
+  const total = PED_CATALOG.length;
+  const accessible = PED_CATALOG.filter(p => getPedAccess(p.tier)).length;
+  const tierLabel = t === 'diamond' ? '💎 DIAMOND — TOUS LES PEDS' :
+                    t === 'gold' ? '👑 GOLD — CATALOGUE DE BASE' :
+                    '🔒 GRATUIT — FREEMODE UNIQUEMENT';
+  tierEl.innerHTML = `${tierLabel} <span style="margin-left:8px;opacity:0.5">${accessible}/${total} disponibles</span>`;
+
+  // Categories
+  renderPedCategories();
+  renderPedGrid();
+
+  // Activer la caméra preview côté client
+  lua('openPedSelector', {});
+}
+
+function closePedSelector() {
+  pedSelectorActive = false;
+  document.getElementById('ped-selector-overlay').style.display = 'none';
+}
+
+function cancelPedSelection() {
+  closePedSelector();
+  lua('cancelPedSelector', {});
+}
+
+function confirmPedSelection() {
+  closePedSelector();
+  lua('confirmPedModel', { model: pedSelectedModel });
+  if (state.profile) state.profile.pedModel = pedSelectedModel;
+  renderProfile();
+}
+
+function renderPedCategories() {
+  const container = document.getElementById('ped-categories');
+  container.innerHTML = Object.entries(PED_CATEGORIES).map(([key, label]) =>
+    `<button class="ped-cat-btn ${key === pedCurrentCategory ? 'active' : ''}"
+            onclick="setPedCategory('${key}')">${label}</button>`
+  ).join('');
+}
+
+function setPedCategory(cat) {
+  pedCurrentCategory = cat;
+  renderPedCategories();
+  renderPedGrid();
+}
+
+function filterPedGrid() {
+  renderPedGrid();
+}
+
+function renderPedGrid() {
+  const grid = document.getElementById('ped-grid');
+  const search = (document.getElementById('ped-search').value || '').toLowerCase().trim();
+
+  var peds = PED_CATALOG;
+  if (pedCurrentCategory !== 'all') {
+    peds = peds.filter(p => p.cat === pedCurrentCategory);
+  }
+  if (search) {
+    peds = peds.filter(p => p.model.includes(search) || p.name.toLowerCase().includes(search));
+  }
+
+  // Limiter à 200 pour la perf (CEF)
+  const displayed = peds.slice(0, 200);
+  const hasMore = peds.length > 200;
+
+  grid.innerHTML = displayed.map(p => {
+    const accessible = getPedAccess(p.tier);
+    const selected   = pedSelectedModel === p.model;
+    const tierTag = p.tier === 'gold' ? '<span class="ped-card-tier ped-tier-gold">G</span>' :
+                    p.tier === 'diamond' ? '<span class="ped-card-tier ped-tier-diamond">D</span>' : '';
+    const lockIcon = !accessible ? '<div class="ped-lock-icon">🔒</div>' : '';
+
+    return `<div class="ped-card ${selected ? 'ped-selected' : ''} ${!accessible ? 'ped-locked' : ''}"
+                onclick="${accessible ? `selectPed('${p.model}')` : `toast('Abonnement ${p.tier === 'diamond' ? 'Diamond' : 'Gold'} requis')`}">
+      ${tierTag}
+      ${lockIcon}
+      <div class="ped-card-name">${p.name}</div>
+    </div>`;
+  }).join('') + (hasMore ? '<div style="grid-column:1/-1;text-align:center;color:var(--v-text-tertiary);font-size:10px;padding:8px;">Affinez votre recherche...</div>' : '');
+}
+
+function selectPed(model) {
+  pedSelectedModel = model;
+  renderPedGrid();
+  // Preview en temps réel
+  lua('previewPed', { model: model });
+}
+//   VCOINS — Onglet abonnements & marché
+// ══════════════════════════════════════════════════════════════════════════
+
+// Syncs depuis pvp_vcoins client (via NUI message relayé par le client Lua)
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'vcSync') {
+    if (e.data.tier    !== undefined) vcData.tier    = e.data.tier;
+    if (e.data.vcoins  !== undefined) vcData.vcoins  = e.data.vcoins;
+    if (e.data.expires !== undefined) vcData.expires = e.data.expires;
+    if (document.getElementById('view-vcoins').classList.contains('active')) {
+      renderVCoinsStatus();
+    }
+    // Rafraîchit le poids stash affiché si le stash est ouvert
+    if (e.data.maxStashWeight) {
+      STASH_MAX_KG = e.data.maxStashWeight;
+      renderInventory();
+    }
+  }
+});
+
+// Charge les données depuis le serveur (à l'ouverture de l'onglet)
+function loadVCoinsTab() {
+  fetch('https://pvp_inventory/vcGetData', { method: 'POST', body: '{}' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data) return;
+      vcData = { ...vcData, ...data };
+      renderVCoinsStatus();
+      renderVCoinsMarket();
+    })
+    .catch(() => {});
+}
+
+// ── Rendu statut abonnement ───────────────────────────────────────────────
+function renderVCoinsStatus() {
+  const badge   = document.getElementById('vc-tier-badge');
+  const balance = document.getElementById('vc-balance');
+  const expiry  = document.getElementById('vc-expiry');
+
+  // Badge tier
+  badge.className = 'vc-tier-badge';
+  if (vcData.tier === 'gold') {
+    badge.className += ' vc-tier-gold';
+    badge.textContent = 'GOLD';
+  } else if (vcData.tier === 'diamond') {
+    badge.className += ' vc-tier-diamond';
+    badge.textContent = 'DIAMOND';
+  } else {
+    badge.textContent = 'AUCUN ABONNEMENT';
+  }
+
+  // Solde
+  balance.textContent = Number(vcData.vcoins || 0).toLocaleString('fr-FR') + ' VC';
+
+  // Expiry
+  if (vcData.expires && vcData.tier !== 'none') {
+    expiry.textContent = 'Expire le ' + vcData.expires;
+    expiry.style.display = '';
+  } else {
+    expiry.style.display = 'none';
+  }
+}
+
+// ── Rendu marché ──────────────────────────────────────────────────────────
+function renderVCoinsMarket() {
+  const list     = document.getElementById('vc-market-list');
+  const mySection = document.getElementById('vc-my-offers-section');
+  const myList   = document.getElementById('vc-my-offers-list');
+
+  // Mes offres
+  if (vcData.myOffers && vcData.myOffers.length > 0) {
+    mySection.style.display = '';
+    myList.innerHTML = vcData.myOffers.map(o => `
+      <div class="vc-offer-row vc-offer-mine">
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <button class="vc-offer-cancel" onclick="vcCancelOffer(${o.id})">ANNULER</button>
+      </div>
+    `).join('');
+  } else {
+    mySection.style.display = 'none';
+  }
+
+  // Marché global
+  if (!vcData.market || vcData.market.length === 0) {
+    list.innerHTML = '<div class="vc-market-empty">Aucune offre disponible</div>';
+    return;
+  }
+  list.innerHTML = vcData.market.map(o => {
+    const rate = o.vcoin_amount > 0 ? Math.round(o.price_ingame / o.vcoin_amount) : 0;
+    return `
+      <div class="vc-offer-row">
+        <span class="vc-offer-seller">${o.seller_name}</span>
+        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
+        <span class="vc-offer-arrow">→</span>
+        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
+        <span class="vc-offer-rate">${rate} $/VC</span>
+        <button class="vc-offer-buy" onclick="vcBuyOffer(${o.id})">ACHETER</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+window.vcSubscribe = function(tier) {
+  fetch('https://pvp_inventory/vcSubscribe', {
+    method: 'POST',
+    body: JSON.stringify({ tier })
+  }).then(r => r.json()).then(res => {
+    if (res && res.ok === false) {
+      toast(res.msg || 'Erreur', false);
+    }
+  }).catch(() => {});
+};
+
+window.vcCreateOffer = function() {
+  const amt   = parseInt(document.getElementById('vc-offer-amount').value) || 0;
+  const price = parseInt(document.getElementById('vc-offer-price').value)  || 0;
+  if (amt < 10)   { toast('Minimum 10 VC', false); return; }
+  if (price < 100){ toast('Prix minimum 100$', false); return; }
+  fetch('https://pvp_inventory/vcCreateOffer', {
+    method: 'POST',
+    body: JSON.stringify({ vcoinAmount: amt, priceIngame: price })
+  }).then(() => {
+    document.getElementById('vc-offer-amount').value = '';
+    document.getElementById('vc-offer-price').value  = '';
+    setTimeout(loadVCoinsTab, 500);
+  }).catch(() => {});
+};
+
+window.vcCancelOffer = function(id) {
+  fetch('https://pvp_inventory/vcCancelOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
+};
+
+window.vcBuyOffer = function(id) {
+  fetch('https://pvp_inventory/vcBuyOffer', {
+    method: 'POST',
+    body: JSON.stringify({ offerId: id })
+  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
+};
+
+// Hook sur le clic de l'onglet VCOINS pour charger les données
+document.addEventListener('DOMContentLoaded', function() {
+  const vcTab = document.querySelector('[data-tab="vcoins"]');
+  if (vcTab) {
+    vcTab.addEventListener('click', function() {
+      loadVCoinsTab();
+    });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//   PED SELECTOR
+// ══════════════════════════════════════════════════════════════════════════
+
+var PED_CATEGORIES = {
+  all:      'TOUS',
+  freemode: 'FREEMODE',
+  military: 'MILITAIRE',
+  law:      'POLICE',
+  gang:     'GANGS',
+  street:   'RUE',
+  business: 'BUSINESS',
+  worker:   'TRAVAIL',
+  beach:    'PLAGE',
+  story:    'HISTOIRE',
+  heist:    'BRAQUAGES',
+  horror:   'HORREUR',
+  animal:   'ANIMAUX',
+  misc:     'DIVERS',
+};
+
+// Le catalogue complet sera chargé depuis ped_catalog.js
+// Fallback si non chargé
+if (typeof PED_CATALOG === 'undefined') {
+  var PED_CATALOG = [
+    { model: 'mp_m_freemode_01', name: 'Homme Freemode', cat: 'freemode', tier: 'free' },
+    { model: 'mp_f_freemode_01', name: 'Femme Freemode', cat: 'freemode', tier: 'free' },
+  ];
+}
+
+var pedSelectorActive = false;
+var pedSelectedModel  = '';
+var pedCurrentCategory = 'all';
+
+function getPedAccess(pedTier) {
+  const t = vcData.tier || 'none';
+  if (pedTier === 'free') return true;
+  if (pedTier === 'gold') return t === 'gold' || t === 'diamond';
+  if (pedTier === 'diamond') return t === 'diamond';
+  return false;
+}
+
+function openPedSelector() {
+  pedSelectorActive = true;
+  pedSelectedModel  = (state.profile && state.profile.pedModel) || '';
+  pedCurrentCategory = 'all';
+
+  document.getElementById('ped-selector-overlay').style.display = 'flex';
+
+  // Tier info
+  const tierEl = document.getElementById('ped-tier-info');
+  const t = vcData.tier || 'none';
+  const total = PED_CATALOG.length;
+  const accessible = PED_CATALOG.filter(p => getPedAccess(p.tier)).length;
+  const tierLabel = t === 'diamond' ? '💎 DIAMOND — TOUS LES PEDS' :
+                    t === 'gold' ? '👑 GOLD — CATALOGUE DE BASE' :
+                    '🔒 GRATUIT — FREEMODE UNIQUEMENT';
+  tierEl.innerHTML = `${tierLabel} <span style="margin-left:8px;opacity:0.5">${accessible}/${total} disponibles</span>`;
+
+  // Categories
+  renderPedCategories();
+  renderPedGrid();
+
+  // Activer la caméra preview côté client
+  lua('openPedSelector', {});
+}
+
+function closePedSelector() {
+  pedSelectorActive = false;
+  document.getElementById('ped-selector-overlay').style.display = 'none';
+}
+
+function cancelPedSelection() {
+  closePedSelector();
+  lua('cancelPedSelector', {});
+}
+
+function confirmPedSelection() {
+  closePedSelector();
+  lua('confirmPedModel', { model: pedSelectedModel });
+  if (state.profile) state.profile.pedModel = pedSelectedModel;
+  renderProfile();
+}
+
+function renderPedCategories() {
+  const container = document.getElementById('ped-categories');
+  container.innerHTML = Object.entries(PED_CATEGORIES).map(([key, label]) =>
+    `<button class="ped-cat-btn ${key === pedCurrentCategory ? 'active' : ''}"
+            onclick="setPedCategory('${key}')">${label}</button>`
+  ).join('');
+}
+
+function setPedCategory(cat) {
+  pedCurrentCategory = cat;
+  renderPedCategories();
+  renderPedGrid();
+}
+
+function filterPedGrid() {
+  renderPedGrid();
+}
+
+function renderPedGrid() {
+  const grid = document.getElementById('ped-grid');
+  const search = (document.getElementById('ped-search').value || '').toLowerCase().trim();
+
+  var peds = PED_CATALOG;
+  if (pedCurrentCategory !== 'all') {
+    peds = peds.filter(p => p.cat === pedCurrentCategory);
+  }
+  if (search) {
+    peds = peds.filter(p => p.model.includes(search) || p.name.toLowerCase().includes(search));
+  }
+
+  // Limiter à 200 pour la perf (CEF)
+  const displayed = peds.slice(0, 200);
+  const hasMore = peds.length > 200;
+
+  grid.innerHTML = displayed.map(p => {
+    const accessible = getPedAccess(p.tier);
+    const selected   = pedSelectedModel === p.model;
+    const tierTag = p.tier === 'gold' ? '<span class="ped-card-tier ped-tier-gold">G</span>' :
+                    p.tier === 'diamond' ? '<span class="ped-card-tier ped-tier-diamond">D</span>' : '';
+    const lockIcon = !accessible ? '<div class="ped-lock-icon">🔒</div>' : '';
+
+    return `<div class="ped-card ${selected ? 'ped-selected' : ''} ${!accessible ? 'ped-locked' : ''}"
+                onclick="${accessible ? `selectPed('${p.model}')` : `toast('Abonnement ${p.tier === 'diamond' ? 'Diamond' : 'Gold'} requis')`}">
+      ${tierTag}
+      ${lockIcon}
+      <div class="ped-card-name">${p.name}</div>
+    </div>`;
+  }).join('') + (hasMore ? '<div style="grid-column:1/-1;text-align:center;color:var(--v-text-tertiary);font-size:10px;padding:8px;">Affinez votre recherche...</div>' : '');
+}
+
+function selectPed(model) {
+  pedSelectedModel = model;
+  renderPedGrid();
+  // Preview en temps réel
+  lua('previewPed', { model: model });
+}
+

@@ -702,19 +702,28 @@ AddEventHandler('pvp_admin:action', function(action, data)
     elseif action == 'givemoney' then
         local xTarget, tid = getXPlayer(src, data.id)
         if xTarget then
-            local amount = tonumber(data.amount) or 0
-            xTarget.addAccountMoney('bank', amount)
-            logAction(src, 'givemoney', targetName, tid, '$' .. amount)
-            toast(src, '$' .. amount .. ' donné à ' .. targetName)
+            local amount = math.floor(tonumber(data.amount) or 0)
+            -- SÉCURITÉ : bornes pour éviter overflow/exploit
+            if amount < 1 or amount > 100000000 then
+                adminMsg(src, 'Montant invalide (1 - 100M)')
+            else
+                xTarget.addAccountMoney('bank', amount)
+                logAction(src, 'givemoney', targetName, tid, '$' .. amount)
+                toast(src, '$' .. amount .. ' donné à ' .. targetName)
+            end
         end
 
     elseif action == 'givexp' then
         local xTarget, tid = getXPlayer(src, data.id)
         if xTarget then
-            local amount = tonumber(data.amount) or 0
-            TriggerEvent('pvp_admin:awardXP', xTarget.identifier, amount)
-            logAction(src, 'givexp', targetName, tid, amount .. ' XP')
-            toast(src, amount .. ' XP donné à ' .. targetName)
+            local amount = math.floor(tonumber(data.amount) or 0)
+            if amount < 1 or amount > 10000000 then
+                adminMsg(src, 'Montant XP invalide (1 - 10M)')
+            else
+                TriggerEvent('pvp_admin:awardXP', xTarget.identifier, amount)
+                logAction(src, 'givexp', targetName, tid, amount .. ' XP')
+                toast(src, amount .. ' XP donné à ' .. targetName)
+            end
         end
 
     elseif action == 'clearinv' then
@@ -974,6 +983,8 @@ RegisterCommand('givemoney', function(src, args)
     local tid = tonumber(args[1])
     local amount = tonumber(args[2])
     if not tid or not amount then adminMsg(src, 'Usage: /givemoney [id] [montant]') return end
+    amount = math.floor(amount)
+    if amount < 1 or amount > 100000000 then adminMsg(src, 'Montant invalide (1 - 100M)') return end
     local xTarget = ESX.GetPlayerFromId(tid)
     if not xTarget then adminMsg(src, 'Joueur introuvable.') return end
     xTarget.addAccountMoney('bank', amount)
@@ -986,6 +997,8 @@ RegisterCommand('givexp', function(src, args)
     local tid = tonumber(args[1])
     local amount = tonumber(args[2])
     if not tid or not amount then adminMsg(src, 'Usage: /givexp [id] [montant]') return end
+    amount = math.floor(amount)
+    if amount < 1 or amount > 10000000 then adminMsg(src, 'Montant XP invalide (1 - 10M)') return end
     local xTarget = ESX.GetPlayerFromId(tid)
     if not xTarget then adminMsg(src, 'Joueur introuvable.') return end
     TriggerEvent('pvp_admin:awardXP', xTarget.identifier, amount)

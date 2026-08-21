@@ -66,17 +66,37 @@ end
 
 -- ── Anti-exploit : tracking des kills pour éviter le spam ─────────────────
 local recentKills   = {}  -- [src] = { lastKillTime, killCount }
-local usedZombieIds = {}  -- [netId] = true (empêche double-claim)
+local usedZombieIds = {}  -- [netId] = os.time() (empêche double-claim)
 
 local KILL_COOLDOWN    = 500   -- ms minimum entre 2 kills
 local MAX_KILLS_WINDOW = 30    -- max kills par fenêtre de 30s
 local KILL_WINDOW_MS   = 30000
+local USED_NETID_TTL_S = 1800  -- 30 min : au-delà, le netId est sûrement recyclé
 
--- Nettoyage périodique des netIds utilisés (toutes les 5 min)
+-- SÉCURITÉ : nettoyage par TTL au lieu d'un wipe global. Un wipe toutes les
+-- 5 min ouvrait une fenêtre où un netId déjà claim pouvait être re-claim.
+-- Ici on purge seulement les entrées > 30 min, le temps qu'un netId puisse
+-- être légitimement recyclé par le moteur GTA.
 CreateThread(function()
     while true do
-        Wait(300000)
-        usedZombieIds = {}
+        Wait(60000)  -- toutes les minutes
+        local now = os.time()
+        for netId, ts in pairs(usedZombieIds) do
+            if (now - ts) > USED_NETID_TTL_S then
+                usedZombieIds[netId] = nil
+            end
+        end
+    end
+end)
+
+-- SÉCURITÉ : set des models zombie autorisés (hash GTA) pour valider que
+-- l'entité tuée est bien un zombie spawné par le serveur — et pas une
+-- entité arbitraire (joueur, PNJ civil, chien, etc.) que le client ment.
+local ZOMBIE_MODEL_HASHES = {}
+CreateThread(function()
+    if not Config or not Config.ZombieType or not Config.ZombieType.models then return end
+    for _, modelName in ipairs(Config.ZombieType.models) do
+        ZOMBIE_MODEL_HASHES[GetHashKey(modelName)] = true
     end
 end)
 
@@ -93,7 +113,7 @@ AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
 
     -- ── VALIDATION 2 : netId pas déjà utilisé (anti double-claim) ──
     if usedZombieIds[zombieNetId] then return end
-    usedZombieIds[zombieNetId] = true
+    usedZombieIds[zombieNetId] = os.time()
 
     -- ── VALIDATION 3 : anti-spam (cooldown + rate limit) ──
     local now = GetGameTimer()
@@ -118,9 +138,16 @@ AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
         return
     end
 
-    -- ── VALIDATION 4 : vérifier l'entité réseau ──
+    -- ── VALIDATION 4 : vérifier l'entité réseau + model + distance ──
     local zombieEntity = NetworkGetEntityFromNetworkId(zombieNetId)
     if zombieEntity and zombieEntity ~= 0 and DoesEntityExist(zombieEntity) then
+        -- SÉCURITÉ : le model doit être un zombie connu.
+        -- Empêche un client de forger un netId pointant vers un autre joueur
+        -- ou un PNJ quelconque pour claim reward + loot.
+        local model = GetEntityModel(zombieEntity)
+        if model and model ~= 0 and not ZOMBIE_MODEL_HASHES[model] then
+            return
+        end
         -- Vérifier la distance (max 200m)
         local playerPed = GetPlayerPed(src)
         if playerPed and playerPed ~= 0 then
@@ -182,7 +209,10 @@ AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
     -- Envoie le résultat au client pour affichage
     local labelPrefix = inRedzone and ('[RZ] ' .. typeData.label) or typeData.label
     TriggerClientEvent('pvp_zombies:receiveLoot', src, labelPrefix, reward, lootNames)
-    TriggerEvent('pvp_inventory:addZombieKillBySource', src)
+    TriggerEvent('pvp_inventory:recordZombieKill', src)
+
+    -- SÉCURITÉ : dispatch interne vers vanta_xp APRÈS validation complète.
+    TriggerEvent('vanta_xp:internalZombieKill', src)
 
     -- Stats redzone
     if inRedzone then

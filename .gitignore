@@ -1,4 +1,10 @@
-# FiveM binaries & system
+# ═══════════════════════════════════════════════════════════════════
+#  VANTA — .gitignore
+#  Objectif : le dépôt doit contenir TOUT le code nécessaire pour
+#  relancer le serveur, et RIEN de ce qui se régénère tout seul.
+# ═══════════════════════════════════════════════════════════════════
+
+# ── Binaires & runtime FXServer (réinstallables depuis le site Cfx.re) ──
 *.exe
 *.dll
 *.pdb
@@ -6,32 +12,45 @@ citizen/
 cache/
 crashes/
 components.json
+svadhesive*
 
-# Framework tiers (non versionné — téléchargeable séparément)
-resources/\[base\]/
-resources/\[essential\]/
-resources/\[maps\]/
+# EXCEPTION : ces DLL sont embarquées dans une resource et chargées
+# à l'exécution (voir essentialmode/fxmanifest.lua). Sans elles, la
+# resource ne démarre pas — elles DOIVENT être versionnées.
+!resources/**/*.dll
 
-# Ressources tiers dans [menu]
-resources/\[menu\]/async/
-resources/\[menu\]/spooner/
-resources/\[menu\]/esx_hud/
-resources/\[menu\]/esx_menu_default/
-resources/\[menu\]/esx_menu_dialog-main/
-resources/\[menu\]/esx_menu_list-main/
+# ── Dépendances installables (npm) — jamais versionnées ──
+node_modules/
 
-# Base de données locale
+# ── Journaux & fichiers générés au runtime ──
+*.log
+logs/
+.replxx_history
+
+# ── Base de données locale ──
 *.db
 *.sqlite
 
-# Certificats & clés TLS (SENSIBLE — ne jamais commiter)
+# ── Certificats & clés TLS (SENSIBLE — ne jamais commiter) ──
 *.crt
 *.key
 *.pem
 
-# Historique shell
-.replxx_history
+# ── Mappings volumineux ──
+# Le dossier [maps] (base_v15, total_apocalypse — 163 ymaps) est absent
+# du disque depuis l'arrêt du serveur. Maintenu exclu : s'il revient un
+# jour, on décidera consciemment de son sort plutôt que de committer
+# plusieurs Go par accident.
+resources/\[maps\]/
 
-# Divers
+# ── Outillage local (hors projet) ──
 .claude/
 skills-lock.json
+
+# ── Dépôt git imbriqué ──
+# spooner est un clone de github.com/kibook/spooner (commit 4e2d100) qui
+# possède son propre dossier .git. Git ne saurait stocker que sa référence,
+# pas ses fichiers : un clone du dépôt VANTA récupérerait un dossier VIDE
+# et `ensure spooner` échouerait. On l'exclut donc explicitement.
+# Restauration documentée dans audit-initial.md (URL + commit + 1 ligne modifiée).
+resources/\[menu\]/spooner/

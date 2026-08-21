@@ -146,6 +146,20 @@ local function lootWithLabels(loot)
     return result
 end
 
+-- ── Helper : distance horizontale d'un joueur au drop ──────────────────
+local LOCK_TIMEOUT_S = 60  -- SÉCURITÉ : un joueur qui laisse l'UI ouverte
+                            -- > 60s (crash, déco, AFK) libère le drop.
+local function playerNearDrop(src)
+    if not activeDrop or not activeDrop.landZ then return false end
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return false end
+    local c = GetEntityCoords(ped)
+    local dx = c.x - (activeDrop.landX or 0)
+    local dy = c.y - (activeDrop.landY or 0)
+    local dz = c.z - (activeDrop.landZ or 0)
+    return (dx * dx + dy * dy + dz * dz) <= 100.0  -- <=10m (radius généreux vs parachute)
+end
+
 -- ── Ouvrir la caisse → ouvre l'UI inventaire ─────────────────────────────
 RegisterNetEvent('pvp_drops:open')
 AddEventHandler('pvp_drops:open', function(dropId)
@@ -155,8 +169,27 @@ AddEventHandler('pvp_drops:open', function(dropId)
         TriggerClientEvent('pvp_market:notify', src, 'La caisse a déjà été ouverte !', false)
         return
     end
-    if activeDrop.lockedBy then
-        TriggerClientEvent('pvp_market:notify', src, 'Un joueur accède déjà à ce drop !', false)
+    -- SÉCURITÉ : timeout sur lockedBy (un joueur peut avoir déco sans trigger closeUI).
+    if activeDrop.lockedBy and activeDrop.lockedAt then
+        if (os.time() - activeDrop.lockedAt) > LOCK_TIMEOUT_S then
+            activeDrop.lockedBy = nil
+            activeDrop.lockedAt = nil
+        end
+    end
+    if activeDrop.lockedBy and activeDrop.lockedBy ~= src then
+        -- Vérifier que le joueur est encore connecté, sinon libérer
+        if not GetPlayerName(activeDrop.lockedBy) then
+            activeDrop.lockedBy = nil
+            activeDrop.lockedAt = nil
+        else
+            TriggerClientEvent('pvp_market:notify', src, 'Un joueur accède déjà à ce drop !', false)
+            return
+        end
+    end
+
+    -- SÉCURITÉ : le joueur doit être à proximité du drop.
+    if not playerNearDrop(src) then
+        TriggerClientEvent('pvp_market:notify', src, 'Trop loin du drop.', false)
         return
     end
 
@@ -164,6 +197,7 @@ AddEventHandler('pvp_drops:open', function(dropId)
     if not xPlayer then return end
 
     activeDrop.lockedBy = src
+    activeDrop.lockedAt = os.time()
 
     -- Inventaire du joueur
     local inventory = {}
@@ -193,6 +227,13 @@ AddEventHandler('pvp_drops:takeItem', function(dropId, itemName, qty)
     if not activeDrop or activeDrop.id ~= dropId then return end
     if activeDrop.lockedBy ~= src then return end
 
+    -- SÉCURITÉ : validations d'entrée (anti-type-confusion, anti-injection).
+    if type(itemName) ~= 'string' or itemName == '' or #itemName > 64 then return end
+    if not itemName:match('^[a-z0-9_]+$') then return end
+
+    -- SÉCURITÉ : le joueur doit toujours être proche du drop.
+    if not playerNearDrop(src) then return end
+
     -- Anti-duplication : verrouillage par item
     if dropItemLocks[itemName] then return end
     dropItemLocks[itemName] = true
@@ -203,8 +244,20 @@ AddEventHandler('pvp_drops:takeItem', function(dropId, itemName, qty)
         return
     end
 
-    -- Valider qty
-    qty = math.max(1, math.floor(tonumber(qty) or 1))
+    -- Valider qty (cap 999 pour éviter tonumber('inf') ou overflow)
+    qty = math.max(1, math.min(999, math.floor(tonumber(qty) or 1)))
+
+    -- SÉCURITÉ : vérification poids sac serveur (même logique que pvp_inventory).
+    local canAdd = true
+    local ok, res = pcall(function()
+        return exports['pvp_inventory']:canAddToBag(src, itemName, qty)
+    end)
+    if ok and res == false then canAdd = false end
+    if not canAdd then
+        dropItemLocks[itemName] = nil
+        TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd !', false)
+        return
+    end
 
     -- Trouver et retirer l'item du drop
     local found = false
@@ -278,10 +331,28 @@ CreateThread(function()
     end
 end)
 
-RegisterCommand('dropadmin', function(src)
+-- SÉCURITÉ : restricted = true force une ACE admin. Sans ça, n'importe quel
+-- joueur pouvait exécuter /dropadmin et déclencher un drop à volonté.
+RegisterCommand('dropadmin', function(src, args, raw)
+    if src and src > 0 then
+        local xPlayer = ESX and ESX.GetPlayerFromId(src) or nil
+        if not xPlayer then return end
+        local group = xPlayer.getGroup()
+        if group ~= 'admin' and group ~= 'superadmin' then return end
+    end
     activeDrop = nil
     startDrop()
-end, false)
+end, true)
+
+-- SÉCURITÉ : si le joueur qui verrouillait le drop se déconnecte, libérer
+-- le lock pour que le drop redevienne accessible aux autres.
+AddEventHandler('playerDropped', function()
+    local src = source
+    if activeDrop and activeDrop.lockedBy == src then
+        activeDrop.lockedBy = nil
+        activeDrop.lockedAt = nil
+    end
+end)
 
 -- ── Event pour forcer un drop depuis pvp_admin (vérification admin) ──────
 RegisterNetEvent('pvp_drops:forceStart')

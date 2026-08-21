@@ -58,6 +58,11 @@ local function unlockBadge(identifier, badgeId, cb)
     )
 end
 
+-- Export : débloque un badge pour un joueur (appelé par pvp_vcoins, vanta_xp, etc.)
+exports('unlockBadge', function(identifier, badgeId)
+    unlockBadge(identifier, badgeId)
+end)
+
 -- ══ Vérification globale des badges selon les stats ═══════════════════════
 local function checkAllBadges(identifier, stats)
     local kills   = stats.kills   or 0
@@ -72,19 +77,6 @@ local function checkAllBadges(identifier, stats)
     if zombies >= 1000 then unlockBadge(identifier, 'annihilator') end
     if streak  >= 5    then unlockBadge(identifier, 'streak_5') end
     if streak  >= 10   then unlockBadge(identifier, 'unstoppable') end
-end
-
--- ══ XP délégué à vanta_xp ════════════════════════════════════════════════
--- awardXP est géré exclusivement par vanta_xp (zombie kills, player kills).
--- pvp_inventory se concentre sur les stats (kills/deaths/zombies) et badges.
-local function awardXP(identifier, amount)
-    if not identifier or not amount or amount <= 0 then return end
-    local ok = pcall(function()
-        exports['vanta_xp']:addXP(identifier, amount, 'pvp_inventory')
-    end)
-    if not ok then
-        print('[pvp_inventory] WARN: vanta_xp non disponible pour addXP(' .. tostring(identifier) .. ')')
-    end
 end
 
 -- ══ Système de poids du sac ═══════════════════════════════════════════════
@@ -197,15 +189,29 @@ AddEventHandler('onResourceStart', function(res)
             PRIMARY KEY (`identifier`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ]])
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `display_name` VARCHAR(64) DEFAULT ''")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `zombies_killed` INT DEFAULT 0")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `kill_streak_record` INT DEFAULT 0")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `xp` INT DEFAULT 0")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `prestige` TINYINT DEFAULT 0")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `active_badge` VARCHAR(32) DEFAULT ''")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `badges_unlocked` TEXT DEFAULT '[]'")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `hotbar` TEXT DEFAULT '[]'")
-    MySQL.Async.execute("ALTER TABLE `pvp_player_stats` ADD COLUMN IF NOT EXISTS `hud_type` VARCHAR(10) DEFAULT 'gta'")
+    -- Migrations portables (évite ADD COLUMN IF NOT EXISTS — MariaDB < 10.0.2 / MySQL < 8.0.29)
+    local function addCol(tbl, col, def)
+        MySQL.Async.fetchScalar(
+            [[SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @t AND COLUMN_NAME = @c]],
+            { ['@t'] = tbl, ['@c'] = col },
+            function(count)
+                if (tonumber(count) or 0) == 0 then
+                    MySQL.Async.execute('ALTER TABLE `' .. tbl .. '` ADD COLUMN `' .. col .. '` ' .. def)
+                end
+            end
+        )
+    end
+    addCol('pvp_player_stats', 'display_name',      "VARCHAR(64) DEFAULT ''")
+    addCol('pvp_player_stats', 'zombies_killed',     'INT DEFAULT 0')
+    addCol('pvp_player_stats', 'kill_streak_record', 'INT DEFAULT 0')
+    addCol('pvp_player_stats', 'xp',                 'INT DEFAULT 0')
+    addCol('pvp_player_stats', 'prestige',           'TINYINT DEFAULT 0')
+    addCol('pvp_player_stats', 'active_badge',       "VARCHAR(32) DEFAULT ''")
+    addCol('pvp_player_stats', 'badges_unlocked',    "TEXT DEFAULT '[]'")
+    addCol('pvp_player_stats', 'hotbar',             "TEXT DEFAULT '[]'")
+    addCol('pvp_player_stats', 'hud_type',           "VARCHAR(10) DEFAULT 'gta'")
+    addCol('pvp_player_stats', 'ped_model',          "VARCHAR(64) DEFAULT ''")
     MySQL.Async.execute([[
         CREATE TABLE IF NOT EXISTS `pvp_player_stash` (
             `id`         INT AUTO_INCREMENT PRIMARY KEY,
@@ -497,27 +503,7 @@ local function upsertPlayerStats(identifier, displayName, addKills, addDeaths, a
     )
 end
 
-local function addCrewZombieKill(identifier)
-    if not identifier then return end
-    MySQL.Async.fetchAll(
-        'SELECT crew_id FROM pvp_crew_members WHERE identifier = @id LIMIT 1',
-        { ['@id'] = identifier },
-        function(rows)
-            if not rows or not rows[1] then return end
-            local crewId = rows[1].crew_id
-            MySQL.Async.execute(
-                'UPDATE pvp_crew_members SET zombies_killed = zombies_killed + 1 WHERE identifier = @id',
-                { ['@id'] = identifier }
-            )
-            MySQL.Async.execute(
-                'UPDATE pvp_crews SET zombies_total = zombies_total + 1 WHERE id = @cid',
-                { ['@cid'] = crewId }
-            )
-        end
-    )
-end
-
--- ══ Cache avatar par identifier ═══════════════════════════════════════════
+-- Cache avatar par identifier ═══════════════════════════════════════════
 local avatarCache = {} -- [identifier] = url
 
 -- Export pour les autres resources (pvp_crew, etc.)
@@ -701,6 +687,7 @@ AddEventHandler('pvp_inventory:requestData', function()
             profile.activeBadge      = s.active_badge
             profile.badgesUnlocked   = s.badgesUnlocked
         end
+        profile.pedModel  = results.pedModel or ''
         profile.avatarUrl = results.avatarUrl
 
         -- Données XP depuis vanta_xp (source unique)
@@ -710,14 +697,16 @@ AddEventHandler('pvp_inventory:requestData', function()
         end
 
         TriggerClientEvent('pvp_inventory:openUI', src, {
-            inventory    = inventory,
-            money        = money,
-            profile      = profile,
-            stash        = results.stash    or {},
-            market       = results.market   or {},
-            myListings   = results.myList   or {},
-            savedHotbar  = results.hotbar   or {},
-            hudType      = results.hudType  or 'gta',
+            inventory      = inventory,
+            money          = money,
+            profile        = profile,
+            stash          = results.stash    or {},
+            market         = results.market   or {},
+            myListings     = results.myList   or {},
+            savedHotbar    = results.hotbar   or {},
+            hudType        = results.hudType  or 'gta',
+            maxWeight      = getEffectiveBagWeight(xPlayer.identifier),
+            maxStashWeight = getEffectiveStashWeight(xPlayer.identifier),
         })
     end
 
@@ -732,7 +721,8 @@ AddEventHandler('pvp_inventory:requestData', function()
                  COALESCE(prestige, 0)          AS prestige,
                  COALESCE(active_badge, '')     AS active_badge,
                  COALESCE(badges_unlocked, '[]') AS badges_unlocked,
-                 COALESCE(hud_type, 'gta')     AS hud_type
+                 COALESCE(hud_type, 'gta')     AS hud_type,
+                 COALESCE(ped_model, '')       AS ped_model
           FROM pvp_player_stats WHERE identifier = @id]],
         { ['@id'] = identifier },
         function(statsRows)
@@ -754,6 +744,7 @@ AddEventHandler('pvp_inventory:requestData', function()
                     badgesUnlocked   = badges,
                 }
                 results.hudType = row.hud_type or 'gta'
+                results.pedModel = row.ped_model or ''
             else
                 results.stats = {
                     kills=0, deaths=0, zombies_killed=0,
@@ -844,6 +835,15 @@ local function isValidItemName(name)
     return false
 end
 
+-- ── Tracking des véhicules spawnés côté serveur ───────────────────────────
+-- SÉCURITÉ : activeVehicleSpawns[itemName] = count — incrémenté par useItem,
+-- décrémenté par storeVehicle. Empêche un client de forger storeVehicle
+-- pour générer des items sans qu'un spawn serveur légitime ait eu lieu.
+local activeVehicleSpawns = {}
+local function registerVehicleSpawn(itemName)
+    activeVehicleSpawns[itemName] = (activeVehicleSpawns[itemName] or 0) + 1
+end
+
 -- ── Utiliser un item ──────────────────────────────────────────────────────
 RegisterNetEvent('pvp_inventory:useItem')
 AddEventHandler('pvp_inventory:useItem', function(itemName)
@@ -872,6 +872,7 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
     elseif string.sub(itemName, 1, 8) == 'vehicle_' then
         local model = string.sub(itemName, 9)
         xPlayer.removeInventoryItem(itemName, 1)
+        registerVehicleSpawn(itemName)
         TriggerClientEvent('pvp_inventory:spawnVehicle', src, model, itemName, item.label)
         TriggerClientEvent('pvp_market:notify', src, item.label .. ' spawn !', true)
         refreshClient(src, xPlayer)
@@ -1058,10 +1059,11 @@ function refreshStash(src, xPlayer, onDone)
     local bankAcc = xPlayer.getAccount('bank')
     loadStash(xPlayer.identifier, function(stash)
         TriggerClientEvent('pvp_inventory:refresh', src, {
-            inventory  = inventory,
-            stash      = stash,
-            money      = { bank = bankAcc and bankAcc.money or 0 },
-            maxWeight  = getEffectiveBagWeight(xPlayer.identifier),
+            inventory      = inventory,
+            stash          = stash,
+            money          = { bank = bankAcc and bankAcc.money or 0 },
+            maxWeight      = getEffectiveBagWeight(xPlayer.identifier),
+            maxStashWeight = getEffectiveStashWeight(xPlayer.identifier),
         })
         if onDone then onDone() end
     end)
@@ -1093,43 +1095,44 @@ function refreshClient(src, xPlayer)
         if not ok2 then myListings = {} end
 
         TriggerClientEvent('pvp_inventory:refresh', src, {
-            inventory  = inventory,
-            stash      = stash,
-            money      = { bank = bankAcc and bankAcc.money or 0 },
-            market     = allListings or {},
-            myListings = myListings  or {},
-            maxWeight  = getEffectiveBagWeight(xPlayer.identifier),
+            inventory      = inventory,
+            stash          = stash,
+            money          = { bank = bankAcc and bankAcc.money or 0 },
+            market         = allListings or {},
+            myListings     = myListings  or {},
+            maxWeight      = getEffectiveBagWeight(xPlayer.identifier),
+            maxStashWeight = getEffectiveStashWeight(xPlayer.identifier),
         })
     end)
 end
 
--- ── Incrémente les kills/deaths ────────────────────────────────────────────
-RegisterNetEvent('pvp_inventory:addKill')
-AddEventHandler('pvp_inventory:addKill', function()
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 1, 0, 0)
-    TriggerEvent('pvp_crew:pvpKill', xPlayer.identifier, nil)
+-- ── Incrémente les kills/deaths (events INTERNES uniquement, pas réseau) ──
+-- Sécurité : PAS de RegisterNetEvent — sinon un client peut forger l'event
+-- pour booster ses stats et XP via F8. Ces events ne doivent être déclenchés
+-- que par d'autres resources serveur (via TriggerEvent local).
+-- Le vrai pipeline PVP passe par pvp_killfeed -> pvp_inventory:recordPvpKill.
+AddEventHandler('pvp_inventory:addKill', function(identifier)
+    if not identifier then return end
+    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
+    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
+    upsertPlayerStats(identifier, name, 1, 0, 0)
+    TriggerEvent('pvp_crew:pvpKill', identifier, nil)
 end)
 
-RegisterNetEvent('pvp_inventory:addDeath')
-AddEventHandler('pvp_inventory:addDeath', function()
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 0, 1, 0)
-    TriggerEvent('pvp_crew:pvpKill', nil, xPlayer.identifier)
+AddEventHandler('pvp_inventory:addDeath', function(identifier)
+    if not identifier then return end
+    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
+    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
+    upsertPlayerStats(identifier, name, 0, 1, 0)
+    TriggerEvent('pvp_crew:pvpKill', nil, identifier)
 end)
 
-RegisterNetEvent('pvp_inventory:addZombieKill')
-AddEventHandler('pvp_inventory:addZombieKill', function()
-    local src = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 0, 0, 1)
-    addCrewZombieKill(xPlayer.identifier)
-    awardXP(xPlayer.identifier, 15)
+AddEventHandler('pvp_inventory:addZombieKill', function(identifier)
+    if not identifier then return end
+    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
+    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
+    upsertPlayerStats(identifier, name, 0, 0, 1)
+    TriggerEvent('pvp_crew:zombieKill', identifier)
 end)
 
 AddEventHandler('pvp_inventory:addZombieKillBySource', function(targetSrc)
@@ -1138,135 +1141,52 @@ AddEventHandler('pvp_inventory:addZombieKillBySource', function(targetSrc)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
     upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 0, 0, 1)
-    addCrewZombieKill(xPlayer.identifier)
-    local xpGain = 15
-    awardXP(xPlayer.identifier, xpGain)
+    TriggerEvent('pvp_crew:zombieKill', xPlayer.identifier)
 end)
 
--- Anti-spam PVP death
-local lastPvpDeath = {}  -- [src] = timestamp
+AddEventHandler('pvp_inventory:recordZombieKill', function(targetSrc)
+    local src = tonumber(targetSrc)
+    if not src then return end
+    local xPlayer = ESX.GetPlayerFromId(src)
+    if not xPlayer then return end
 
--- ── Anti-exploit PVP : tracking des paires killer+victime ────────────────
-local recentPvpPairs = {} -- ["killerSrc:victimSrc"] = timestamp
+    upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 0, 0, 1)
+    TriggerEvent('pvp_crew:zombieKill', xPlayer.identifier)
+end)
 
-RegisterNetEvent('pvp_inventory:registerPvpDeath')
-AddEventHandler('pvp_inventory:registerPvpDeath', function(killerServerId)
-    local victimSrc = source
-    local victimXPlayer = ESX.GetPlayerFromId(victimSrc)
-    if not victimXPlayer then return end
+AddEventHandler('pvp_inventory:recordPvpKill', function(killerIdentifier, victimIdentifier, killerName, victimName)
+    if not killerIdentifier and not victimIdentifier then return end
 
-    -- Anti-spam : max 1 mort PVP toutes les 3 secondes (par victime)
-    local now = GetGameTimer()
-    if lastPvpDeath[victimSrc] and (now - lastPvpDeath[victimSrc]) < 3000 then return end
-    lastPvpDeath[victimSrc] = now
-
-    -- Note : pas de vérification IsEntityDead ici, c'est une native client-only.
-    -- L'event est déjà déclenché depuis le client à la mort du joueur.
-
-    local victimIdentifier = victimXPlayer.identifier
-    upsertPlayerStats(victimIdentifier, getDisplayNameFromPlayer(victimXPlayer), 0, 1, 0)
-
-    -- Reset streak victime
-    playerStreaks[victimIdentifier] = 0
-
-    local killerIdentifier = nil
-    local killerSrc = tonumber(killerServerId)
-
-    -- Validation stricte du killerServerId
-    if type(killerServerId) ~= 'number' and type(killerServerId) ~= 'string' then
-        killerSrc = nil
+    if victimIdentifier then
+        upsertPlayerStats(victimIdentifier, victimName or victimIdentifier, 0, 1, 0)
+        playerStreaks[victimIdentifier] = 0
     end
 
-    if killerSrc and killerSrc > 0 and killerSrc ~= victimSrc then
-        -- Anti-exploit : empêcher la même paire killer+victime en < 5s
-        local pairKey = tostring(killerSrc) .. ':' .. tostring(victimSrc)
-        if recentPvpPairs[pairKey] and (now - recentPvpPairs[pairKey]) < 5000 then
-            print(('[PVP-ANTICHEAT] Paire %s répétée en <5s — kill ignoré'):format(pairKey))
-            killerSrc = nil
-        else
-            recentPvpPairs[pairKey] = now
-        end
-    end
+    if killerIdentifier and killerIdentifier ~= victimIdentifier then
+        upsertPlayerStats(killerIdentifier, killerName or killerIdentifier, 1, 0, 0)
 
-    if killerSrc and killerSrc > 0 and killerSrc ~= victimSrc then
-        local killerXPlayer = ESX.GetPlayerFromId(killerSrc)
-        if not killerXPlayer then
-            killerSrc = nil
-        else
-            -- Validation : vérifier que le killer est dans un rayon plausible (300m)
-            local killerPed = GetPlayerPed(killerSrc)
-            if not killerPed or killerPed == 0 then
-                killerSrc = nil
-            else
-                local kCoords = GetEntityCoords(killerPed)
-                local vCoords = GetEntityCoords(victimPed)
-                if #(kCoords - vCoords) > 300.0 then
-                    print(('[PVP-ANTICHEAT] %s accuse %s de kill à >300m — ignoré'):format(
-                        victimXPlayer.identifier, killerXPlayer.identifier))
-                    killerSrc = nil
+        playerStreaks[killerIdentifier] = (playerStreaks[killerIdentifier] or 0) + 1
+        local streak = playerStreaks[killerIdentifier]
+
+        MySQL.Async.fetchAll(
+            'SELECT kill_streak_record, kills, zombies_killed FROM pvp_player_stats WHERE identifier = @id',
+            { ['@id'] = killerIdentifier },
+            function(rows)
+                local record  = rows and rows[1] and tonumber(rows[1].kill_streak_record) or 0
+                local kills   = rows and rows[1] and tonumber(rows[1].kills)              or 0
+                local zombies = rows and rows[1] and tonumber(rows[1].zombies_killed)     or 0
+                if streak > record then
+                    MySQL.Async.execute(
+                        'UPDATE pvp_player_stats SET kill_streak_record = @s WHERE identifier = @id',
+                        { ['@id'] = killerIdentifier, ['@s'] = streak }
+                    )
                 end
+                checkAllBadges(killerIdentifier, { kills = kills, zombies = zombies, streak = streak })
             end
-        end
-    end
-
-    if killerSrc and killerSrc > 0 and killerSrc ~= victimSrc then
-        local kxp = ESX.GetPlayerFromId(killerSrc)
-        if kxp then
-            killerIdentifier = kxp.identifier
-            upsertPlayerStats(killerIdentifier, getDisplayNameFromPlayer(kxp), 1, 0, 0)
-
-            -- Incrément streak tueur
-            playerStreaks[killerIdentifier] = (playerStreaks[killerIdentifier] or 0) + 1
-            local streak = playerStreaks[killerIdentifier]
-
-            -- XP par kill PVP
-            awardXP(killerIdentifier, 50)
-
-            -- Vérification et mise à jour du record de streak
-            MySQL.Async.fetchAll(
-                'SELECT kill_streak_record, kills, zombies_killed FROM pvp_player_stats WHERE identifier = @id',
-                { ['@id'] = killerIdentifier },
-                function(rows)
-                    local record  = rows and rows[1] and tonumber(rows[1].kill_streak_record) or 0
-                    local kills   = rows and rows[1] and tonumber(rows[1].kills)              or 0
-                    local zombies = rows and rows[1] and tonumber(rows[1].zombies_killed)     or 0
-                    if streak > record then
-                        MySQL.Async.execute(
-                            'UPDATE pvp_player_stats SET kill_streak_record = @s WHERE identifier = @id',
-                            { ['@id'] = killerIdentifier, ['@s'] = streak }
-                        )
-                    end
-                    checkAllBadges(killerIdentifier, { kills = kills, zombies = zombies, streak = streak })
-                end
-            )
-        end
+        )
     end
 
     TriggerEvent('pvp_crew:pvpKill', killerIdentifier, victimIdentifier)
-
-    -- Stats redzone PVP
-    local victimInRz = false
-    local ok, result = pcall(function()
-        return exports['pvp_redzones']:isPlayerInRedzone(victimSrc)
-    end)
-    if ok then victimInRz = result end
-
-    if victimInRz then
-        TriggerEvent('pvp_redzones:pvpKill', killerSrc, victimSrc)
-    end
-end)
-
--- Nettoyage périodique des paires PVP anti-exploit (toutes les 60s)
-CreateThread(function()
-    while true do
-        Wait(60000)
-        local now = GetGameTimer()
-        for k, t in pairs(recentPvpPairs) do
-            if (now - t) > 10000 then
-                recentPvpPairs[k] = nil
-            end
-        end
-    end
 end)
 
 ESX.RegisterServerCallback('pvp_inventory:getLeaderboards', function(src, cb)
@@ -1345,6 +1265,12 @@ ESX.RegisterServerCallback('pvp_inventory:getLeaderboards', function(src, cb)
                             c.zombies_total,
                             COALESCE(c.redzone_kills_total, 0) AS redzone_kills_total,
                             COALESCE(c.redzone_zombies_total, 0) AS redzone_zombies_total,
+                            COALESCE(c.level, 1) AS level,
+                            COALESCE(c.xp, 0) AS xp,
+                            COALESCE(c.bank, 0) AS bank,
+                            COALESCE(c.objectives_completed, 0) AS objectives_completed,
+                            COALESCE(c.events_won, 0) AS events_won,
+                            COALESCE(c.redzone_controls_total, 0) AS redzone_controls_total,
                             COUNT(m.id) AS members_count
                           FROM pvp_crews c
                           LEFT JOIN pvp_crew_members m ON m.crew_id = c.id
@@ -1367,6 +1293,12 @@ ESX.RegisterServerCallback('pvp_inventory:getLeaderboards', function(src, cb)
                                     zombies = zombies,
                                     redzoneKills   = tonumber(row.redzone_kills_total) or 0,
                                     redzoneZombies = tonumber(row.redzone_zombies_total) or 0,
+                                    level = tonumber(row.level) or 1,
+                                    xp = tonumber(row.xp) or 0,
+                                    bank = tonumber(row.bank) or 0,
+                                    objectives = tonumber(row.objectives_completed) or 0,
+                                    eventsWon = tonumber(row.events_won) or 0,
+                                    controls = tonumber(row.redzone_controls_total) or 0,
                                     members = tonumber(row.members_count) or 0,
                                     kd = deaths > 0 and math.floor((kills / deaths) * 100) / 100 or kills
                                 }
@@ -1481,8 +1413,13 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
+    -- SÉCURITÉ : bagId doit être une string, itemName validé par la whitelist
+    if type(bagId) ~= 'string' then return end
+    if not isValidItemName(itemName) then return end
+
     qty = tonumber(qty) or 1
-    if qty < 1 then return end
+    if qty < 1 or qty > 1000 then return end
+    qty = math.floor(qty)
 
     local bag = deathBags[bagId]
     if not bag then
@@ -1490,20 +1427,31 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
         return
     end
 
+    -- SÉCURITÉ : distance check serveur (anti-téléport/loot à distance).
+    -- Le client pouvait trigger cet event depuis n'importe où.
+    local ped = GetPlayerPed(src)
+    if ped and ped ~= 0 and bag.coords then
+        local pCoords = GetEntityCoords(ped)
+        local bCoords = bag.coords
+        local dx = pCoords.x - bCoords.x
+        local dy = pCoords.y - bCoords.y
+        local dz = pCoords.z - bCoords.z
+        if (dx * dx + dy * dy + dz * dz) > 25.0 then -- >5m
+            TriggerClientEvent('pvp_market:notify', src, 'Trop loin du sac.', false)
+            return
+        end
+    end
+
     -- Lock anti-race
     if deathBagLocks[bagId] then return end
     deathBagLocks[bagId] = true
 
-    -- Vérifier poids côté serveur
-    local currentWeight = 0
-    for _, item in ipairs(xPlayer.getInventory()) do
-        if item.count > 0 then
-            currentWeight = currentWeight + (ITEM_WEIGHTS[item.name] or 0.5) * item.count
-        end
-    end
-    local addWeight = (ITEM_WEIGHTS[itemName] or 0.5) * qty
-    if currentWeight + addWeight > 50.0 then
-        TriggerClientEvent('pvp_market:notify', src, 'Sac plein !', false)
+    -- Vérifier poids côté serveur avec les vraies helpers (prestige bonus pris en compte).
+    local currentWeight = getBagWeight(xPlayer)
+    local addWeight = getItemWeight(itemName) * qty
+    local maxWeight = getEffectiveBagWeight(xPlayer.identifier)
+    if currentWeight + addWeight > maxWeight then
+        TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd ! (' .. maxWeight .. ' kg max)', false)
         deathBagLocks[bagId] = nil
         return
     end
@@ -1549,12 +1497,6 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
         deathBags[bagId] = nil
         TriggerClientEvent('pvp_inventory:deathBagRemoved', -1, bagId)
     end
-end)
-
--- ── Fermer le death bag (libérer le lock éventuel) ───────────────────────
-RegisterNetEvent('pvp_inventory:closeDeathBag')
-AddEventHandler('pvp_inventory:closeDeathBag', function(bagId)
-    -- Rien de spécial côté serveur, le client gère la fermeture
 end)
 
 -- ── Sync : envoyer tous les death bags au joueur qui se connecte ─────────
@@ -1638,10 +1580,18 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
     if not xPlayer then return end
     if not isValidItemName(itemName) then return end
 
+    -- Anti race : même lock que le coffre protégé (une seule op coffre à la fois)
+    if stashLocks[xPlayer.identifier] then
+        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+        return
+    end
+    stashLocks[xPlayer.identifier] = true
+
     local GLOBAL_ID = 'global'
     qty = math.max(1, math.floor(tonumber(qty) or 1))
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < qty then
+        stashLocks[xPlayer.identifier] = nil
         TriggerClientEvent('pvp_market:notify', src, 'Item indisponible.', false)
         return
     end
@@ -1654,6 +1604,7 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
         end
         local addWeight = getItemWeight(itemName) * qty
         if currentWeight + addWeight > OUTPOST_STASH_MAX_WEIGHT then
+            stashLocks[xPlayer.identifier] = nil
             TriggerClientEvent('pvp_market:notify', src, 'Coffre avant-poste trop lourd ! ('..OUTPOST_STASH_MAX_WEIGHT..' kg max)', false)
             return
         end
@@ -1667,13 +1618,16 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
             [[INSERT INTO pvp_outpost_stash (identifier, outpost_id, item, label, count)
               VALUES (@id, @op, @item, @label, @qty)
               ON DUPLICATE KEY UPDATE count = count + @qty]],
-            { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty }
+            { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty },
+            function()
+                TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', true)
+                refreshStash(src, xPlayer)
+                loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
+                    TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
+                    stashLocks[xPlayer.identifier] = nil
+                end)
+            end
         )
-        TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', true)
-        refreshStash(src, xPlayer)
-        loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
-            TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
-        end)
     end)
 end)
 
@@ -1685,6 +1639,14 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
     if not xPlayer then return end
     if not isValidItemName(itemName) then return end
 
+    -- Anti race : empêche un double-clic de retirer 2x la même quantité
+    -- (race classique : 2 fetchAll vus count=10 → 2 UPDATE → -20 au lieu de -10 → count<0)
+    if stashLocks[xPlayer.identifier] then
+        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+        return
+    end
+    stashLocks[xPlayer.identifier] = true
+
     local GLOBAL_ID = 'global'
     qty = math.max(1, math.floor(tonumber(qty) or 1))
 
@@ -1693,6 +1655,7 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
         { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName },
         function(rows)
             if not rows[1] or rows[1].count < qty then
+                stashLocks[xPlayer.identifier] = nil
                 TriggerClientEvent('pvp_market:notify', src, 'Pas assez dans le coffre.', false)
                 return
             end
@@ -1704,27 +1667,34 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
             local addWeight = getItemWeight(itemName) * qty
             local effBagMax2 = getEffectiveBagWeight(xPlayer.identifier)
             if getBagWeight(xPlayer) + addWeight > effBagMax2 then
+                stashLocks[xPlayer.identifier] = nil
                 TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd ! (' .. effBagMax2 .. ' kg max)', false)
                 return
             end
 
+            -- Atomic conditional update (WHERE count >= qty) pour éviter la race
+            -- si un autre chemin a touché la ligne entre fetch et update.
+            local sql, params
             if newCount <= 0 then
-                MySQL.Async.execute(
-                    'DELETE FROM pvp_outpost_stash WHERE identifier = @id AND outpost_id = @op AND item = @item',
-                    { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName }
-                )
+                sql = 'DELETE FROM pvp_outpost_stash WHERE identifier = @id AND outpost_id = @op AND item = @item AND count >= @qty'
+                params = { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@qty'] = qty }
             else
-                MySQL.Async.execute(
-                    'UPDATE pvp_outpost_stash SET count = @c WHERE identifier = @id AND outpost_id = @op AND item = @item',
-                    { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@c'] = newCount }
-                )
+                sql = 'UPDATE pvp_outpost_stash SET count = count - @qty WHERE identifier = @id AND outpost_id = @op AND item = @item AND count >= @qty'
+                params = { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@qty'] = qty }
             end
-
-            xPlayer.addInventoryItem(itemName, qty)
-            TriggerClientEvent('pvp_market:notify', src, label .. ' x' .. qty .. ' ← coffre avant-poste.', true)
-            refreshStash(src, xPlayer)
-            loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
-                TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
+            MySQL.Async.execute(sql, params, function(affected)
+                if not affected or affected < 1 then
+                    stashLocks[xPlayer.identifier] = nil
+                    TriggerClientEvent('pvp_market:notify', src, 'Erreur : stock modifié.', false)
+                    return
+                end
+                xPlayer.addInventoryItem(itemName, qty)
+                TriggerClientEvent('pvp_market:notify', src, label .. ' x' .. qty .. ' ← coffre avant-poste.', true)
+                refreshStash(src, xPlayer)
+                loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
+                    TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
+                    stashLocks[xPlayer.identifier] = nil
+                end)
             end)
         end
     )
@@ -1737,11 +1707,22 @@ local KIT_ITEMS = {
     { name = 'vehicle_bmx',   label = 'BMX' },
 }
 
+-- SÉCURITÉ : rate-limit serveur. Sans ça, un client pouvait spam giveKit
+-- pour dupliquer pistolet + BMX à l'infini en droppant entre chaque appel.
+local kitCooldown = {}  -- [identifier] = timestamp du dernier kit
+
 RegisterNetEvent('pvp_inventory:giveKit')
 AddEventHandler('pvp_inventory:giveKit', function()
     local src     = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
+
+    local now = os.time()
+    local last = kitCooldown[xPlayer.identifier] or 0
+    if (now - last) < 60 then
+        return  -- 60s minimum entre deux kits (protège spawn + respawn légitimes)
+    end
+    kitCooldown[xPlayer.identifier] = now
 
     for _, kitItem in ipairs(KIT_ITEMS) do
         local existing = xPlayer.getInventoryItem(kitItem.name)
@@ -1753,15 +1734,39 @@ AddEventHandler('pvp_inventory:giveKit', function()
     TriggerClientEvent('pvp_market:notify', src, 'Kit de départ reçu !', true)
 end)
 
+-- Nettoyage du cache quand un joueur se déconnecte
+AddEventHandler('playerDropped', function()
+    local src = source
+    local xPlayer = ESX.GetPlayerFromId(src)
+    if xPlayer then kitCooldown[xPlayer.identifier] = nil end
+end)
+
 -- ── Ranger un véhicule (K) → redonner l'item ────────────────────────────
+-- SÉCURITÉ : whitelist + tracking du spawn serveur (cf. activeVehicleSpawns
+-- déclaré en amont pour être visible depuis useItem).
 RegisterNetEvent('pvp_inventory:storeVehicle')
 AddEventHandler('pvp_inventory:storeVehicle', function(itemName, itemLabel)
     local src     = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
+    -- Validation : itemName doit être une string vehicle_* valide.
+    if type(itemName) ~= 'string' then return end
+    if not string.match(itemName, '^vehicle_[a-z0-9_]+$') then return end
+    if not isValidItemName(itemName) then return end
+
+    -- Il doit y avoir eu au moins un spawn actif de ce véhicule côté serveur.
+    -- Empêche un client de forger l'event sans qu'aucun véhicule ne soit spawné.
+    if (activeVehicleSpawns[itemName] or 0) <= 0 then return end
+    activeVehicleSpawns[itemName] = activeVehicleSpawns[itemName] - 1
+
+    -- Le label est fourni par le client mais n'est utilisé que pour la notif.
+    -- On récupère le vrai label depuis ESX si possible pour éviter l'affichage forgé.
+    local trueItem = xPlayer.getInventoryItem(itemName)
+    local label = (trueItem and trueItem.label) or (type(itemLabel) == 'string' and itemLabel:sub(1, 50)) or itemName
+
     xPlayer.addInventoryItem(itemName, 1)
-    TriggerClientEvent('pvp_market:notify', src, itemLabel .. ' rangé.', true)
+    TriggerClientEvent('pvp_market:notify', src, label .. ' rangé.', true)
     refreshClient(src, xPlayer)
 end)
 
@@ -1834,13 +1839,59 @@ end)
 -- ── Nettoyage à la déconnexion ────────────────────────────────────────────
 AddEventHandler('playerDropped', function()
     local src = source
-    lastPvpDeath[src] = nil
     -- Nettoyer le lock coffre + streaks
     local xPlayer = ESX.GetPlayerFromId(src)
     if xPlayer then
         stashLocks[xPlayer.identifier] = nil
         playerStreaks[xPlayer.identifier] = nil
     end
+end)
+
+-- ── Sauvegarde du ped model choisi ──────────────────────────────────────
+-- Préfixes autorisés par la catalogue client (ped_catalog.js). Couvre les
+-- ped freemode, civils, militaires, zombies, animals. Refuse explicitement
+-- les hashes "player_zero/one/two" (protagonistes histoire) et tout ce qui
+-- ne commence pas par un préfixe GTA valide.
+local PED_MODEL_PREFIXES = {
+    '^mp_m_', '^mp_f_',        -- multijoueur freemode
+    '^a_m_m_', '^a_m_y_', '^a_m_o_',
+    '^a_f_m_', '^a_f_y_', '^a_f_o_',
+    '^u_m_m_', '^u_m_y_', '^u_m_o_',
+    '^u_f_m_', '^u_f_y_',
+    '^g_m_m_', '^g_m_y_',
+    '^g_f_y_',
+    '^s_m_m_', '^s_m_y_', '^s_m_o_',
+    '^s_f_m_', '^s_f_y_',
+    '^cs_', '^csb_',            -- scripted civilian/story NPCs
+    '^ig_',                     -- ig_* event NPCs
+    '^hc_',                     -- hardcore NPCs
+    '^a_c_',                    -- animals
+}
+local function isValidPedModel(model)
+    if type(model) ~= 'string' then return false end
+    if model == '' then return true end                              -- reset autorisé
+    if #model < 4 or #model > 64 then return false end
+    if not model:match('^[a-z0-9_]+$') then return false end
+    -- Blacklist des protagonistes du mode histoire
+    if model == 'player_zero' or model == 'player_one' or model == 'player_two' then
+        return false
+    end
+    for _, pattern in ipairs(PED_MODEL_PREFIXES) do
+        if model:match(pattern) then return true end
+    end
+    return false
+end
+
+RegisterNetEvent('pvp_inventory:savePedModel')
+AddEventHandler('pvp_inventory:savePedModel', function(model)
+    local src = source
+    local xPlayer = ESX.GetPlayerFromId(src)
+    if not xPlayer then return end
+    if not isValidPedModel(model) then return end
+    MySQL.Async.execute(
+        'UPDATE pvp_player_stats SET ped_model = @m WHERE identifier = @id',
+        { ['@m'] = model, ['@id'] = xPlayer.identifier }
+    )
 end)
 
 -- ── Refresh cross-resource (appelé par pvp_market après vente/achat) ──────
@@ -1856,6 +1907,7 @@ local VALID_BADGES = {
     first_blood=true, killer_10=true, killer_50=true, predator_100=true,
     zombie_hunter=true, exterminator=true, annihilator=true,
     streak_5=true, unstoppable=true,
+    gold_member=true, diamond_member=true,
     prestige_1=true, prestige_2=true, prestige_3=true, prestige_4=true, prestige_5=true,
 }
 

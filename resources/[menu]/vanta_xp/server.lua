@@ -284,33 +284,25 @@ end)
 --   HOOKS : EVENTS PVP & ZOMBIES
 -- ══════════════════════════════════════════════════════════════════════════
 
--- ── Hook sur les kills PVP ───────────────────────────────────────────────
--- pvp_killfeed:playerKilled est triggé par le client victime.
--- Le killerSrc est le serveur id du tueur. On écoute cet event côté serveur.
-RegisterNetEvent('pvp_killfeed:playerKilled')
-AddEventHandler('pvp_killfeed:playerKilled', function(killerSrc, weaponHash, inRedzone)
-    -- Le source est la victime, killerSrc est le tueur
-    local victimSrc = source
-    if not killerSrc or killerSrc <= 0 then return end
-    killerSrc = tonumber(killerSrc)
-    if not killerSrc or killerSrc == victimSrc then return end
+-- ── Hooks INTERNES serveur (pas de RegisterNetEvent : clients ne peuvent pas trigger) ─
+-- SÉCURITÉ : avant, vanta_xp utilisait RegisterNetEvent sur les mêmes events que
+-- pvp_killfeed/pvp_zombies. Un client pouvait TriggerServerEvent directement et
+-- farmer de l'XP. Ces events ne sont plus que des AddEventHandler, et sont fired
+-- uniquement depuis le serveur par pvp_killfeed/pvp_zombies APRÈS leurs validations.
 
+AddEventHandler('vanta_xp:internalPlayerKill', function(killerSrc)
+    killerSrc = tonumber(killerSrc)
+    if not killerSrc or killerSrc <= 0 then return end
     local killerXPlayer = ESX.GetPlayerFromId(killerSrc)
     if not killerXPlayer then return end
-
     addXP(killerXPlayer.identifier, VantaXP.XPSources.player_kill, 'player_kill')
 end)
 
--- ── Hook sur les kills Zombie ────────────────────────────────────────────
--- pvp_zombies:onKill est triggé par le client quand un zombie meurt.
--- On écoute ce même event côté serveur pour donner l'XP.
-RegisterNetEvent('pvp_zombies:onKill')
-AddEventHandler('pvp_zombies:onKill', function(zombieNetId)
-    local src = source
-    if not ESX then return end
-    local xPlayer = ESX.GetPlayerFromId(src)
+AddEventHandler('vanta_xp:internalZombieKill', function(killerSrc)
+    killerSrc = tonumber(killerSrc)
+    if not killerSrc or killerSrc <= 0 then return end
+    local xPlayer = ESX.GetPlayerFromId(killerSrc)
     if not xPlayer then return end
-
     addXP(xPlayer.identifier, VantaXP.XPSources.zombie_kill, 'zombie_kill')
 end)
 
@@ -423,6 +415,8 @@ RegisterCommand('givexp', function(src, args, rawCommand)
         TriggerClientEvent('chat:addMessage', src, { args = { '^3USAGE', '/givexp [id] [amount]' } })
         return
     end
+    -- SÉCURITÉ : borner l'amount pour éviter overflow INT
+    amount = math.min(math.floor(amount), 10000000)
 
     local targetXP = ESX.GetPlayerFromId(targetId)
     if not targetXP then

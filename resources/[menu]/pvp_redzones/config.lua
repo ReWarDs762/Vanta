@@ -19,6 +19,13 @@ Config.LootMultiplier = 2.0
 -- Multiplicateur de récompense en cash en redzone
 Config.CashMultiplier = 2.5
 
+-- Contrôle crew des redzones
+Config.ControlPointsPerKill = 10
+Config.ControlThreshold = 50
+Config.ControlLeadRequired = 20
+Config.ControlRewardXP = 150
+Config.ControlRewardBank = 250
+
 -- Couleur du blip redzone
 Config.BlipColor = 1      -- rouge
 Config.BlipAlpha = 100     -- transparence du cercle sur la map

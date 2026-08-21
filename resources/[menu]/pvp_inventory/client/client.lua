@@ -1011,15 +1011,10 @@ end
 
 -- ── Détection de mort : vider inventaire ─────────────────────────────────
 local wasDead = false
-local lastDeathStatTs = 0
 
-local function registerPvpDeath(killerServerId)
-    local now = GetGameTimer()
-    if now - lastDeathStatTs < 2500 then
-        return
-    end
-    lastDeathStatTs = now
-    TriggerServerEvent('pvp_inventory:registerPvpDeath', killerServerId)
+local function registerPvpDeath()
+    -- Les stats PVP sont unifiées côté serveur via pvp_killfeed.
+    -- On garde cette fonction pour ne pas casser les hooks baseevents.
 end
 
 RegisterNetEvent('baseevents:onPlayerDied')
@@ -1157,6 +1152,38 @@ RegisterNUICallback('crewSetColor', function(data, cb)
     end, data.color)
 end)
 
+RegisterNUICallback('crewAdvancedGetData', function(_, cb)
+    ESX.TriggerServerCallback('pvp_crew:getAdvancedData', function(payload)
+        cb(payload or { ok = false, message = 'Erreur crew.' })
+    end)
+end)
+
+RegisterNUICallback('crewStashDeposit', function(data, cb)
+    ESX.TriggerServerCallback('pvp_crew:stashDeposit', function(success, message)
+        cb({ ok = success, message = message })
+        if success then TriggerServerEvent('pvp_inventory:refreshData') end
+    end, data.item, data.qty)
+end)
+
+RegisterNUICallback('crewStashWithdraw', function(data, cb)
+    ESX.TriggerServerCallback('pvp_crew:stashWithdraw', function(success, message)
+        cb({ ok = success, message = message })
+        if success then TriggerServerEvent('pvp_inventory:refreshData') end
+    end, data.item, data.qty)
+end)
+
+RegisterNUICallback('crewCreateEvent', function(data, cb)
+    ESX.TriggerServerCallback('pvp_crew:createEvent', function(success, message)
+        cb({ ok = success, message = message })
+    end, data.title, data.type, data.startsAt)
+end)
+
+RegisterNUICallback('crewSetEventStatus', function(data, cb)
+    ESX.TriggerServerCallback('pvp_crew:setEventStatus', function(success, message)
+        cb({ ok = success, message = message })
+    end, data.eventId, data.status)
+end)
+
 RegisterNUICallback('leaderboardGetData', function(_, cb)
     ESX.TriggerServerCallback('pvp_inventory:getLeaderboards', function(payload)
         cb(payload or {
@@ -1265,12 +1292,8 @@ end)
 
 -- ── Callback NUI : fermer le death bag ───────────────────────────────────
 RegisterNUICallback('closeDeathBag', function(_, cb)
-    local bagId = currentDeathBagId
     currentDeathBagId = nil
     closeInventory()
-    if bagId then
-        TriggerServerEvent('pvp_inventory:closeDeathBag', bagId)
-    end
     cb('ok')
 end)
 
@@ -1278,4 +1301,203 @@ end)
 RegisterNetEvent('pvp_inventory:refreshDeathBag')
 AddEventHandler('pvp_inventory:refreshDeathBag', function(data)
     SendNUIMessage({ type = 'refreshDeathBag', data = data })
+end)
+
+-- ══════════════════════════════════════════════════════════════════════════
+--   VCOINS — NUI Callbacks (pont vers pvp_vcoins serveur)
+-- ══════════════════════════════════════════════════════════════════════════
+
+-- Relaie le sync VCoins depuis pvp_vcoins vers le NUI
+RegisterNetEvent('pvp_vcoins:syncData')
+AddEventHandler('pvp_vcoins:syncData', function(data)
+    if not data then return end
+    local bonus = 0.0
+    if data.tier == 'gold'    then bonus = 5.0
+    elseif data.tier == 'diamond' then bonus = 10.0 end
+    SendNUIMessage({
+        type          = 'vcSync',
+        tier          = data.tier,
+        vcoins        = data.vcoins,
+        expires       = data.expires,
+        maxStashWeight = 20.0 + bonus,
+    })
+end)
+
+RegisterNetEvent('pvp_vcoins:syncVCoins')
+AddEventHandler('pvp_vcoins:syncVCoins', function(newBal)
+    SendNUIMessage({ type = 'vcSync', vcoins = newBal })
+end)
+
+-- Refresh poids stash si l'abonnement change
+-- Le serveur renverra maxStashWeight lors du prochain refresh complet (pas de logique client nécessaire).
+AddEventHandler('pvp_inventory:refreshStashWeight', function() end)
+
+RegisterNUICallback('vcGetData', function(_, cb)
+    ESX.TriggerServerCallback('pvp_vcoins:getData', function(data)
+        cb(data or {})
+    end)
+end)
+
+RegisterNUICallback('vcSubscribe', function(data, cb)
+    TriggerServerEvent('pvp_vcoins:subscribe', data.tier)
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('vcCreateOffer', function(data, cb)
+    TriggerServerEvent('pvp_vcoins:createOffer', data.vcoinAmount, data.priceIngame)
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('vcCancelOffer', function(data, cb)
+    TriggerServerEvent('pvp_vcoins:cancelOffer', data.offerId)
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('vcBuyOffer', function(data, cb)
+    TriggerServerEvent('pvp_vcoins:buyOffer', data.offerId)
+    cb({ ok = true })
+end)
+
+-- ══════════════════════════════════════════════════════════════════════════
+--   PED SELECTOR — Preview en temps réel
+-- ══════════════════════════════════════════════════════════════════════════
+local pedSelectorOpen  = false
+local pedSelectorState = nil   -- { modelHash, coords, heading, health, armor }
+local pedSelectorCam   = nil
+
+local function loadModel(model)
+    RequestModel(model)
+    local t = GetGameTimer()
+    while not HasModelLoaded(model) and GetGameTimer() - t < 5000 do
+        Citizen.Wait(0)
+    end
+end
+
+local function restoreWeapons()
+    local ped = PlayerPedId()
+    for itemName, _ in pairs(equippedWeapons) do
+        local hash = WEAPON_HASHES[itemName]
+        if hash then
+            GiveWeaponToPed(ped, hash, 9999, false, false)
+            pcall(function()
+                exports['pvp_outposts']:applyWeaponCustomForItem(itemName)
+            end)
+        end
+    end
+    SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
+end
+
+local function createPedPreviewCam()
+    local ped     = PlayerPedId()
+    local coords  = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+
+    -- Caméra positionnée devant le joueur
+    local fwdX = -math.sin(math.rad(heading))
+    local fwdY =  math.cos(math.rad(heading))
+    local camX = coords.x + fwdX * 2.5
+    local camY = coords.y + fwdY * 2.5
+    local camZ = coords.z + 0.3
+
+    pedSelectorCam = CreateCamWithParams('DEFAULT_SCRIPTED_CAMERA', camX, camY, camZ, 0.0, 0.0, 0.0, 40.0, false, 0)
+    PointCamAtCoord(pedSelectorCam, coords.x, coords.y, coords.z - 0.1)
+    SetCamActive(pedSelectorCam, true)
+    RenderScriptCams(true, true, 500, true, true)
+end
+
+local function destroyPedPreviewCam()
+    RenderScriptCams(false, true, 500, true, true)
+    if pedSelectorCam then
+        DestroyCam(pedSelectorCam, false)
+        pedSelectorCam = nil
+    end
+end
+
+RegisterNUICallback('openPedSelector', function(_, cb)
+    cb({})
+    if pedSelectorOpen then return end
+    local ped = PlayerPedId()
+    pedSelectorState = {
+        modelHash = GetEntityModel(ped),
+        coords    = GetEntityCoords(ped),
+        heading   = GetEntityHeading(ped),
+        health    = GetEntityHealth(ped),
+        armor     = GetPedArmour(ped),
+    }
+    pedSelectorOpen = true
+    FreezeEntityPosition(ped, true)
+    SetEntityInvincible(ped, true)
+    createPedPreviewCam()
+end)
+
+RegisterNUICallback('previewPed', function(data, cb)
+    cb({})
+    if not pedSelectorOpen or not data or not data.model then return end
+    local modelName = data.model
+    local model     = GetHashKey(modelName)
+    loadModel(model)
+    if not HasModelLoaded(model) then return end
+
+    SetPlayerModel(PlayerId(), model)
+    SetModelAsNoLongerNeeded(model)
+    local ped = PlayerPedId()
+    SetEntityCoordsNoOffset(ped, pedSelectorState.coords.x, pedSelectorState.coords.y, pedSelectorState.coords.z, false, false, false, true)
+    SetEntityHeading(ped, pedSelectorState.heading)
+    FreezeEntityPosition(ped, true)
+    SetEntityInvincible(ped, true)
+    SetEntityHealth(ped, 200)
+    SetPedDefaultComponentVariation(ped)
+end)
+
+RegisterNUICallback('confirmPedModel', function(data, cb)
+    cb({})
+    if not pedSelectorOpen then return end
+    pedSelectorOpen = false
+
+    destroyPedPreviewCam()
+
+    local ped = PlayerPedId()
+    FreezeEntityPosition(ped, false)
+    SetEntityInvincible(ped, false)
+    SetEntityHealth(ped, pedSelectorState.health)
+    SetPedArmour(ped, pedSelectorState.armor)
+
+    restoreWeapons()
+
+    local model = data and data.model or ''
+    TriggerServerEvent('pvp_inventory:savePedModel', model)
+end)
+
+RegisterNUICallback('cancelPedSelector', function(_, cb)
+    cb({})
+    if not pedSelectorOpen then return end
+    pedSelectorOpen = false
+
+    -- Restaurer le modèle original
+    local origHash = pedSelectorState.modelHash
+    loadModel(origHash)
+    SetPlayerModel(PlayerId(), origHash)
+    SetModelAsNoLongerNeeded(origHash)
+
+    local ped = PlayerPedId()
+    SetEntityCoordsNoOffset(ped, pedSelectorState.coords.x, pedSelectorState.coords.y, pedSelectorState.coords.z, false, false, false, true)
+    SetEntityHeading(ped, pedSelectorState.heading)
+    FreezeEntityPosition(ped, false)
+    SetEntityInvincible(ped, false)
+    SetEntityHealth(ped, pedSelectorState.health)
+    SetPedArmour(ped, pedSelectorState.armor)
+    SetPedDefaultComponentVariation(ped)
+
+    destroyPedPreviewCam()
+
+    -- Ré-appliquer l'apparence freemode si c'était un freemode
+    local fmM = GetHashKey('mp_m_freemode_01')
+    local fmF = GetHashKey('mp_f_freemode_01')
+    if origHash == fmM or origHash == fmF then
+        -- Le serveur rechargera l'apparence au prochain refresh
+        -- Pour l'instant, SetPedDefaultComponentVariation a déjà été appelé
+    end
+
+    restoreWeapons()
+    pedSelectorState = nil
 end)

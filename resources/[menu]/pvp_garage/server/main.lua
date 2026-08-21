@@ -76,6 +76,32 @@ local function GetVehiclePrice(model)
     return nil
 end
 
+-- SÉCURITÉ : validation format item véhicule
+local function isValidVehicleItemName(name)
+    if type(name) ~= 'string' then return false end
+    if #name < 9 or #name > 50 then return false end
+    return name:match('^vehicle_[a-z0-9_]+$') ~= nil
+end
+
+-- SÉCURITÉ : helper safe-zone côté serveur (dealer dispo uniquement dans les outposts)
+local function isPlayerInSafeZone(src)
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return false end
+    local coords = GetEntityCoords(ped)
+    local ok, outposts = pcall(function()
+        return exports['pvp_outposts']:getAllOutposts()
+    end)
+    if not ok or not outposts then return false end
+    for _, op in ipairs(outposts) do
+        local r = op.safeRadius or 50.0
+        local dx = coords.x - op.coords.x
+        local dy = coords.y - op.coords.y
+        local dz = coords.z - op.coords.z
+        if (dx*dx + dy*dy + dz*dz) < (r * r) then return true end
+    end
+    return false
+end
+
 -- [CALLBACK — Acheter un panier de véhicules → items inventaire]
 -- items = tableau de { name, label, price, count }
 -- destination = 'inventory' | 'stash'
@@ -83,15 +109,37 @@ ESX.RegisterServerCallback('pvp_garage:buyVehicleCart', function(source, cb, ite
     local xPlayer = ESX.GetPlayerFromId(source)
     if not xPlayer then cb(false, 'Joueur introuvable') return end
 
+    -- SÉCURITÉ : achat dealer = safe-zone uniquement
+    if not isPlayerInSafeZone(source) then
+        cb(false, 'Concessionnaire disponible en zone safe uniquement')
+        return
+    end
+
+    -- SÉCURITÉ : validation structure panier
+    if type(items) ~= 'table' or #items == 0 or #items > 50 then
+        cb(false, 'Panier invalide')
+        return
+    end
+
     -- Calcul du total
     local total = 0
     for _, entry in ipairs(items) do
+        if type(entry) ~= 'table' or not isValidVehicleItemName(entry.name) then
+            cb(false, 'Item invalide')
+            return
+        end
+        local count = math.floor(tonumber(entry.count) or 1)
+        if count < 1 or count > 50 then
+            cb(false, 'Quantité invalide')
+            return
+        end
+        entry.count = count
         local price = GetVehiclePrice(entry.name:gsub('^vehicle_', ''))
         if not price then
             cb(false, 'Véhicule introuvable : ' .. tostring(entry.name))
             return
         end
-        total = total + price * (entry.count or 1)
+        total = total + price * count
     end
 
     local bankAccount = xPlayer.getAccount('bank')
@@ -121,6 +169,10 @@ ESX.RegisterServerCallback('pvp_garage:sellVehicleItem', function(source, cb, it
     local xPlayer = ESX.GetPlayerFromId(source)
     if not xPlayer then cb(false, 0) return end
 
+    -- SÉCURITÉ : vente dealer = safe-zone + nom valide
+    if not isValidVehicleItemName(itemName) then cb(false, 0) return end
+    if not isPlayerInSafeZone(source) then cb(false, 0) return end
+
     -- Vérifie que le joueur possède l'item
     local invItem = xPlayer.getInventoryItem(itemName)
     if not invItem or invItem.count < 1 then
@@ -140,11 +192,13 @@ ESX.RegisterServerCallback('pvp_garage:sellVehicleItem', function(source, cb, it
 end)
 
 -- [LOG EVENTS]
+-- SÉCURITÉ : strip control chars + cap length (anti log injection)
 RegisterServerEvent('pvp_garage:log')
 AddEventHandler('pvp_garage:log', function(message)
     local source = source
     local xPlayer = ESX.GetPlayerFromId(source)
-    if xPlayer then
-        print(('[pvp_garage] %s (ID:%s): %s'):format(xPlayer.getName(), source, message))
-    end
+    if not xPlayer then return end
+    if type(message) ~= 'string' then return end
+    message = message:gsub('[%z\1-\31]', ''):sub(1, 200)
+    print(('[pvp_garage] %s (ID:%s): %s'):format(xPlayer.getName(), source, message))
 end)

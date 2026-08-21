@@ -79,7 +79,8 @@
   --v-space-16: 64px;
 
   /* === Typography === */
-  --v-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Fallback robuste si Google Fonts ne charge pas (offline / CEF bloqué) */
+  --v-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --v-size-xs:   11px;
   --v-size-sm:   13px;
   --v-size-base: 15px;
@@ -717,6 +718,55 @@
   border-radius: var(--v-radius-full);
 }
 .v-scroll::-webkit-scrollbar-thumb:hover { background: var(--v-border-hover); }
+
+/* ============================================================
+   RANK BADGES (Subscriptions & Prestige)
+   ------------------------------------------------------------
+   Format: bloc SVG 120×140, cadre octogonal angulaire.
+   Utilisable dans profil, killfeed, loading, etc.
+   ============================================================ */
+.v-rank-badge {
+  width: 120px;
+  height: 140px;
+  display: inline-block;
+  position: relative;
+  transition: transform var(--v-duration) var(--v-ease);
+}
+.v-rank-badge svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.v-rank-badge:hover { transform: translateY(-2px); }
+
+/* Tailles alternatives */
+.v-rank-badge-sm { width: 72px; height: 84px; }
+.v-rank-badge-lg { width: 180px; height: 210px; }
+
+/* ----- Inline Pills (profil / killfeed / leaderboard) ----- */
+.v-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--v-radius-xs);
+  line-height: 1;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.v-rank-pill-gold    { color: #e8c860; background: rgba(232, 200, 96, 0.08);  border-color: rgba(232, 200, 96, 0.5);  }
+.v-rank-pill-diamond { color: #64d2ff; background: rgba(100, 210, 255, 0.08); border-color: rgba(100, 210, 255, 0.5); }
+.v-rank-pill-p1      { color: #c8cdd4; background: rgba(200, 205, 212, 0.06); border-color: rgba(200, 205, 212, 0.4); }
+.v-rank-pill-p2      { color: #d4a017; background: rgba(212, 160, 23, 0.08);  border-color: rgba(212, 160, 23, 0.45); }
+.v-rank-pill-p3      { color: #22aacc; background: rgba(34, 170, 204, 0.08);  border-color: rgba(34, 170, 204, 0.5);  }
+.v-rank-pill-p4      { color: #cc22aa; background: rgba(204, 34, 170, 0.08);  border-color: rgba(204, 34, 170, 0.5);  }
+.v-rank-pill-p5      { color: #ff4400; background: rgba(255, 68, 0, 0.10);    border-color: rgba(255, 68, 0, 0.6);    }
 
 /* ============================================================
    WATERMARK

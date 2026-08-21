@@ -4,25 +4,33 @@ Config = {}
 Config.VehicleSearchRadius = 15.0
 
 -- [APOCALYPSE VEHICLES]
-Config.ApocalypseVehicles = {
-    [`scarab`]     = true,
-    [`scarab2`]    = true,
-    [`scarab3`]    = true,
-    [`deathbike`]  = true,
-    [`deathbike2`] = true,
-    [`deathbike3`] = true,
-    [`dominator3`] = true,
-    [`dominator4`] = true,
-    [`dominator5`] = true,
-    [`bruiser`]    = true,
-    [`bruiser2`]   = true,
-    [`bruiser3`]   = true,
-    [`nightmare`]  = true,
-    [`impaler`]    = true,
-    [`impaler2`]   = true,
-    [`impaler3`]   = true,
-    [`impaler4`]   = true,
+-- SOURCE DE VÉRITÉ : pvp_outposts/config.lua → Config.ApocalypseVehicles (liste de strings).
+-- Cette table est un hash map GetHashKey(model)→true construit au démarrage via un export.
+-- Si pvp_outposts n'est pas disponible, fallback sur la liste locale.
+Config.ApocalypseVehicles = {}
+
+local fallback = {
+    'scarab', 'scarab2', 'scarab3',
+    'deathbike', 'deathbike2', 'deathbike3',
+    'dominator3', 'dominator4', 'dominator5',
+    'bruiser', 'bruiser2', 'bruiser3',
+    'nightmare',
+    'impaler', 'impaler2', 'impaler3', 'impaler4',
 }
+
+Citizen.CreateThread(function()
+    Citizen.Wait(500)
+    local list = nil
+    local ok = pcall(function()
+        list = exports['pvp_outposts']:getApocalypseVehicles()
+    end)
+    if not ok or type(list) ~= 'table' or #list == 0 then
+        list = fallback
+    end
+    for _, model in ipairs(list) do
+        Config.ApocalypseVehicles[GetHashKey(model)] = true
+    end
+end)
 
 -- [VEHICLE SHOP LIST]
 -- price = prix d'achat en $ | sellPrice = prix de revente (calculé automatiquement à 50% côté serveur)

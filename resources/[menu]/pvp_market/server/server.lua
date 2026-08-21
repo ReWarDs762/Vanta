@@ -66,6 +66,32 @@ local function isPlayerInSafeZone(src)
     return false
 end
 
+-- ── Sécurité : validation item + label serveur ───────────────────────────
+local MAX_PRICE = 10000000   -- 10 M max par annonce
+local MAX_QTY   = 10000
+local MAX_TRADE_MONEY = 10000000
+local MAX_TRADE_ITEMS = 30
+
+local function isValidItemName(name)
+    if type(name) ~= 'string' then return false end
+    if #name < 1 or #name > 50 then return false end
+    return name:match('^[a-z0-9_]+$') ~= nil
+end
+
+-- Label autoritaire depuis la table items ESX (cache)
+local itemLabelCache = {}
+local function getItemLabelServer(itemName)
+    if itemLabelCache[itemName] then return itemLabelCache[itemName] end
+    local ok, row = pcall(function()
+        return MySQL.Sync.fetchAll('SELECT label FROM items WHERE name = @n', { ['@n'] = itemName })
+    end)
+    if ok and row and row[1] and row[1].label then
+        itemLabelCache[itemName] = row[1].label
+        return row[1].label
+    end
+    return itemName
+end
+
 -- ── Helper ──────────────────────────────────────────────────────────────────
 local function getPlayerName(xPlayer)
     local firstName = xPlayer.get('firstName') or ''
@@ -81,8 +107,17 @@ AddEventHandler('pvp_market:createListing', function(itemName, itemLabel, qty, p
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
-    qty   = math.max(1, math.floor(tonumber(qty)   or 1))
-    price = math.max(1, math.floor(tonumber(price) or 1))
+    -- SÉCURITÉ : validation format item
+    if not isValidItemName(itemName) then
+        TriggerClientEvent('pvp_market:notify', src, 'Nom d\'item invalide.', false)
+        return
+    end
+
+    qty   = math.max(1, math.min(MAX_QTY,   math.floor(tonumber(qty)   or 1)))
+    price = math.max(1, math.min(MAX_PRICE, math.floor(tonumber(price) or 1)))
+
+    -- Label autoritaire serveur (ignore le label client)
+    itemLabel = getItemLabelServer(itemName)
 
     -- Vérifie la zone safe
     if not isPlayerInSafeZone(src) then
@@ -435,18 +470,21 @@ AddEventHandler('pvp_market:updateTradeOffer', function(offer)
     -- Valider le montant d'argent (plafond = solde actuel du joueur)
     local bankAcc = xPlayer.getAccount('bank')
     local maxMoney = bankAcc and bankAcc.money or 0
-    local money = math.max(0, math.floor(tonumber(offer.money) or 0))
+    local money = math.max(0, math.min(MAX_TRADE_MONEY, math.floor(tonumber(offer.money) or 0)))
     money = math.min(money, maxMoney)  -- Impossible d'offrir plus que ce qu'on a
 
     -- Valider les items offerts (vérifier que le joueur les possède)
     local validItems = {}
+    local seen = {}
     if type(offer.items) == 'table' then
         for _, offered in ipairs(offer.items) do
-            if type(offered) == 'table' and type(offered.name) == 'string' and type(offered.count) == 'number' then
+            if #validItems >= MAX_TRADE_ITEMS then break end
+            if type(offered) == 'table' and isValidItemName(offered.name) and type(offered.count) == 'number' and not seen[offered.name] then
                 local item = xPlayer.getInventoryItem(offered.name)
                 if item and item.count > 0 then
                     local count = math.max(1, math.min(math.floor(offered.count), item.count))
                     validItems[#validItems + 1] = { name = offered.name, label = item.label, count = count }
+                    seen[offered.name] = true
                 end
             end
         end
@@ -612,29 +650,47 @@ AddEventHandler('playerDropped', function()
 end)
 
 -- ── Réclamer les ventes en attente (bouton NUI) ──────────────────────────
+-- SÉCURITÉ : lock anti-double-claim + SELECT-then-DELETE-by-ID pour éviter
+-- qu'un paiement arrivé entre le SELECT et le DELETE soit effacé sans versement.
+local claimLocks = {}
 RegisterNetEvent('pvp_market:claimSales')
 AddEventHandler('pvp_market:claimSales', function()
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
+    if claimLocks[xPlayer.identifier] then
+        TriggerClientEvent('pvp_market:notify', src, 'Traitement en cours...', false)
+        return
+    end
+    claimLocks[xPlayer.identifier] = true
     MySQL.Async.fetchAll(
-        'SELECT currency, amount FROM pvp_market_pending_payments WHERE identifier = @id AND amount > 0',
+        'SELECT id, currency, amount FROM pvp_market_pending_payments WHERE identifier = @id AND amount > 0',
         { ['@id'] = xPlayer.identifier },
         function(rows)
             if not rows or #rows == 0 then
+                claimLocks[xPlayer.identifier] = nil
                 TriggerClientEvent('pvp_market:notify', src, 'Aucun paiement en attente.', false)
                 return
             end
+            local ids = {}
             for _, row in ipairs(rows) do
                 local acc = xPlayer.getAccount(row.currency)
                 if acc then
                     xPlayer.addAccountMoney(row.currency, row.amount)
                 end
+                ids[#ids + 1] = tostring(row.id)
             end
-            MySQL.Async.execute(
-                'DELETE FROM pvp_market_pending_payments WHERE identifier = @id',
-                { ['@id'] = xPlayer.identifier }
-            )
+            if #ids > 0 then
+                MySQL.Async.execute(
+                    'DELETE FROM pvp_market_pending_payments WHERE id IN (' .. table.concat(ids, ',') .. ')',
+                    {},
+                    function()
+                        claimLocks[xPlayer.identifier] = nil
+                    end
+                )
+            else
+                claimLocks[xPlayer.identifier] = nil
+            end
             TriggerClientEvent('pvp_market:notify', src, 'Paiements réclamés !', true)
         end
     )

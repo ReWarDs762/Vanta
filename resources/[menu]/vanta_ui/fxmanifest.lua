@@ -6,9 +6,9 @@ author 'VANTA'
 version '2.0.0'
 
 -- Expose les fichiers pour que les autres resources puissent y accéder via nui://vanta_ui/...
-ui_page 'html/index.html'
+-- PAS de ui_page ici : vanta_ui est un design system partagé (CSS only), pas un NUI affiché en jeu.
+-- index.html est un showcase de référence consultable hors jeu uniquement.
 
 files {
-    'html/index.html',
     'html/vanta.css',
 }

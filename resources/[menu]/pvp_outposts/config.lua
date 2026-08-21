@@ -711,10 +711,12 @@ Config.VehicleColors = {
 }
 
 -- Véhicules apocalypse avec mods spéciaux (saut, boost, etc.)
+-- SOURCE DE VÉRITÉ unique : pvp_garage lit cette liste via un export pour
+-- éviter la duplication et les désynchronisations.
 Config.ApocalypseVehicles = {
     'deathbike', 'deathbike2', 'deathbike3',
-    'dominator4', 'dominator5', 'dominator6',
-    'impaler2', 'impaler3', 'impaler4',
+    'dominator3', 'dominator4', 'dominator5', 'dominator6',
+    'impaler', 'impaler2', 'impaler3', 'impaler4',
     'imperator', 'imperator2', 'imperator3',
     'bruiser', 'bruiser2', 'bruiser3',
     'brutus', 'brutus2', 'brutus3',
@@ -722,4 +724,5 @@ Config.ApocalypseVehicles = {
     'slamvan4', 'slamvan5', 'slamvan6',
     'zr380', 'zr3802', 'zr3803',
     'cerberus', 'cerberus2', 'cerberus3',
+    'nightmare',
 }

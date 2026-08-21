@@ -515,7 +515,13 @@ Citizen.CreateThread(function()
         elseif nearNpc == 'weapon_custom' then
             ESX.ShowHelpNotification('[E] Armurerie (achat/vente/custom)')
         elseif nearNpc == 'vehicle_custom' then
-            ESX.ShowHelpNotification('[E] Garage (achat/vente/custom)')
+            local hasDiamond = false
+            pcall(function() hasDiamond = exports['pvp_vcoins']:HasDiamond() end)
+            if hasDiamond then
+                ESX.ShowHelpNotification('[E] Garage (achat/vente/custom)')
+            else
+                ESX.ShowHelpNotification('[E] Garage ~r~(Diamond requis)')
+            end
         end
 
         if inSafeZone and nearNpc == nil then
@@ -540,7 +546,16 @@ Citizen.CreateThread(function()
             elseif nearNpc == 'weapon_custom' then
                 openWeaponCustomMenu()
             elseif nearNpc == 'vehicle_custom' then
-                openVehicleCustomMenu()
+                -- Customisation véhicule : réservé aux abonnés Diamond
+                local hasDiamond = false
+                local ok = pcall(function()
+                    hasDiamond = exports['pvp_vcoins']:HasDiamond()
+                end)
+                if ok and hasDiamond then
+                    openVehicleCustomMenu()
+                else
+                    ESX.ShowNotification('~r~Accès réservé aux abonnés ~y~DIAMOND')
+                end
             end
 
         end
@@ -669,6 +684,11 @@ end
 -- ── Export : est-ce que le joueur est en zone safe ? ─────────────────────
 exports('IsInSafeZone', function()
     return inSafeZone
+end)
+
+-- ── Export : source de vérité des véhicules apocalypse ──────────────────
+exports('getApocalypseVehicles', function()
+    return Config.ApocalypseVehicles or {}
 end)
 
 -- ── Retour de téléportation ───────────────────────────────────────────────
@@ -802,6 +822,7 @@ Citizen.CreateThread(function()
 end)
 
 -- ── Chargement des customs au login ──────────────────────────────────────
+RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded', function()
     Citizen.CreateThread(function()
         Citizen.Wait(4000)  -- Attend que pvp_inventory ait chargé les armes

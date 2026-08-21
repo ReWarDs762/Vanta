@@ -2,6 +2,9 @@
 --   PVP SPAWN - Client
 --   Gère le spawn initial (login → avant-poste aléatoire)
 --   et le respawn après mort (→ avant-poste le plus proche)
+--
+--   Pour les nouveaux joueurs, pvp_character bloque cette resource
+--   en retardant l'envoi du setLoginOutpost jusqu'à la fin de la création.
 -- =============================================
 
 local SpawnPoints = {
@@ -16,34 +19,75 @@ local SpawnPoints = {
 }
 
 -- ── État interne ─────────────────────────────────────────────────────────
-local spawnHandled       = false  -- empêche double-tp si esx_skin handler a déjà agi
+local spawnHandled       = false  -- compat legacy (esx_skin hook)
 local loginOutpost       = nil    -- outpost pour spawn à la connexion
-local deathRespawnActive = false  -- true pendant le flow de mort (pvp_spawn gère)
+local hasSpawnedOnce     = false  -- true après le premier playerSpawned
+local deathRespawnActive = false  -- true pendant le flow de mort
 
 -- ── Désactiver l'auto-respawn du spawnmanager sur mort ───────────────────
--- basic-gamemode (chargé via la resource fivem) active setAutoSpawn(true),
--- ce qui fait que le spawnmanager respawn automatiquement aux coords par défaut.
--- On le remplace par un callback qui ne fait rien quand on gère la mort nous-mêmes.
 AddEventHandler('onClientMapStart', function()
     exports.spawnmanager:setAutoSpawnCallback(function()
         if deathRespawnActive then
-            -- La mort est gérée par esx:onPlayerDeath ci-dessous, ne rien faire
             return
         end
-        -- Spawn initial (connexion) : laisser spawnmanager spawner, playerSpawned téléportera
         exports.spawnmanager:spawnPlayer()
     end)
 end)
 
--- ── Réception de l'outpost de login (aléatoire, envoyé à la connexion) ───
+-- ── Helpers ──────────────────────────────────────────────────────────────
+local function unfreezePlayer()
+    local pid = PlayerId()
+    local ped = PlayerPedId()
+    SetPlayerControl(pid, true, 0)
+    SetPlayerInvincible(pid, false)
+    FreezeEntityPosition(ped, false)
+    SetEntityCollision(ped, true, true)
+    SetEntityVisible(ped, true, false)
+    SetEntityHealth(ped, 200)
+    ClearPlayerWantedLevel(pid)
+    SetNuiFocus(false, false)
+end
+
+local function teleportToOutpost(sp)
+    local ped = PlayerPedId()
+    RequestCollisionAtCoord(sp.x, sp.y, sp.z)
+    local timer = GetGameTimer()
+    while not HasCollisionLoadedAroundEntity(ped) and (GetGameTimer() - timer) < 3000 do
+        Citizen.Wait(0)
+    end
+    SetEntityCoordsNoOffset(ped, sp.x, sp.y, sp.z, false, false, false, true)
+    SetEntityHeading(ped, sp.h or 0.0)
+end
+
+local function teleportToRandomFallback()
+    local sp = SpawnPoints[math.random(1, #SpawnPoints)]
+    teleportToOutpost(sp)
+end
+
+-- ── Réception de l'outpost de login ──────────────────────────────────────
+-- Peut arriver AVANT ou APRÈS le playerSpawned (pour les nouveaux joueurs
+-- qui viennent de terminer leur création, le setLoginOutpost arrive tard).
 RegisterNetEvent('pvp_spawn:setLoginOutpost')
 AddEventHandler('pvp_spawn:setLoginOutpost', function(outpostCoords, outpostHeading)
-    loginOutpost = { x = outpostCoords.x, y = outpostCoords.y, z = outpostCoords.z, h = outpostHeading }
+    loginOutpost = {
+        x = outpostCoords.x, y = outpostCoords.y, z = outpostCoords.z,
+        h = outpostHeading or 0.0
+    }
+
+    -- Si le joueur a déjà spawn (cas nouveau joueur sortant de la création),
+    -- on effectue la téléportation + dégel tout de suite
+    if hasSpawnedOnce and NetworkIsPlayerActive(PlayerId()) and DoesEntityExist(PlayerPedId()) then
+        Citizen.CreateThread(function()
+            local sp = loginOutpost
+            loginOutpost = nil
+            teleportToOutpost(sp)
+            unfreezePlayer()
+        end)
+    end
+    -- Sinon : playerSpawned le prendra en charge
 end)
 
--- ── Réception de l'outpost de respawn (le plus proche, envoyé à la mort) ─
--- Quand on reçoit la réponse du serveur pendant le flow de mort,
--- on appelle spawnPlayer directement avec les bonnes coords.
+-- ── Réception de l'outpost de respawn (mort) ─────────────────────────────
 RegisterNetEvent('pvp_spawn:setRespawnOutpost')
 AddEventHandler('pvp_spawn:setRespawnOutpost', function(outpostCoords, outpostHeading)
     if deathRespawnActive then
@@ -55,112 +99,64 @@ AddEventHandler('pvp_spawn:setRespawnOutpost', function(outpostCoords, outpostHe
     end
 end)
 
--- ── Modèle freemode masculin par défaut ───────────────────────────────────
-local function applyFreemodeModel()
-    local model = GetHashKey('mp_m_freemode_01')
-    RequestModel(model)
-    while not HasModelLoaded(model) do
-        Citizen.Wait(0)
-    end
-    SetPlayerModel(PlayerId(), model)
-    SetModelAsNoLongerNeeded(model)
-end
-
--- ── Téléportation vers un point aléatoire (fallback Sandy Shores) ────────
-local function teleportToSpawn()
-    local sp  = SpawnPoints[math.random(1, #SpawnPoints)]
-    local ped = PlayerPedId()
-
-    RequestCollisionAtCoord(sp.x, sp.y, sp.z)
-    local timer = GetGameTimer()
-    while not HasCollisionLoadedAroundEntity(ped) and (GetGameTimer() - timer) < 3000 do
-        Citizen.Wait(0)
-    end
-
-    SetEntityCoordsNoOffset(ped, sp.x, sp.y, sp.z, false, false, false, true)
-    SetEntityHeading(ped, sp.h)
-end
-
--- ── Dégel complet du joueur ────────────────────────────────────────────────
-local function unfreezePlayer()
-    local pid = PlayerId()
-    local ped = PlayerPedId()
-    SetPlayerControl(pid, true, 0)
-    SetPlayerInvincible(pid, false)
-    FreezeEntityPosition(ped, false)
-    SetEntityCollision(ped, true, true)
-    SetEntityVisible(ped, true, false)
-    SetEntityHealth(ped, 200) -- 100 HP max
-    ClearPlayerWantedLevel(pid)
-    SetNuiFocus(false, false)
-end
-
--- ── CAS 1 : Nouveau joueur ────────────────────────────────────────────────
--- esx_identity appelle esx_skin:openSaveableMenu après l'inscription.
--- Comme le skinchanger n'est pas installé, on intercepte pour
--- appliquer le modèle freemode + téléporter + dégeler.
-AddEventHandler('esx_skin:openSaveableMenu', function()
-    spawnHandled = true
-    Citizen.CreateThread(function()
-        applyFreemodeModel()
-        Citizen.Wait(300)
-        teleportToSpawn()
-        Citizen.Wait(200)
-        unfreezePlayer()
-    end)
-end)
-
--- ── CAS 2 : Joueur existant (reconnexion ou respawn après mort) ──────────
+-- ── playerSpawned : login ou respawn ─────────────────────────────────────
 AddEventHandler('playerSpawned', function()
     Citizen.CreateThread(function()
-        -- Laisser le temps à esx_skin:openSaveableMenu de poser spawnHandled
+        -- Laisser le temps au hook legacy de poser spawnHandled
         Citizen.Wait(200)
         if spawnHandled then
             spawnHandled = false
+            hasSpawnedOnce = true
             return
         end
 
-        -- Login : téléporter à l'avant-poste aléatoire si disponible
+        hasSpawnedOnce = true
+
+        if loginOutpost ~= nil then
+            -- Cas 1 : outpost déjà reçu (joueur existant) → téléporte maintenant
+            local sp = loginOutpost
+            loginOutpost = nil
+            teleportToOutpost(sp)
+            unfreezePlayer()
+            return
+        end
+
+        -- Cas 2 : loginOutpost pas encore arrivé
+        -- → nouveau joueur en création, pvp_character gère le freeze.
+        -- On NE dégèle PAS, on attend setLoginOutpost qui déclenchera le dégel.
+        -- Sécurité : si après 30s aucun outpost n'est arrivé, fallback aléatoire
+        local deadline = GetGameTimer() + 30000
+        while loginOutpost == nil and GetGameTimer() < deadline do
+            Citizen.Wait(200)
+        end
+
         if loginOutpost ~= nil then
             local sp = loginOutpost
             loginOutpost = nil
-
-            local ped = PlayerPedId()
-            RequestCollisionAtCoord(sp.x, sp.y, sp.z)
-            local timer = GetGameTimer()
-            while not HasCollisionLoadedAroundEntity(ped) and (GetGameTimer() - timer) < 3000 do
-                Citizen.Wait(0)
-            end
-            SetEntityCoordsNoOffset(ped, sp.x, sp.y, sp.z, false, false, false, true)
-            SetEntityHeading(ped, sp.h)
+            teleportToOutpost(sp)
+            unfreezePlayer()
+        else
+            -- Fallback de dernier recours
+            teleportToRandomFallback()
+            unfreezePlayer()
         end
-        -- Respawn après mort : spawnPlayer a déjà mis les bonnes coords
-
-        unfreezePlayer()
     end)
 end)
 
--- ── Respawn après mort ────────────────────────────────────────────────────
+-- ── Respawn après mort ───────────────────────────────────────────────────
 RegisterNetEvent('esx:onPlayerDeath')
 AddEventHandler('esx:onPlayerDeath', function()
     Citizen.CreateThread(function()
-        -- Signaler au callback auto-spawn de ne rien faire
         deathRespawnActive = true
-
-        -- Délai avant respawn (écran de mort)
         Citizen.Wait(3000)
-
-        -- Demande l'avant-poste le plus proche au serveur
         TriggerServerEvent('pvp_spawn:resetLastPosition')
 
-        -- Attend la réponse du serveur (max 5s de sécurité)
         local timeout = GetGameTimer()
         while deathRespawnActive and (GetGameTimer() - timeout) < 5000 do
             Citizen.Wait(50)
         end
 
         if deathRespawnActive then
-            -- Timeout : le serveur n'a pas répondu, fallback spawn aléatoire
             deathRespawnActive = false
             local fallback = SpawnPoints[math.random(1, #SpawnPoints)]
             exports.spawnmanager:spawnPlayer({

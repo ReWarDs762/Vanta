@@ -195,10 +195,12 @@ body {
 .item-card[data-rarity="common"]    { border-left: 3px solid rgba(160,160,160,0.35); }
 .item-card[data-rarity="uncommon"]  { border-left: 3px solid rgba(74,222,128,0.45); }
 .item-card[data-rarity="rare"]      { border-left: 3px solid rgba(56,189,248,0.55); }
+.item-card[data-rarity="epic"]      { border-left: 3px solid rgba(168,85,247,0.55); }
 .item-card[data-rarity="legendary"] { border-left: 3px solid rgba(251,191,36,0.55); }
 
 .item-card[data-rarity="uncommon"]:hover  { box-shadow: 0 4px 20px rgba(74,222,128,0.12); }
 .item-card[data-rarity="rare"]:hover      { box-shadow: 0 4px 20px rgba(56,189,248,0.15); }
+.item-card[data-rarity="epic"]:hover      { box-shadow: 0 4px 20px rgba(168,85,247,0.15); }
 .item-card[data-rarity="legendary"]:hover { box-shadow: 0 4px 20px rgba(251,191,36,0.18); }
 
 .rarity-tag {
@@ -209,6 +211,7 @@ body {
 .rarity-tag.common    { color: rgba(160,160,160,0.65); }
 .rarity-tag.uncommon  { color: var(--green); }
 .rarity-tag.rare      { color: var(--blue); }
+.rarity-tag.epic      { color: #a855f7; }
 .rarity-tag.legendary { color: var(--yellow); }
 
 .ic-type {
@@ -807,3 +810,137 @@ input[type="range"]::-webkit-slider-thumb {
 @media (max-width: 980px) {
   .lb-table thead th:nth-child(5), .lb-table tbody td:nth-child(5) { display:none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   VCOINS — Onglet abonnements & marché
+   ══════════════════════════════════════════════════════════════ */
+
+/* Tab spécial VCOINS — légère teinte dorée */
+.tab-vcoins { position: relative; }
+.tab-vcoins.active { border-color: #c8a840 !important; color: #e8c860 !important; }
+
+/* Carte statut */
+.vc-status-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 20px; margin-bottom: 18px;
+}
+.vc-status-left { display: flex; flex-direction: column; gap: 4px; }
+.vc-tier-badge {
+  font-family: var(--fh); font-size: 14px; letter-spacing: 2px;
+  color: var(--text-dim); padding: 3px 10px; border: 1px solid var(--border);
+  border-radius: var(--rs); display: inline-block; width: fit-content;
+}
+.vc-tier-badge.vc-tier-gold {
+  color: #e8c860; border-color: rgba(200,168,64,0.5);
+  background: rgba(200,168,64,0.08);
+}
+.vc-tier-badge.vc-tier-diamond {
+  color: #64d2ff; border-color: rgba(100,210,255,0.5);
+  background: rgba(100,210,255,0.08);
+}
+.vc-expiry { font-size: 11px; color: var(--text-dim); }
+.vc-balance-block { text-align: right; }
+.vc-balance-label { font-size: 10px; color: var(--text-dim); font-family: var(--fh); letter-spacing: 1px; }
+.vc-balance-val { font-size: 22px; font-family: var(--fh); letter-spacing: 2px; color: #e8c860; }
+
+/* Section abonnements */
+.vc-sub-section { margin-bottom: 20px; }
+.vc-sub-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.vc-sub-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px; position: relative; overflow: hidden;
+}
+.vc-gold  { border-color: rgba(200,168,64,0.3); }
+.vc-diamond { border-color: rgba(100,210,255,0.3); }
+.vc-diamond-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 9px; font-family: var(--fh); letter-spacing: 2px;
+  color: #64d2ff; background: rgba(100,210,255,0.1);
+  border: 1px solid rgba(100,210,255,0.3); padding: 2px 6px;
+  border-radius: 2px;
+}
+.vc-sub-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.vc-sub-tier {
+  font-family: var(--fh); font-size: 18px; letter-spacing: 3px;
+}
+.vc-gold .vc-sub-tier  { color: #e8c860; }
+.vc-diamond .vc-sub-tier { color: #64d2ff; }
+.vc-sub-price { font-size: 12px; color: var(--text-dim); }
+.vc-sub-perks {
+  list-style: none; margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px;
+}
+.vc-sub-perks li {
+  font-size: 12px; color: var(--text); padding-left: 12px; position: relative;
+}
+.vc-sub-perks li::before { content: '—'; position: absolute; left: 0; color: var(--text-dim); }
+.vc-sub-btn {
+  width: 100%; padding: 9px; border: 1px solid; border-radius: var(--rs);
+  font-family: var(--fh); font-size: 12px; letter-spacing: 1.5px; cursor: pointer;
+  transition: background 0.15s;
+}
+.vc-btn-gold {
+  color: #e8c860; border-color: rgba(200,168,64,0.5); background: rgba(200,168,64,0.08);
+}
+.vc-btn-gold:hover { background: rgba(200,168,64,0.18); }
+.vc-btn-diamond {
+  color: #64d2ff; border-color: rgba(100,210,255,0.5); background: rgba(100,210,255,0.08);
+}
+.vc-btn-diamond:hover { background: rgba(100,210,255,0.18); }
+
+/* Section marché */
+.vc-market-section { margin-bottom: 20px; }
+.vc-market-hint { font-size: 11px; color: var(--text-dim); font-family: 'Inter', sans-serif; font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 8px; }
+.vc-market-title { font-family: var(--fh); font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim); margin: 12px 0 6px; }
+
+/* Créer une offre */
+.vc-create-offer {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px; margin: 10px 0 14px;
+}
+.vc-create-title { font-family: var(--fh); font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
+.vc-create-row { display: flex; gap: 10px; align-items: flex-end; }
+.vc-input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.vc-input-label { font-size: 10px; color: var(--text-dim); font-family: var(--fh); letter-spacing: 1px; }
+.vc-input {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text); padding: 7px 10px; border-radius: var(--rs);
+  font-size: 13px; font-family: 'Inter', sans-serif; outline: none; width: 100%;
+}
+.vc-input:focus { border-color: var(--border2); }
+.vc-create-btn {
+  padding: 7px 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: var(--fh);
+  font-size: 11px; letter-spacing: 1.5px; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s;
+}
+.vc-create-btn:hover { background: rgba(255,255,255,0.12); }
+
+/* Mes offres */
+.vc-my-offers-section { margin-bottom: 12px; }
+.vc-my-offers-title { font-family: var(--fh); font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 6px; }
+
+/* Liste d'offres */
+.vc-offers-list { display: flex; flex-direction: column; gap: 4px; }
+.vc-offer-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 9px 12px; font-size: 13px;
+}
+.vc-offer-row:hover { background: var(--card-hover); }
+.vc-offer-mine { border-color: rgba(200,168,64,0.25); }
+.vc-offer-seller { color: var(--text-dim); font-size: 12px; min-width: 80px; }
+.vc-offer-amount { color: #e8c860; font-family: var(--fh); font-size: 14px; letter-spacing: 1px; min-width: 70px; }
+.vc-offer-arrow { color: var(--text-dim); }
+.vc-offer-price { color: var(--green); font-weight: 600; min-width: 90px; }
+.vc-offer-rate { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+.vc-offer-buy, .vc-offer-cancel {
+  padding: 5px 12px; border: 1px solid; border-radius: 2px;
+  font-family: var(--fh); font-size: 10px; letter-spacing: 1.5px; cursor: pointer;
+  transition: background 0.15s; white-space: nowrap;
+}
+.vc-offer-buy { color: var(--green); border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.07); }
+.vc-offer-buy:hover { background: rgba(74,222,128,0.18); }
+.vc-offer-cancel { color: var(--accent); border-color: rgba(224,85,85,0.4); background: rgba(224,85,85,0.07); }
+.vc-offer-cancel:hover { background: rgba(224,85,85,0.18); }
+.vc-market-empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }

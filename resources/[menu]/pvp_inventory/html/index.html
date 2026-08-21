@@ -17,6 +17,7 @@
       <button class="tab" data-tab="leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M9 8h6M12 8V3m-4 18v-7h8v7"/></svg>CLASSEMENT</button>
       <button class="tab" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>PROFIL</button>
       <button class="tab" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>PARAMÈTRES</button>
+      <button class="tab tab-vcoins" data-tab="vcoins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 6v12M9 9c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3-3 1.3-3 3 1.3 3 3 3"/></svg>VCOINS</button>
     </nav>
     <div id="player-bar">
       <span id="tb-name">—</span>
@@ -164,6 +165,16 @@
         </div>
       </div>
 
+      <!-- Apparence — Changement de ped -->
+      <div class="profile-section">
+        <div class="profile-section-title">APPARENCE</div>
+        <div class="ped-current-row">
+          <span class="ped-current-label">Modèle actuel :</span>
+          <span class="ped-current-model" id="ped-current-model">FREEMODE</span>
+          <button class="ped-change-btn" id="ped-change-btn" onclick="openPedSelector()">CHANGER DE PED</button>
+        </div>
+      </div>
+
       <!-- Stats redzone -->
       <div class="rz-section">
         <div class="rz-title">STATS REDZONE</div>
@@ -264,6 +275,9 @@
         <div class="crew-subtabs">
           <button class="crew-subtab active" data-subtab="members">CLASSEMENT</button>
           <button class="crew-subtab" data-subtab="activity">ACTIVITÉ</button>
+          <button class="crew-subtab" data-subtab="stash">COFFRE</button>
+          <button class="crew-subtab" data-subtab="objectives">OBJECTIFS</button>
+          <button class="crew-subtab" data-subtab="events">EVENTS</button>
         </div>
 
         <!-- Classement des membres -->
@@ -287,6 +301,37 @@
           </div>
         </div>
 
+        <div id="crew-sub-stash" class="crew-sub-content" style="display:none">
+          <div class="crew-advanced-grid">
+            <div>
+              <h3 class="crew-h3">Coffre crew</h3>
+              <div id="crew-stash-list" class="crew-member-list"></div>
+            </div>
+            <div>
+              <h3 class="crew-h3">Transfert</h3>
+              <input type="text" id="crew-stash-item" class="crew-input" placeholder="item_name"/>
+              <input type="number" id="crew-stash-qty" class="crew-input" placeholder="quantite" min="1" value="1"/>
+              <div class="crew-actions-bar">
+                <button id="crew-stash-deposit" class="crew-btn-action">DEPOSER</button>
+                <button id="crew-stash-withdraw" class="crew-btn-action">RETIRER</button>
+              </div>
+              <p class="crew-empty">Astuce: clique un item du coffre pour remplir le champ.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="crew-sub-objectives" class="crew-sub-content" style="display:none">
+          <div id="crew-objectives-list" class="crew-member-list"></div>
+        </div>
+
+        <div id="crew-sub-events" class="crew-sub-content" style="display:none">
+          <div class="crew-event-create">
+            <input type="text" id="crew-event-title" class="crew-input" placeholder="Nom de l'operation"/>
+            <input type="text" id="crew-event-start" class="crew-input" placeholder="Date/heure"/>
+            <button id="crew-event-create" class="crew-btn-action">PLANIFIER</button>
+          </div>
+          <div id="crew-events-list" class="crew-member-list"></div>
+        </div>
         <!-- Panel invite (liste joueurs en ligne) -->
         <div id="crew-invite-panel" style="display:none">
           <h3 class="crew-h3">Joueurs en ligne</h3>
@@ -321,6 +366,7 @@
           <button class="lb-cat" data-cat="kd">K/D</button>
           <button class="lb-cat rz-btn" data-cat="redzoneKills">RZ KILLS</button>
           <button class="lb-cat rz-btn" data-cat="redzoneZombies">RZ ZOMBIES</button>
+          <button class="lb-cat rz-btn" data-cat="controls">RZ CONTROL</button>
         </div>
       </div>
 
@@ -344,6 +390,96 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ─ VCOINS ─ -->
+    <section id="view-vcoins" class="view">
+
+      <!-- Carte statut abonnement -->
+      <div class="vc-status-card" id="vc-status-card">
+        <div class="vc-status-left">
+          <div class="vc-tier-badge" id="vc-tier-badge">AUCUN ABONNEMENT</div>
+          <div class="vc-expiry" id="vc-expiry"></div>
+        </div>
+        <div class="vc-balance-block">
+          <div class="vc-balance-label">SOLDE</div>
+          <div class="vc-balance-val" id="vc-balance">0 VC</div>
+        </div>
+      </div>
+
+      <!-- Offres d'abonnement -->
+      <div class="vc-sub-section">
+        <div class="sec-sub">CHOISIR UN ABONNEMENT</div>
+        <div class="vc-sub-cards">
+
+          <div class="vc-sub-card vc-gold">
+            <div class="vc-sub-header">
+              <span class="vc-sub-tier">GOLD</span>
+              <span class="vc-sub-price">800 VC / mois</span>
+            </div>
+            <ul class="vc-sub-perks">
+              <li>Custom ped — catalogue de base</li>
+              <li>Conteneur protégé +5 kg</li>
+              <li>Rename 1×/semaine (au lieu de 1×/saison)</li>
+              <li>Teintes armes exclusives Gold</li>
+              <li>Badge <b>gold_member</b> + nom doré en killfeed</li>
+            </ul>
+            <button class="vc-sub-btn vc-btn-gold" onclick="vcSubscribe('gold')">SOUSCRIRE — 800 VC</button>
+          </div>
+
+          <div class="vc-sub-card vc-diamond">
+            <div class="vc-diamond-badge">PREMIUM</div>
+            <div class="vc-sub-header">
+              <span class="vc-sub-tier">DIAMOND</span>
+              <span class="vc-sub-price">1500 VC / mois</span>
+            </div>
+            <ul class="vc-sub-perks">
+              <li>Custom ped — catalogue complet</li>
+              <li>Conteneur protégé +10 kg</li>
+              <li>Rename illimité</li>
+              <li>Accès <b>customisation véhicule</b> (exclusif)</li>
+              <li>Teintes armes exclusives Diamond</li>
+              <li>Badge <b>diamond_member</b> + nom cyan en killfeed</li>
+            </ul>
+            <button class="vc-sub-btn vc-btn-diamond" onclick="vcSubscribe('diamond')">SOUSCRIRE — 1500 VC</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Marché VCoins -->
+      <div class="vc-market-section">
+        <div class="sec-sub">MARCHÉ VCOINS <span class="vc-market-hint">Échangez des VCoins contre de l'argent ingame</span></div>
+
+        <!-- Créer une offre -->
+        <div class="vc-create-offer">
+          <div class="vc-create-title">VENDRE DES VCOINS</div>
+          <div class="vc-create-row">
+            <div class="vc-input-group">
+              <label class="vc-input-label">Quantité (VC)</label>
+              <input type="number" id="vc-offer-amount" class="vc-input" placeholder="ex: 200" min="10" max="10000"/>
+            </div>
+            <div class="vc-input-group">
+              <label class="vc-input-label">Prix ($)</label>
+              <input type="number" id="vc-offer-price" class="vc-input" placeholder="ex: 20000" min="100" max="10000000"/>
+            </div>
+            <button class="vc-create-btn" onclick="vcCreateOffer()">METTRE EN VENTE</button>
+          </div>
+        </div>
+
+        <!-- Mes offres actives -->
+        <div class="vc-my-offers-section" id="vc-my-offers-section" style="display:none">
+          <div class="vc-my-offers-title">MES OFFRES ACTIVES</div>
+          <div id="vc-my-offers-list" class="vc-offers-list"></div>
+        </div>
+
+        <!-- Offres disponibles -->
+        <div class="vc-market-title">OFFRES DISPONIBLES</div>
+        <div id="vc-market-list" class="vc-offers-list">
+          <div class="vc-market-empty">Chargement...</div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ─ PARAMÈTRES ─ -->
@@ -518,6 +654,27 @@
 <!-- ══ TOAST ══ -->
 <div id="toast"></div>
 
+<!-- ══ PED SELECTOR OVERLAY ══ -->
+<div id="ped-selector-overlay" style="display:none;">
+  <div id="ped-selector-panel">
+    <div class="ped-sel-header">
+      <span>SÉLECTION DE PED</span>
+      <button class="ped-sel-close" onclick="closePedSelector()">✕</button>
+    </div>
+    <div class="ped-sel-tier-info" id="ped-tier-info"></div>
+    <div class="ped-sel-search">
+      <input type="text" id="ped-search" class="ped-search-input" placeholder="Rechercher un modèle..." oninput="filterPedGrid()"/>
+    </div>
+    <div class="ped-sel-categories" id="ped-categories"></div>
+    <div class="ped-sel-grid" id="ped-grid"></div>
+    <div class="ped-sel-footer">
+      <button class="ped-sel-btn ped-btn-confirm" onclick="confirmPedSelection()">CONFIRMER</button>
+      <button class="ped-sel-btn ped-btn-cancel" onclick="cancelPedSelection()">ANNULER</button>
+    </div>
+  </div>
+</div>
+
+<script src="ped_catalog.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

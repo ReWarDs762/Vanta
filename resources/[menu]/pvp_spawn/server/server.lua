@@ -6,10 +6,10 @@ local ESX = nil
 
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
--- À chaque connexion, envoie un avant-poste aléatoire au client pour spawn
-AddEventHandler('esx:playerLoaded', function(playerId)
-    -- ESX peut passer un ID ou un objet selon la version
-    local src = type(playerId) == 'table' and playerId.source or playerId
+-- Envoie un avant-poste aléatoire au client UNIQUEMENT quand pvp_character
+-- signale que le personnage est prêt (nouveau joueur après création, ou existant)
+AddEventHandler('pvp_character:characterReady', function(src)
+    if not src then return end
 
     local ok, outpost = pcall(function()
         local outposts = exports['pvp_outposts']:getAllOutposts()

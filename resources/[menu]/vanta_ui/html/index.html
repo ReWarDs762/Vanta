@@ -1,2 +1,364 @@
 <!DOCTYPE html>
-<html><head><title>VANTA UI</title></head><body></body></html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>VANTA — Design System v2</title>
+<link rel="stylesheet" href="vanta.css">
+<style>
+  body {
+    margin: 0;
+    background: var(--v-black);
+    font-family: var(--v-font);
+    color: var(--v-text);
+    min-height: 100vh;
+    padding: 64px 48px;
+  }
+
+  .showcase-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    color: var(--v-text-secondary);
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .showcase-subtitle {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 56px;
+  }
+
+  .showcase-section {
+    margin-bottom: 72px;
+  }
+  .showcase-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--v-text-tertiary);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--v-separator);
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  .badge-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    min-width: 140px;
+  }
+  .badge-cell .cell-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--v-text-secondary);
+    text-align: center;
+  }
+  .badge-cell .cell-desc {
+    font-size: 10px;
+    color: var(--v-text-tertiary);
+    text-align: center;
+    max-width: 140px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body class="v-reset v-scroll">
+
+  <p class="showcase-title">VANTA Design System</p>
+  <h1 class="showcase-subtitle">Badges — Subscriptions &amp; Prestige</h1>
+
+  <!-- ════════════ SUBSCRIPTION BADGES ════════════ -->
+  <section class="showcase-section">
+    <div class="showcase-section-label">Subscription Badges</div>
+    <div class="badge-row">
+
+      <!-- GOLD -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-gold">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="clip-gold">
+                <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"/>
+              </clipPath>
+            </defs>
+            <!-- Frame -->
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#e8c860" stroke-width="1.5"/>
+            <!-- Inner separator -->
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#e8c860" stroke-opacity="0.25" stroke-width="1"/>
+            <!-- Crown emblem -->
+            <g transform="translate(60, 58)" fill="none" stroke="#e8c860" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+              <!-- Crown base -->
+              <path d="M -26 10 L 26 10 L 26 16 L -26 16 Z" fill="#e8c860" fill-opacity="0.15"/>
+              <!-- Crown peaks -->
+              <path d="M -26 10 L -26 -10 L -14 2 L 0 -16 L 14 2 L 26 -10 L 26 10 Z"
+                    fill="#e8c860" fill-opacity="0.08"/>
+              <!-- Gem dots -->
+              <circle cx="-26" cy="-10" r="2" fill="#e8c860"/>
+              <circle cx="0" cy="-16" r="2.5" fill="#e8c860"/>
+              <circle cx="26" cy="-10" r="2" fill="#e8c860"/>
+            </g>
+            <!-- Label -->
+            <text x="60" y="115" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
+                  letter-spacing="2" fill="#e8c860">GOLD</text>
+            <!-- Corner ticks -->
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Gold</div>
+        <div class="cell-desc">Abonnement 800 VC / mois</div>
+      </div>
+
+      <!-- DIAMOND -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-diamond">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <!-- Frame -->
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#64d2ff" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#64d2ff" stroke-opacity="0.25" stroke-width="1"/>
+            <!-- Diamond emblem -->
+            <g transform="translate(60, 54)">
+              <!-- Outer diamond -->
+              <path d="M 0 -26 L 24 -6 L 0 26 L -24 -6 Z"
+                    fill="#64d2ff" fill-opacity="0.1" stroke="#64d2ff" stroke-width="2" stroke-linejoin="miter"/>
+              <!-- Top facet line -->
+              <path d="M -24 -6 L 24 -6" stroke="#64d2ff" stroke-width="1.5"/>
+              <!-- Inner facets -->
+              <path d="M -12 -6 L 0 -26 L 12 -6 L 0 26 Z"
+                    fill="none" stroke="#64d2ff" stroke-opacity="0.5" stroke-width="1"/>
+              <!-- Center highlight -->
+              <circle cx="0" cy="-6" r="1.5" fill="#64d2ff"/>
+            </g>
+            <!-- Label -->
+            <text x="60" y="115" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
+                  letter-spacing="2" fill="#64d2ff">DIAMOND</text>
+            <!-- Corner ticks -->
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Diamond</div>
+        <div class="cell-desc">Abonnement 1500 VC / mois</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════ PRESTIGE BADGES ════════════ -->
+  <section class="showcase-section">
+    <div class="showcase-section-label">Prestige Ranks</div>
+    <div class="badge-row">
+
+      <!-- PRESTIGE I -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-p1">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#c8cdd4" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#c8cdd4" stroke-opacity="0.22" stroke-width="1"/>
+            <!-- Single chevron -->
+            <g transform="translate(60, 58)" fill="none" stroke="#c8cdd4" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+              <path d="M -22 6 L 0 -14 L 22 6"/>
+              <path d="M -22 18 L 0 -2 L 22 18" stroke-opacity="0.35" stroke-width="2"/>
+            </g>
+            <!-- Label -->
+            <text x="60" y="110" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
+                  letter-spacing="2" fill="#c8cdd4">PRESTIGE</text>
+            <text x="60" y="126" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
+                  letter-spacing="3" fill="#ffffff">I</text>
+            <!-- Corner ticks -->
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#c8cdd4" stroke-opacity="0.5" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#c8cdd4" stroke-opacity="0.5" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Prestige I</div>
+        <div class="cell-desc">Silver</div>
+      </div>
+
+      <!-- PRESTIGE II -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-p2">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#d4a017" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#d4a017" stroke-opacity="0.22" stroke-width="1"/>
+            <!-- Double chevron -->
+            <g transform="translate(60, 56)" fill="none" stroke="#d4a017" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+              <path d="M -22 -2 L 0 -22 L 22 -2"/>
+              <path d="M -22 14 L 0 -6 L 22 14"/>
+            </g>
+            <text x="60" y="110" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
+                  letter-spacing="2" fill="#d4a017">PRESTIGE</text>
+            <text x="60" y="126" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
+                  letter-spacing="3" fill="#ffffff">II</text>
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#d4a017" stroke-opacity="0.5" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#d4a017" stroke-opacity="0.5" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Prestige II</div>
+        <div class="cell-desc">Bronze</div>
+      </div>
+
+      <!-- PRESTIGE III -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-p3">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#22aacc" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#22aacc" stroke-opacity="0.22" stroke-width="1"/>
+            <!-- Triple chevron -->
+            <g transform="translate(60, 54)" fill="none" stroke="#22aacc" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+              <path d="M -22 -8 L 0 -26 L 22 -8"/>
+              <path d="M -22 6 L 0 -12 L 22 6"/>
+              <path d="M -22 20 L 0 2 L 22 20"/>
+            </g>
+            <text x="60" y="110" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
+                  letter-spacing="2" fill="#22aacc">PRESTIGE</text>
+            <text x="60" y="126" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
+                  letter-spacing="3" fill="#ffffff">III</text>
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#22aacc" stroke-opacity="0.5" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#22aacc" stroke-opacity="0.5" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Prestige III</div>
+        <div class="cell-desc">Cyan</div>
+      </div>
+
+      <!-- PRESTIGE IV -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-p4">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#cc22aa" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#cc22aa" stroke-opacity="0.25" stroke-width="1"/>
+            <!-- 4-point star emblem -->
+            <g transform="translate(60, 56)">
+              <!-- Outer frame ring (diamond) -->
+              <path d="M 0 -30 L 30 0 L 0 30 L -30 0 Z"
+                    fill="none" stroke="#cc22aa" stroke-opacity="0.3" stroke-width="1"/>
+              <!-- 4-point star -->
+              <path d="M 0 -24 L 6 -6 L 24 0 L 6 6 L 0 24 L -6 6 L -24 0 L -6 -6 Z"
+                    fill="#cc22aa" fill-opacity="0.15" stroke="#cc22aa" stroke-width="2" stroke-linejoin="miter"/>
+              <!-- Inner accent -->
+              <circle cx="0" cy="0" r="3" fill="#cc22aa"/>
+            </g>
+            <text x="60" y="110" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
+                  letter-spacing="2" fill="#cc22aa">PRESTIGE</text>
+            <text x="60" y="126" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
+                  letter-spacing="3" fill="#ffffff">IV</text>
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
+            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="cell-name">Prestige IV</div>
+        <div class="cell-desc">Magenta</div>
+      </div>
+
+      <!-- PRESTIGE V — MAÎTRE -->
+      <div class="badge-cell">
+        <div class="v-rank-badge v-rank-p5">
+          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
+                  fill="#0a0a0a" stroke="#ff4400" stroke-width="1.5"/>
+            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
+                  fill="none" stroke="#ff4400" stroke-opacity="0.3" stroke-width="1"/>
+            <!-- 8-point star (sunburst) emblem -->
+            <g transform="translate(60, 54)">
+              <!-- Radial lines -->
+              <g stroke="#ff4400" stroke-opacity="0.4" stroke-width="1">
+                <line x1="0" y1="-30" x2="0" y2="-22"/>
+                <line x1="0" y1="22" x2="0" y2="30"/>
+                <line x1="-30" y1="0" x2="-22" y2="0"/>
+                <line x1="22" y1="0" x2="30" y2="0"/>
+                <line x1="-21" y1="-21" x2="-15" y2="-15"/>
+                <line x1="21" y1="-21" x2="15" y2="-15"/>
+                <line x1="-21" y1="21" x2="-15" y2="15"/>
+                <line x1="21" y1="21" x2="15" y2="15"/>
+              </g>
+              <!-- 8-point star -->
+              <path d="M 0 -20 L 5 -5 L 20 0 L 5 5 L 0 20 L -5 5 L -20 0 L -5 -5 Z"
+                    fill="#ff4400" fill-opacity="0.2" stroke="#ff4400" stroke-width="2" stroke-linejoin="miter"/>
+              <path d="M 0 -14 L 3.5 -3.5 L 14 0 L 3.5 3.5 L 0 14 L -3.5 3.5 L -14 0 L -3.5 -3.5 Z"
+                    fill="none" stroke="#ff4400" stroke-opacity="0.6" stroke-width="1"/>
+              <!-- Core -->
+              <circle cx="0" cy="0" r="2.5" fill="#ffffff"/>
+            </g>
+            <!-- Label -->
+            <text x="60" y="106" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="9" font-weight="700"
+                  letter-spacing="2" fill="#ff4400">PRESTIGE V</text>
+            <text x="60" y="124" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
+                  letter-spacing="4" fill="#ffffff">MAÎTRE</text>
+            <!-- Corner ticks (all 4 — max rank) -->
+            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
+            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
+            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
+            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div class="cell-name">Prestige V</div>
+        <div class="cell-desc">Maître — Rang ultime</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════ INLINE (compact format) ════════════ -->
+  <section class="showcase-section">
+    <div class="showcase-section-label">Inline Pills — Compact Format (profil / killfeed)</div>
+    <div class="badge-row" style="gap: 12px;">
+      <span class="v-rank-pill v-rank-pill-gold">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M 1 7 L 1 2 L 3 5 L 5 1 L 7 5 L 9 2 L 9 7 Z" fill="currentColor"/></svg>
+        GOLD
+      </span>
+      <span class="v-rank-pill v-rank-pill-diamond">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M 5 0 L 9 4 L 5 10 L 1 4 Z" fill="currentColor"/></svg>
+        DIAMOND
+      </span>
+      <span class="v-rank-pill v-rank-pill-p1">✦ PRESTIGE I</span>
+      <span class="v-rank-pill v-rank-pill-p2">✦✦ PRESTIGE II</span>
+      <span class="v-rank-pill v-rank-pill-p3">✦✦✦ PRESTIGE III</span>
+      <span class="v-rank-pill v-rank-pill-p4">★ PRESTIGE IV</span>
+      <span class="v-rank-pill v-rank-pill-p5">★★ MAÎTRE</span>
+    </div>
+  </section>
+
+</body>
+</html>

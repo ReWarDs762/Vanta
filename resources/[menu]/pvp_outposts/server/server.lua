@@ -118,6 +118,16 @@ AddEventHandler('pvp_outposts:buyItem', function(itemName, itemPrice, specialty)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
+    -- SÉCURITÉ : interaction boutique limitée aux zones safe (anti-triche).
+    if not isPlayerInSafeZone(src) then
+        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Achat uniquement en zone safe !')
+        return
+    end
+
+    -- SÉCURITÉ : valider type et bornes de itemPrice (client → serveur).
+    if type(itemName) ~= 'string' or type(itemPrice) ~= 'number' then return end
+    if itemPrice < 0 or itemPrice > 10000000 then return end
+
     local account = xPlayer.getAccount('bank')
     if not account then
         TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Erreur compte bancaire.')
@@ -134,21 +144,39 @@ AddEventHandler('pvp_outposts:buyItem', function(itemName, itemPrice, specialty)
         return
     end
 
-    if itemConfig.price ~= itemPrice then
+    if math.floor(itemConfig.price) ~= math.floor(itemPrice) then
         TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Prix invalide.')
         return
     end
 
-    xPlayer.removeAccountMoney('bank', itemPrice)
+    xPlayer.removeAccountMoney('bank', itemConfig.price)
     xPlayer.addInventoryItem(itemName, 1)
-    TriggerClientEvent('pvp_outposts:buyResult', src, true, itemConfig.label .. ' acheté pour $' .. itemPrice)
+    TriggerClientEvent('pvp_outposts:buyResult', src, true, itemConfig.label .. ' acheté pour $' .. itemConfig.price)
 end)
 
 -- ── Achat du panier NUI — Server Callback (attend la vraie réponse serveur)
 ESX.RegisterServerCallback('pvp_outposts:buyCartCb', function(src, cb, cartItems, destination)
     local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer or not cartItems or #cartItems == 0 then
+    if not xPlayer or not cartItems or type(cartItems) ~= 'table' or #cartItems == 0 then
         cb(false, 'Erreur serveur.', 0)
+        return
+    end
+
+    -- SÉCURITÉ : limite la taille du panier pour éviter un DoS par flood d'items.
+    if #cartItems > 50 then
+        cb(false, 'Panier trop grand.', 0)
+        return
+    end
+
+    -- SÉCURITÉ : joueur doit être en zone safe pour interagir avec la boutique.
+    if not isPlayerInSafeZone(src) then
+        cb(false, 'Achat uniquement en zone safe !', 0)
+        return
+    end
+
+    -- SÉCURITÉ : destination doit être 'bag' ou 'stash', rien d'autre.
+    if destination ~= 'bag' and destination ~= 'stash' then
+        cb(false, 'Destination invalide.', 0)
         return
     end
 
@@ -238,6 +266,14 @@ AddEventHandler('pvp_outposts:sellItem', function(itemName, sellPrice)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 
+    -- SÉCURITÉ : vente uniquement en zone safe.
+    if not isPlayerInSafeZone(src) then
+        TriggerClientEvent('pvp_outposts:sellResult', src, false, 'Vente uniquement en zone safe !')
+        return
+    end
+
+    if type(itemName) ~= 'string' then return end
+
     -- Vérifie que l'item a un prix de base
     local itemConfig = PRICE_INDEX[itemName]
     if not itemConfig then
@@ -273,6 +309,14 @@ end)
 ESX.RegisterServerCallback('pvp_outposts:sellItemCb', function(src, cb, itemName)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then cb(false, 'Erreur serveur.', 0) return end
+
+    if type(itemName) ~= 'string' then cb(false, 'Item invalide.', 0) return end
+
+    -- SÉCURITÉ : vente uniquement en zone safe.
+    if not isPlayerInSafeZone(src) then
+        cb(false, 'Vente uniquement en zone safe !', getBankMoney(xPlayer))
+        return
+    end
 
     local itemConfig = PRICE_INDEX[itemName]
     if not itemConfig then
@@ -321,6 +365,12 @@ end
 ESX.RegisterServerCallback('pvp_outposts:sellAllCb', function(src, cb, spec)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then cb(false, 'Erreur serveur.', 0) return end
+
+    -- SÉCURITÉ : vente uniquement en zone safe.
+    if not isPlayerInSafeZone(src) then
+        cb(false, 'Vente uniquement en zone safe !', getBankMoney(xPlayer))
+        return
+    end
 
     local totalEarned = 0
     local soldCount   = 0
@@ -494,11 +544,15 @@ RegisterNetEvent('pvp_weaponcustom:save')
 AddEventHandler('pvp_weaponcustom:save', function(weaponName, customData)
     local src     = source
     local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer or not weaponName or not customData then return end
+    if not xPlayer or type(weaponName) ~= 'string' or type(customData) ~= 'table' then return end
     -- Validation : weaponName doit être dans Config.WeaponComponents
     if not Config.WeaponComponents[weaponName] and not Config.WeaponsTintEnabled[weaponName] then return end
 
-    local json = json.encode(customData)
+    local encoded = json.encode(customData)
+    -- SÉCURITÉ : borne de taille pour éviter un DoS en DB (un client pouvait
+    -- envoyer plusieurs Mo de données custom pour saturer la table).
+    if type(encoded) ~= 'string' or #encoded > 4096 then return end
+
     MySQL.Async.execute(
         [[INSERT INTO pvp_weapon_customs (identifier, weapon_name, custom_json)
           VALUES (@id, @weapon, @json)
@@ -506,7 +560,7 @@ AddEventHandler('pvp_weaponcustom:save', function(weaponName, customData)
         {
             ['@id']     = xPlayer.identifier,
             ['@weapon'] = weaponName,
-            ['@json']   = json,
+            ['@json']   = encoded,
         }
     )
 end)
@@ -539,9 +593,13 @@ RegisterNetEvent('pvp_vehiclecustom:save')
 AddEventHandler('pvp_vehiclecustom:save', function(vehicleModel, customData)
     local src     = source
     local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer or not vehicleModel or not customData then return end
+    if not xPlayer or type(vehicleModel) ~= 'string' or type(customData) ~= 'table' then return end
+    -- SÉCURITÉ : vehicleModel doit être alphanumérique (nom de modèle GTA).
+    if #vehicleModel < 2 or #vehicleModel > 32 or not vehicleModel:match('^[a-z0-9_]+$') then return end
 
     local modsJson = json.encode(customData)
+    if type(modsJson) ~= 'string' or #modsJson > 8192 then return end
+
     MySQL.Async.execute(
         [[INSERT INTO pvp_vehicle_customs (identifier, vehicle_model, mods_json)
           VALUES (@id, @model, @json)
@@ -573,6 +631,44 @@ AddEventHandler('pvp_vehiclecustom:load', function(vehicleModel)
             end
         end
     )
+end)
+
+-- ══════════════════════════════════════════════════════════════════════════
+--   SAFE-ZONE ENFORCEMENT SERVEUR
+-- ══════════════════════════════════════════════════════════════════════════
+-- SÉCURITÉ : le client utilise SetEntityInvincible quand il est en safe zone,
+-- mais un cheater peut désactiver ça et tuer des gens en zone safe. Ce hook
+-- annule les dégâts côté serveur si la victime OU l'attaquant est en zone
+-- safe. Double protection (client cosmétique + serveur autoritatif).
+local function playerIsInSafeZoneByPed(ped)
+    if not ped or ped == 0 or not DoesEntityExist(ped) then return false end
+    local coords = GetEntityCoords(ped)
+    for _, op in ipairs(Config.Outposts) do
+        local radius = op.safeRadius or 50.0
+        local dx = coords.x - op.coords.x
+        local dy = coords.y - op.coords.y
+        local dz = coords.z - op.coords.z
+        if (dx*dx + dy*dy + dz*dz) < (radius * radius) then
+            return true
+        end
+    end
+    return false
+end
+
+AddEventHandler('weaponDamageEvent', function(sender, data)
+    -- data.victimGlobalId peut être un player ou une entité. On ne bloque
+    -- que les dégâts PVP ped-vs-ped.
+    if not data or not data.hitGlobalId or data.hitGlobalId == 0 then return end
+    local victimEntity = NetworkGetEntityFromNetworkId(data.hitGlobalId)
+    if not victimEntity or victimEntity == 0 or not DoesEntityExist(victimEntity) then return end
+    if not IsPedAPlayer(victimEntity) then return end  -- on laisse les zombies/PNJs
+
+    local attackerPed = GetPlayerPed(sender)
+    local inSafeVictim = playerIsInSafeZoneByPed(victimEntity)
+    local inSafeAttacker = playerIsInSafeZoneByPed(attackerPed)
+    if inSafeVictim or inSafeAttacker then
+        CancelEvent()
+    end
 end)
 
 -- ── Exposition : tous les outposts (utilisé par pvp_spawn login) ──────────

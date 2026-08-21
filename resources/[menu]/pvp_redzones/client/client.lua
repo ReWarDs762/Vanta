@@ -10,6 +10,8 @@ local isInRedzone = false
 local currentZoneLabel = ''
 local timeRemaining = 0       -- ms restant avant rotation
 local syncedAt = 0            -- GetGameTimer() au moment du sync
+local controlData = {}
+local currentZoneId = nil
 
 -- ── Demander sync au spawn ───────────────────────────────────────────────
 AddEventHandler('playerSpawned', function()
@@ -32,6 +34,11 @@ AddEventHandler('pvp_redzones:sync', function(zones, remaining)
     -- Recréer les blips
     clearBlips()
     createBlips()
+end)
+
+RegisterNetEvent('pvp_redzones:syncControl')
+AddEventHandler('pvp_redzones:syncControl', function(data)
+    controlData = data or {}
 end)
 
 -- ── Blips sur la map ─────────────────────────────────────────────────────
@@ -71,12 +78,14 @@ CreateThread(function()
         local wasInRedzone = isInRedzone
         isInRedzone = false
         currentZoneLabel = ''
+        currentZoneId = nil
 
         for _, zone in ipairs(activeZones) do
             local dist = #(coords - zone.coords)
             if dist <= zone.radius then
                 isInRedzone = true
                 currentZoneLabel = zone.label
+                currentZoneId = zone.id
                 break
             end
         end
@@ -106,6 +115,18 @@ CreateThread(function()
             SetTextEntry('STRING')
             AddTextComponentString('REDZONE — ' .. currentZoneLabel)
             DrawText(0.5, 0.003)
+
+            local control = currentZoneId and controlData[currentZoneId] or nil
+            if control and control.ownerTag and control.ownerTag ~= '' then
+                SetTextFont(4)
+                SetTextScale(0.0, 0.28)
+                SetTextColour(255, 230, 180, 220)
+                SetTextCentre(true)
+                SetTextOutline()
+                SetTextEntry('STRING')
+                AddTextComponentString('Contrôle crew : [' .. control.ownerTag .. '] ' .. (control.ownerName or 'Crew'))
+                DrawText(0.5, 0.056)
+            end
 
             -- Timer de rotation
             local elapsed = GetGameTimer() - syncedAt
