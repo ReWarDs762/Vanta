@@ -128,7 +128,16 @@ AddEventHandler('pvp_spawn:setRespawnOutpost', function(outpostCoords, outpostHe
 end)
 
 -- ── playerSpawned : login ou respawn ─────────────────────────────────────
+-- ATTENTION : exports.spawnmanager:spawnPlayer() (utilisé par le respawn après
+-- mort ci-dessus) redéclenche lui-même l'event 'playerSpawned' — c'est le
+-- comportement standard de la resource spawnmanager. Sans le garde-fou
+-- hasSpawnedOnce ci-dessous, ce handler repartirait de zéro à chaque mort,
+-- attendrait un nouvel avant-poste de CONNEXION qui n'arrive plus jamais après
+-- le tout premier spawn, et finirait par déclencher le fallback Sandy Shores
+-- par-dessus le respawn (correct) qui vient d'avoir lieu.
 AddEventHandler('playerSpawned', function()
+    if hasSpawnedOnce then return end
+
     Citizen.CreateThread(function()
         -- Laisser le temps au hook legacy de poser spawnHandled
         Citizen.Wait(200)
@@ -152,8 +161,12 @@ AddEventHandler('playerSpawned', function()
         -- Cas 2 : loginOutpost pas encore arrivé
         -- → nouveau joueur en création, pvp_character gère le freeze.
         -- On NE dégèle PAS, on attend setLoginOutpost qui déclenchera le dégel.
-        -- Sécurité : si après 30s aucun outpost n'est arrivé, fallback aléatoire
-        local deadline = GetGameTimer() + 30000
+        -- Sécurité : la création de personnage (pseudo, apparence détaillée) peut
+        -- légitimement prendre plusieurs minutes selon le joueur — ce délai ne doit
+        -- se déclencher que si pvp_outposts est réellement en panne, jamais pendant
+        -- une création normale. Si après 15min aucun outpost n'est arrivé, fallback.
+        local FALLBACK_TIMEOUT_MS = 15 * 60 * 1000
+        local deadline = GetGameTimer() + FALLBACK_TIMEOUT_MS
         while loginOutpost == nil and GetGameTimer() < deadline do
             Citizen.Wait(200)
         end
@@ -165,6 +178,7 @@ AddEventHandler('playerSpawned', function()
             unfreezePlayer()
         else
             -- Fallback de dernier recours
+            print('[pvp_spawn] FALLBACK login: aucun avant-poste recu du serveur apres 15min, teleport Sandy Shores aleatoire')
             teleportToRandomFallback()
             unfreezePlayer()
         end
@@ -186,6 +200,7 @@ AddEventHandler('esx:onPlayerDeath', function()
 
         if deathRespawnActive then
             deathRespawnActive = false
+            print('[pvp_spawn] FALLBACK mort: aucun avant-poste recu du serveur apres 8s, teleport Sandy Shores aleatoire')
             local fallback = SpawnPoints[math.random(1, #SpawnPoints)]
             exports.spawnmanager:spawnPlayer({
                 x = fallback.x, y = fallback.y, z = fallback.z,

@@ -407,9 +407,10 @@ const PED_CATALOG = [
   { model: "s_m_m_ups_02"                , name: "Livreur UPS 2"             , cat: "worker"    , tier: "gold"     },
 
   // ── STORY CHARACTERS ────────────────────────────────────────────────
-  { model: "player_zero"                 , name: "Michael"                   , cat: "story"     , tier: "diamond"  },
-  { model: "player_one"                  , name: "Franklin"                  , cat: "story"     , tier: "diamond"  },
-  { model: "player_two"                  , name: "Trevor"                    , cat: "story"     , tier: "diamond"  },
+  // Michael/Franklin/Trevor (player_zero/one/two) volontairement absents :
+  // ce sont les hash des protagonistes solo, blacklistés côté serveur
+  // (isValidPedModel) — les lister ici ne faisait que produire une carte
+  // sélectionnable qui se faisait rejeter silencieusement à la confirmation.
   { model: "ig_amanda"                   , name: "Amanda"                    , cat: "story"     , tier: "diamond"  },
   { model: "ig_tracydisanto"             , name: "Tracy"                     , cat: "story"     , tier: "diamond"  },
   { model: "ig_jimmydisanto"             , name: "Jimmy"                     , cat: "story"     , tier: "diamond"  },
@@ -611,9 +612,11 @@ const PED_CATALOG = [
   { model: "csb_undercover"              , name: "Agent Infiltre"            , cat: "heist"     , tier: "diamond"  },
 
   // ── HORROR ──────────────────────────────────────────────────────────
-  { model: "u_m_y_zombie_01"             , name: "Zombie 1"                  , cat: "horror"    , tier: "diamond"  },
+  // "Zombie 1" (u_m_y_zombie_01) et "Cadavre Homme 2" (u_m_y_corpse_02)
+  // volontairement absents : ce sont des modèles réellement utilisés par les
+  // zombies de pvp_zombies (voir CLAUDE.md) — un joueur à l'identique aurait
+  // créé une confusion ami/ennemi en jeu.
   { model: "u_m_y_corpse_01"             , name: "Cadavre Homme"             , cat: "horror"    , tier: "diamond"  },
-  { model: "u_m_y_corpse_02"             , name: "Cadavre Homme 2"           , cat: "horror"    , tier: "diamond"  },
   { model: "u_f_y_corpse_02"             , name: "Cadavre Femme 2"           , cat: "horror"    , tier: "diamond"  },
   { model: "u_m_y_militarybum"           , name: "Militaire Clochard"        , cat: "horror"    , tier: "diamond"  },
   { model: "u_m_y_proldriver_01"         , name: "Conducteur Prologue"       , cat: "horror"    , tier: "diamond"  },

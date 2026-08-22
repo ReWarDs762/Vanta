@@ -2135,6 +2135,8 @@ body {
   transition: all 0.15s ease;
 }
 .ped-change-btn:hover { background: rgba(255,255,255,0.12); border-color: var(--v-border-hover); color: var(--v-text); }
+.ped-change-btn.ped-change-locked { opacity: 0.45; }
+.ped-change-btn.ped-change-locked:hover { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--v-text-secondary); }
 
 /* Overlay */
 #ped-selector-overlay {

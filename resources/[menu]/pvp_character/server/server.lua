@@ -1,6 +1,6 @@
 -- =============================================
 --   PVP CHARACTER - Serveur
---   Création de personnage (pseudo + genre + apparence)
+--   Création de personnage (pseudo + genre + apparence détaillée)
 --   Remplace esx_identity. Bloque pvp_spawn jusqu'à ready.
 -- =============================================
 
@@ -41,7 +41,191 @@ Citizen.CreateThread(function()
     addColumnIfMissing('pvp_player_stats', 'hair_style',         'TINYINT DEFAULT 0')
     addColumnIfMissing('pvp_player_stats', 'rename_free_season', 'INT DEFAULT 0')
     addColumnIfMissing('pvp_player_stats', 'rename_last_week',   'INT DEFAULT 0')
+    addColumnIfMissing('pvp_player_stats', 'appearance_json',    'TEXT NULL')
 end)
+
+-- ── Presets legacy (pour convertir les anciens skin_tone/hair_style 0-3) ──
+-- Copie exacte des anciennes tables client (avant refonte), utilisée UNE SEULE
+-- fois par joueur pour générer un appearance_json de départ, jamais après.
+local LegacySkinPresets = {
+    { 0, 0, 0,  0,  0, 0, 0.5, 0.0, 0.0 },
+    { 0, 0, 0,  4,  4, 0, 0.5, 0.4, 0.0 },
+    { 0, 0, 0, 14, 14, 0, 0.5, 0.7, 0.0 },
+    { 0, 0, 0, 21, 21, 0, 0.5, 1.0, 0.0 },
+}
+local LegacyHairMale   = { { 0, 0 }, { 2, 0 }, { 4, 0 }, { 10, 1 } }
+local LegacyHairFemale = { { 0, 0 }, { 3, 0 }, { 5, 0 }, { 12, 1 } }
+
+-- ── Apparence par défaut (nouveau joueur / reset) ───────────────────────
+local function defaultAppearance(gender)
+    local hairs = (gender == 'female') and LegacyHairFemale or LegacyHairMale
+    local hair  = hairs[1]
+    return {
+        v      = 1,
+        head   = { 0, 0, 0, 0, 0, 0, 0.5, 0.0, 0.0 },
+        hair   = { hair[1], 0, hair[2], 0 },
+        ovl    = {},
+        ovlc   = {},
+        eye    = 0,
+        comps  = {},
+        props  = {},
+    }
+end
+
+-- ── Whitelists de validation ─────────────────────────────────────────────
+-- Volontairement restreint (décision produit) : pas de bras/torse(3), sac(5),
+-- sous-vêtement(8), gilet(9), decal(10) — seulement masque/jambes/chaussures/
+-- accessoire cou/hauts, en cohérence avec COMPONENT_SLOTS côté client.
+local ALLOWED_COMPONENTS = { [1]=true, [4]=true, [6]=true, [7]=true, [11]=true }
+local ALLOWED_PROPS      = { [0]=true, [1]=true, [2]=true, [6]=true, [7]=true }
+local ALLOWED_OVERLAYS   = { [0]=true, [1]=true, [2]=true, [3]=true, [4]=true, [5]=true, [6]=true, [7]=true, [8]=true, [9]=true, [10]=true, [11]=true, [12]=true }
+
+local function clamp(n, lo, hi)
+    n = tonumber(n)
+    if not n then return lo end
+    if n < lo then return lo end
+    if n > hi then return hi end
+    return math.floor(n)
+end
+
+local function clampFloat(n, lo, hi)
+    n = tonumber(n)
+    if not n then return lo end
+    if n < lo then return lo end
+    if n > hi then return hi end
+    return n
+end
+
+-- Reconstruit un objet appearance propre depuis zéro à partir de l'input
+-- client — ne fait JAMAIS confiance au payload, ne le repasse jamais tel quel.
+local function sanitizeAppearance(input, gender)
+    if type(input) ~= 'table' then return defaultAppearance(gender) end
+
+    local out = { v = 1, head = {}, hair = {}, ovl = {}, ovlc = {}, eye = 0, comps = {}, props = {} }
+
+    -- head : 9 valeurs (6 index morpho/peau clampés 0-45, 3 mix clampés 0-1)
+    local h = type(input.head) == 'table' and input.head or {}
+    for i = 1, 6 do out.head[i] = clamp(h[i], 0, 45) end
+    for i = 7, 9 do out.head[i] = clampFloat(h[i], 0.0, 1.0) end
+
+    -- hair : drawable, texture, color, highlight
+    local hr = type(input.hair) == 'table' and input.hair or {}
+    out.hair = {
+        clamp(hr[1], 0, 255),
+        clamp(hr[2], 0, 63),
+        clamp(hr[3], 0, 63),
+        clamp(hr[4], 0, 63),
+    }
+
+    -- eye color
+    out.eye = clamp(input.eye, 0, 31)
+
+    -- overlays : { overlayId, index, opacity*100 }, max 13
+    if type(input.ovl) == 'table' then
+        local n = 0
+        for _, entry in ipairs(input.ovl) do
+            if n >= 13 then break end
+            if type(entry) == 'table' then
+                local oid = tonumber(entry[1])
+                if oid and ALLOWED_OVERLAYS[math.floor(oid)] then
+                    out.ovl[#out.ovl + 1] = {
+                        math.floor(oid),
+                        clamp(entry[2], 0, 255),
+                        clamp(entry[3], 0, 100),
+                    }
+                    n = n + 1
+                end
+            end
+        end
+    end
+
+    -- overlay colors : { overlayId, colorType, colorId, secondColorId }, max 13
+    if type(input.ovlc) == 'table' then
+        local n = 0
+        for _, entry in ipairs(input.ovlc) do
+            if n >= 13 then break end
+            if type(entry) == 'table' then
+                local oid = tonumber(entry[1])
+                if oid and ALLOWED_OVERLAYS[math.floor(oid)] then
+                    out.ovlc[#out.ovlc + 1] = {
+                        math.floor(oid),
+                        clamp(entry[2], 0, 2),
+                        clamp(entry[3], 0, 63),
+                        clamp(entry[4], 0, 63),
+                    }
+                    n = n + 1
+                end
+            end
+        end
+    end
+
+    -- comps : { componentId, drawable, texture }, whitelist stricte, max 10, dernier gagne
+    if type(input.comps) == 'table' then
+        local byId = {}
+        for _, entry in ipairs(input.comps) do
+            if type(entry) == 'table' then
+                local cid = tonumber(entry[1])
+                if cid and ALLOWED_COMPONENTS[math.floor(cid)] then
+                    byId[math.floor(cid)] = {
+                        math.floor(cid),
+                        clamp(entry[2], 0, 511),
+                        clamp(entry[3], 0, 63),
+                    }
+                end
+            end
+        end
+        for _, v in pairs(byId) do out.comps[#out.comps + 1] = v end
+    end
+
+    -- props : { propId, drawable, texture }, whitelist stricte, max 5, dernier gagne
+    if type(input.props) == 'table' then
+        local byId = {}
+        for _, entry in ipairs(input.props) do
+            if type(entry) == 'table' then
+                local pid = tonumber(entry[1])
+                if pid ~= nil and ALLOWED_PROPS[math.floor(pid)] then
+                    byId[math.floor(pid)] = {
+                        math.floor(pid),
+                        clamp(entry[2], -1, 255),
+                        clamp(entry[3], 0, 63),
+                    }
+                end
+            end
+        end
+        for _, v in pairs(byId) do out.props[#out.props + 1] = v end
+    end
+
+    -- Garde-fou de taille (défense en profondeur, ~380o attendu)
+    local ok, encoded = pcall(json.encode, out)
+    if not ok or #encoded > 4000 then
+        return defaultAppearance(gender)
+    end
+
+    return out
+end
+
+-- Reconstruit un appearance_json legacy depuis les anciens index skin_tone/hair_style (0-3)
+local function legacyToAppearance(skinIdx, hairIdx, gender)
+    skinIdx = clamp(skinIdx, 0, 3) + 1
+    hairIdx = clamp(hairIdx, 0, 3) + 1
+    local skin  = LegacySkinPresets[skinIdx] or LegacySkinPresets[1]
+    local hairs = (gender == 'female') and LegacyHairFemale or LegacyHairMale
+    local hair  = hairs[hairIdx] or hairs[1]
+    return {
+        v     = 1,
+        head  = { skin[1], skin[2], skin[3], skin[4], skin[5], skin[6], skin[7], skin[8], skin[9] },
+        hair  = { hair[1], 0, hair[2], 0 },
+        ovl   = {},
+        ovlc  = {},
+        eye   = 0,
+        comps = {},
+        props = {},
+    }
+end
+
+local function isFreemodeModel(model)
+    return model == '' or model == nil or model == 'mp_m_freemode_01' or model == 'mp_f_freemode_01'
+end
 
 -- ── Helpers ──────────────────────────────────────────────────────────────
 local function sanitizePseudo(pseudo)
@@ -80,9 +264,10 @@ AddEventHandler('esx:playerLoaded', function(playerId)
     MySQL.Async.fetchAll(
         [[
             SELECT u.firstname, u.sex,
-                   COALESCE(s.skin_tone, 0)  AS skin_tone,
-                   COALESCE(s.hair_style, 0) AS hair_style,
-                   COALESCE(s.ped_model, '') AS ped_model
+                   COALESCE(s.skin_tone, 0)        AS skin_tone,
+                   COALESCE(s.hair_style, 0)        AS hair_style,
+                   COALESCE(s.ped_model, '')        AS ped_model,
+                   COALESCE(s.appearance_json, '')  AS appearance_json
             FROM users u
             LEFT JOIN pvp_player_stats s ON s.identifier = u.identifier
             WHERE u.identifier = @id
@@ -93,13 +278,45 @@ AddEventHandler('esx:playerLoaded', function(playerId)
             local firstname = row and row.firstname
 
             if row and firstname and firstname ~= '' then
-                -- Joueur existant : applique le ped + signale ready
+                -- Joueur existant : reconstruit l'apparence, migre si besoin, signale ready
                 xPlayer.set('firstName', firstname)
+
+                local gender = (row.sex == 'f') and 'female' or 'male'
+                local model  = row.ped_model or ''
+                local needsModelFix = (model == '')
+                if needsModelFix then
+                    model = (gender == 'female') and 'mp_f_freemode_01' or 'mp_m_freemode_01'
+                end
+
+                -- Un ped spécial n'a pas d'apparence détaillée (apparence fixe) —
+                -- ne pas fabriquer/écrire un appearance_json legacy inutile pour lui.
+                local appearance = nil
+                local needsAppearanceFix = false
+                if isFreemodeModel(model) then
+                    needsAppearanceFix = (row.appearance_json == '' or row.appearance_json == nil)
+                    if needsAppearanceFix then
+                        appearance = legacyToAppearance(row.skin_tone, row.hair_style, gender)
+                    else
+                        local ok, decoded = pcall(json.decode, row.appearance_json)
+                        appearance = (ok and type(decoded) == 'table') and sanitizeAppearance(decoded, gender) or defaultAppearance(gender)
+                    end
+                end
+
+                if needsModelFix or needsAppearanceFix then
+                    MySQL.Async.execute(
+                        [[
+                            INSERT INTO pvp_player_stats (identifier, ped_model, appearance_json)
+                            VALUES (@id, @model, @app)
+                            ON DUPLICATE KEY UPDATE ped_model = @model, appearance_json = @app
+                        ]],
+                        { ['@id'] = xPlayer.identifier, ['@model'] = model, ['@app'] = json.encode(appearance) }
+                    )
+                end
+
                 TriggerClientEvent('pvp_character:applyModel', src, {
+                    model      = model,
+                    appearance = appearance,
                     sex        = row.sex or 'm',
-                    skin_tone  = tonumber(row.skin_tone) or 0,
-                    hair_style = tonumber(row.hair_style) or 0,
-                    ped_model  = row.ped_model or '',
                 })
                 markCharacterReady(src)
             else
@@ -159,8 +376,27 @@ AddEventHandler('pvp_character:saveCharacter', function(data)
 
     local gender   = (data.gender == 'female') and 'female' or 'male'
     local sexValue = (gender == 'female') and 'f' or 'm'
-    local skinTone = math.max(0, math.min(3, tonumber(data.skin_tone) or 0))
-    local hairIdx  = math.max(0, math.min(3, tonumber(data.hair_style) or 0))
+    local charType = (data.type == 'special') and 'special' or 'freemode'
+
+    local model
+    local appearance
+
+    if charType == 'special' then
+        local requestedModel = type(data.model) == 'string' and data.model or ''
+        local catalogOk, eligible = pcall(function()
+            return exports['pvp_inventory']:IsPedCreationEligible(requestedModel)
+        end)
+        if not catalogOk or not eligible then
+            saveCharLocks[xPlayer.identifier] = nil
+            TriggerClientEvent('pvp_character:creationError', src, 'Ped invalide')
+            return
+        end
+        model      = requestedModel
+        appearance = nil -- pas d'apparence détaillée pour un ped spécial (apparence fixe)
+    else
+        model      = (gender == 'female') and 'mp_f_freemode_01' or 'mp_m_freemode_01'
+        appearance = sanitizeAppearance(data.appearance, gender)
+    end
 
     MySQL.Async.execute(
         'UPDATE users SET firstname = @firstname, lastname = @lastname, sex = @sex WHERE identifier = @id',
@@ -180,22 +416,22 @@ AddEventHandler('pvp_character:saveCharacter', function(data)
             -- Upsert les customisations sur pvp_player_stats
             MySQL.Async.execute(
                 [[
-                    INSERT INTO pvp_player_stats (identifier, skin_tone, hair_style)
-                    VALUES (@id, @skin, @hair)
-                    ON DUPLICATE KEY UPDATE skin_tone = @skin, hair_style = @hair
+                    INSERT INTO pvp_player_stats (identifier, ped_model, appearance_json)
+                    VALUES (@id, @model, @app)
+                    ON DUPLICATE KEY UPDATE ped_model = @model, appearance_json = @app
                 ]],
                 {
-                    ['@id']   = xPlayer.identifier,
-                    ['@skin'] = skinTone,
-                    ['@hair'] = hairIdx,
+                    ['@id']    = xPlayer.identifier,
+                    ['@model'] = model,
+                    ['@app']   = appearance and json.encode(appearance) or nil,
                 },
                 function()
                     saveCharLocks[xPlayer.identifier] = nil
                     xPlayer.set('firstName', pseudo)
                     TriggerClientEvent('pvp_character:creationDone', src, {
+                        model      = model,
+                        appearance = appearance,
                         sex        = gender,
-                        skin_tone  = skinTone,
-                        hair_style = hairIdx,
                     })
                     markCharacterReady(src)
                 end

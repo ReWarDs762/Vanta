@@ -279,9 +279,6 @@ function getWeight(n) {
 }
 const wOf  = (n, qty) => (getWeight(n) * qty).toFixed(1);
 
-// Items du kit de départ — invendables sur le marché
-const KIT_ITEMS = new Set(['weapon_pistol']);
-
 // ══ Catalogue marché — items disponibles ingame (CLAUDE.md) ══════════════
 const CATALOG = [
   // ── Soins & Équipement ──
@@ -929,8 +926,7 @@ function renderMarketSellMode() {
   const leftEl  = document.getElementById('market-left');
   const rightEl = document.getElementById('market-right');
 
-  // Inventory items (filtrer kit items)
-  const inv = (state.inventory || []).filter(i => !KIT_ITEMS.has(i.name));
+  const inv = state.inventory || [];
 
   leftEl.innerHTML = `
     <div class="sec-header">
@@ -1160,6 +1156,12 @@ function renderProfile() {
   if (pedModelEl) {
     const pm = p.pedModel || '';
     pedModelEl.textContent = pm ? pm.toUpperCase().replace(/^(A_|S_|G_|IG_|CSB_|U_|MP_)/, '') : 'FREEMODE';
+  }
+  const pedChangeBtn = document.getElementById('ped-change-btn');
+  if (pedChangeBtn) {
+    const canChange = vcData.tier === 'gold' || vcData.tier === 'diamond';
+    pedChangeBtn.classList.toggle('ped-change-locked', !canChange);
+    pedChangeBtn.textContent = canChange ? 'CHANGER DE PED' : 'CHANGER DE PED 🔒 GOLD';
   }
 
   // Classement personnel
@@ -1649,11 +1651,14 @@ function toast(msg, ok) {
 }
 
 // ══ Fetch Lua ════════════════════════════════════════════════════════════
+// Retourne la Promise du fetch (résolue en JSON) pour les appelants qui ont
+// besoin de la réponse Lua ; les appels existants qui ignorent la valeur de
+// retour continuent de fonctionner à l'identique (fire-and-forget).
 function lua(cb, data) {
-  fetch('https://pvp_inventory/'+cb, {
+  return fetch('https://pvp_inventory/'+cb, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(data)
-  });
+  }).then(r => r.json()).catch(() => ({}));
 }
 function esc(s) { return String(s).replace(/'/g,"\\'"); }
 function closeCtx() {}
@@ -2468,14 +2473,22 @@ var pedSelectedModel  = '';
 var pedCurrentCategory = 'all';
 
 function getPedAccess(pedTier) {
+  // Changement de ped après création réservé aux abonnés Gold/Diamond —
+  // sans abonnement, aucun ped n'est sélectionnable (le choix libre unique
+  // se fait uniquement à la création du personnage, via pvp_character).
   const t = vcData.tier || 'none';
-  if (pedTier === 'free') return true;
-  if (pedTier === 'gold') return t === 'gold' || t === 'diamond';
-  if (pedTier === 'diamond') return t === 'diamond';
+  if (t === 'diamond') return true;
+  if (t === 'gold')    return pedTier !== 'diamond';
   return false;
 }
 
 function openPedSelector() {
+  const t = vcData.tier || 'none';
+  if (t !== 'gold' && t !== 'diamond') {
+    toast('Changement de ped réservé aux abonnés Gold / Diamond');
+    return;
+  }
+
   pedSelectorActive = true;
   pedSelectedModel  = (state.profile && state.profile.pedModel) || '';
   pedCurrentCategory = 'all';
@@ -2484,12 +2497,9 @@ function openPedSelector() {
 
   // Tier info
   const tierEl = document.getElementById('ped-tier-info');
-  const t = vcData.tier || 'none';
   const total = PED_CATALOG.length;
   const accessible = PED_CATALOG.filter(p => getPedAccess(p.tier)).length;
-  const tierLabel = t === 'diamond' ? '💎 DIAMOND — TOUS LES PEDS' :
-                    t === 'gold' ? '👑 GOLD — CATALOGUE DE BASE' :
-                    '🔒 GRATUIT — FREEMODE UNIQUEMENT';
+  const tierLabel = t === 'diamond' ? '💎 DIAMOND — TOUS LES PEDS' : '👑 GOLD — CATALOGUE DE BASE';
   tierEl.innerHTML = `${tierLabel} <span style="margin-left:8px;opacity:0.5">${accessible}/${total} disponibles</span>`;
 
   // Categories
@@ -2497,7 +2507,11 @@ function openPedSelector() {
   renderPedGrid();
 
   // Activer la caméra preview côté client
-  lua('openPedSelector', {});
+  lua('openPedSelector', {}).then(function (res) {
+    if (res && res.ok === false) {
+      closePedSelector();
+    }
+  });
 }
 
 function closePedSelector() {

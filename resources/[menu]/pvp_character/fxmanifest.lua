@@ -24,5 +24,15 @@ ui_page 'html/index.html'
 files {
     'html/index.html',
     'html/style.css',
+    'html/appearance_data.js',
     'html/app.js'
+}
+
+-- pvp_inventory : fournit le catalogue de peds partagé (nui://pvp_inventory/html/ped_catalog.js)
+-- et les exports GetPedTier/IsPedInCatalog consommés par server/server.lua.
+dependencies {
+    'es_extended',
+    'mysql-async',
+    'vanta_ui',
+    'pvp_inventory',
 }

@@ -4,7 +4,7 @@ Ce fichier contient tout ce qui change souvent : avancement par resource, bugs a
 roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — bien plus vite que
 `CLAUDE.md`, qui ne décrit que l'architecture stable.
 
-**Dernière mise à jour :** 21 août 2026 (session d'audit + réactivation `pvp_hud`)
+**Dernière mise à jour :** 22 août 2026 (refonte `pvp_character` — apparence détaillée + fix sécurité `pvp_inventory`)
 
 ---
 
@@ -12,6 +12,7 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 
 | Resource | Statut | Détail |
 |---|---|---|
+| `pvp_character` | Refondu (22/08/2026), **non testé en jeu** | Écran de création revu en profondeur : cadrage caméra corrigé (le perso était mal visible derrière le panel), personnalisation étendue (peau, morphologie, cheveux, 10 emplacements vêtements + 5 accessoires en freemode, ou choix d'un ped spécial du catalogue `pvp_inventory`). Fix du bug de timing qui empêchait l'écran de s'afficher (`Wait(400)` fixe → retry loop). Voir CLAUDE.md pour le détail. À valider intégralement en jeu avant de considérer ce chantier terminé. |
 | `pvp_drops` | Fonctionnel, polish en cours | À finir : UI d'annonce, animations, sons, polish visuel général |
 | `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
 | `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous |
@@ -45,6 +46,25 @@ celle de `pvp_admin`), ou faire relayer `pvp_admin` vers l'export `addXP` de `va
 
 ## Bugs corrigés
 
+### `pvp_character` — écran de création jamais affiché (corrigé 22/08/2026)
+
+`client/client.lua` attendait un délai fixe (`Citizen.Wait(400)`) après `playerSpawned`
+avant de vérifier si le joueur était nouveau, sans aucun retry. Le round-trip serveur
+(`esx:playerLoaded` → requête MySQL → event client `pvp_character:isNewPlayer`) pouvait
+dépasser cette fenêtre, et rien ne relisait le flag ensuite. Corrigé : boucle de retry
+(jusqu'à 15s) au lieu d'un délai figé.
+
+### `pvp_inventory` — changement de ped non vérifié côté serveur (corrigé 22/08/2026)
+
+Le sélecteur de ped (onglet Profil) filtrait les peds Gold/Diamond uniquement côté JS
+(`getPedAccess`) — le serveur (`pvp_inventory:savePedModel`) ne vérifiait que le format
+du nom de modèle, jamais l'abonnement. Un client modifié pouvait donc changer vers
+n'importe quel ped du catalogue sans abonnement. Corrigé : vérification serveur de
+l'abonnement (`exports['pvp_vcoins']:GetTier`) + du tier du ped demandé, avant tout
+`UPDATE`. Découvert et corrigé dans le cadre de la refonte de `pvp_character`, qui
+introduit une nouvelle règle produit (changement de ped bloqué sans Gold/Diamond) que ce
+trou aurait rendu inefficace.
+
 ### `pvp_hud` — native serveur cassé (corrigé 21/08/2026)
 
 `pvp_hud/server/server.lua` appelait `SetMaxWantedLevel(0)`, un native **client
@@ -60,7 +80,11 @@ déjà le wanted level à chaque frame).
 Un démarrage de serveur prouve que le code se charge, pas qu'il fonctionne. Rien de ce qui
 suit n'a été validé manette en main :
 
-- [ ] `pvp_character` — écran de création jamais affiché
+- [ ] `pvp_character` — refondu le 22/08/2026 (apparence détaillée, catalogue de peds,
+      caméra recadrée), **jamais revalidé en jeu depuis** — à tester en priorité :
+      parcours freemode complet, choix d'un ped spécial, `/rename`, et sur `pvp_inventory`
+      la restriction "changement de ped réservé Gold/Diamond" (bouton verrouillé + rejet
+      serveur si forcé sans abonnement)
 - [ ] `pvp_inventory` — le plus gros système (217 fichiers), jamais testé
 - [ ] `pvp_killfeed` — créé, jamais testé
 - [ ] `pvp_crew` — 4 crews en base mais 0 membre, jamais réellement exercé

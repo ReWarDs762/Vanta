@@ -13,10 +13,27 @@
 <body>
     <div id="overlay" class="hidden">
 
-        <!-- Vignette d'ombrage latéral pour poser le ped visuellement à droite -->
-        <div id="vignette-left"></div>
+        <!-- Zone jeu : transparente, personnage visible en entier -->
+        <section id="stage">
+            <div id="stage-brand">
+                <span id="stage-brand-word">VANTA</span>
+            </div>
 
-        <!-- Panel de création (gauche) -->
+            <div id="view-ctl">
+                <div class="view-group">
+                    <button class="view-btn" id="rot-left" title="Tourner">◀</button>
+                    <span class="view-label">ROTATION</span>
+                    <button class="view-btn" id="rot-right" title="Tourner">▶</button>
+                </div>
+                <div class="view-group">
+                    <button class="view-btn view-cam-btn active" id="cam-body" data-mode="body">CORPS</button>
+                    <button class="view-btn view-cam-btn" id="cam-face" data-mode="face">VISAGE</button>
+                </div>
+                <button class="view-btn view-random" id="btn-random" title="Apparence aléatoire">ALÉATOIRE</button>
+            </div>
+        </section>
+
+        <!-- Panel de création (droite, semi-transparent) -->
         <aside id="panel">
 
             <header id="header">
@@ -25,63 +42,124 @@
                 <p class="subtitle">Configure ton identité avant d'entrer dans la zone</p>
             </header>
 
-            <!-- Pseudo -->
-            <section class="section">
-                <label class="field-label" for="pseudo-input">PSEUDO</label>
-                <input
-                    type="text"
-                    id="pseudo-input"
-                    placeholder="Ton pseudo..."
-                    maxlength="20"
-                    autocomplete="off"
-                    spellcheck="false"
-                >
-                <div class="field-hint" id="pseudo-hint">2–20 caractères</div>
-            </section>
+            <div id="p-content">
 
-            <!-- Genre -->
-            <section class="section">
-                <label class="field-label">GENRE</label>
-                <div class="gender-grid">
-                    <div class="gender-card" id="card-male" data-gender="male">
-                        <svg class="gender-icon" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="20" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
-                            <path d="M4 55V37C4 29.82 11.16 24 20 24C28.84 24 36 29.82 36 37V55" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
-                        </svg>
-                        <span class="gender-label">HOMME</span>
+                <!-- Pseudo -->
+                <section class="section">
+                    <label class="field-label" for="pseudo-input">PSEUDO</label>
+                    <input
+                        type="text"
+                        id="pseudo-input"
+                        placeholder="Ton pseudo..."
+                        maxlength="20"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <div class="field-hint" id="pseudo-hint">2–20 caractères</div>
+                </section>
+
+                <!-- Type de personnage -->
+                <section class="section">
+                    <label class="field-label">TYPE DE PERSONNAGE</label>
+                    <div class="type-grid">
+                        <div class="type-card selected" id="type-freemode" data-type="freemode">
+                            <span class="type-title">PERSONNAGE STANDARD</span>
+                            <span class="type-desc">Apparence entièrement personnalisable — peau, visage, cheveux, vêtements</span>
+                        </div>
+                        <div class="type-card" id="type-special" data-type="special">
+                            <span class="type-title">PED SPÉCIAL</span>
+                            <span class="type-desc">Choisis un personnage GTA existant — choix définitif, aucune personnalisation additionnelle</span>
+                        </div>
                     </div>
-                    <div class="gender-card" id="card-female" data-gender="female">
-                        <svg class="gender-icon" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="20" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
-                            <path d="M7 55V39C7 32.37 12.93 27 20 27C27.07 27 33 32.37 33 39V55" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
-                            <path d="M11 33L8 46M29 33L32 46" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/>
-                        </svg>
-                        <span class="gender-label">FEMME</span>
+                </section>
+
+                <!-- ── Branche FREEMODE ─────────────────────────────────────── -->
+                <div id="branch-freemode">
+
+                    <section class="section">
+                        <label class="field-label">GENRE</label>
+                        <div class="gender-grid">
+                            <div class="gender-card selected" id="card-male" data-gender="male">
+                                <svg class="gender-icon" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M4 55V37C4 29.82 11.16 24 20 24C28.84 24 36 29.82 36 37V55" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+                                </svg>
+                                <span class="gender-label">HOMME</span>
+                            </div>
+                            <div class="gender-card" id="card-female" data-gender="female">
+                                <svg class="gender-icon" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M7 55V39C7 32.37 12.93 27 20 27C27.07 27 33 32.37 33 39V55" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+                                    <path d="M11 33L8 46M29 33L32 46" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/>
+                                </svg>
+                                <span class="gender-label">FEMME</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="section">
+                        <label class="field-label">COULEUR DE PEAU</label>
+                        <div class="swatch-grid" id="skin-grid"></div>
+                    </section>
+
+                    <section class="section">
+                        <label class="field-label">VISAGE</label>
+                        <div id="face-cyclers"></div>
+                    </section>
+
+                    <section class="section">
+                        <label class="field-label">CHEVEUX</label>
+                        <div id="hair-cyclers"></div>
+                        <div class="palette-grid" id="hair-color-grid"></div>
+                    </section>
+
+                    <section class="section">
+                        <label class="field-label">TENUE</label>
+                        <div id="outfit-cyclers"></div>
+                    </section>
+
+                    <section class="section">
+                        <label class="field-label">ACCESSOIRES</label>
+                        <div id="prop-cyclers"></div>
+                    </section>
+
+                </div>
+
+                <!-- ── Branche PED SPÉCIAL ──────────────────────────────────── -->
+                <div id="branch-special" class="hidden">
+
+                    <section class="section">
+                        <input
+                            type="text"
+                            id="ped-search"
+                            class="pseudo-like-input"
+                            placeholder="Rechercher un personnage..."
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                    </section>
+
+                    <section class="section">
+                        <div class="chip-row" id="ped-categories"></div>
+                    </section>
+
+                    <section class="section">
+                        <div class="ped-grid" id="ped-grid"></div>
+                    </section>
+
+                    <div class="warning-card" id="special-warning">
+                        Ce choix est <strong>définitif</strong> : sans abonnement Gold ou Diamond,
+                        tu ne pourras plus jamais changer d'apparence ensuite.
                     </div>
-                </div>
-            </section>
 
-            <!-- Couleur de peau -->
-            <section class="section">
-                <label class="field-label">COULEUR DE PEAU</label>
-                <div class="swatch-grid">
-                    <div class="swatch" data-skin="0" style="--tone:#f1c6a4;"><span class="swatch-dot"></span></div>
-                    <div class="swatch" data-skin="1" style="--tone:#c69277;"><span class="swatch-dot"></span></div>
-                    <div class="swatch" data-skin="2" style="--tone:#8a5a3f;"><span class="swatch-dot"></span></div>
-                    <div class="swatch" data-skin="3" style="--tone:#4d2e20;"><span class="swatch-dot"></span></div>
-                </div>
-            </section>
+                    <div class="empty-hint" id="catalog-unavailable">
+                        Catalogue de peds indisponible pour le moment — seul le personnage
+                        standard peut être créé.
+                    </div>
 
-            <!-- Cheveux -->
-            <section class="section">
-                <label class="field-label">CHEVEUX</label>
-                <div class="hair-grid">
-                    <div class="hair-card" data-hair="0"><span>01</span></div>
-                    <div class="hair-card" data-hair="1"><span>02</span></div>
-                    <div class="hair-card" data-hair="2"><span>03</span></div>
-                    <div class="hair-card" data-hair="3"><span>04</span></div>
                 </div>
-            </section>
+
+            </div>
 
             <!-- Confirm / Error -->
             <div class="footer">
@@ -92,6 +170,8 @@
         </aside>
 
     </div>
+    <script src="nui://pvp_inventory/html/ped_catalog.js"></script>
+    <script src="appearance_data.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

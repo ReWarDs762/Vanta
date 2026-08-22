@@ -103,6 +103,12 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - Transparence dynamique via injection CSS `<style id="dynamic-opacity">`
 - Camera lock quand inventaire ouvert (DisableControlAction sur controls 1, 2, 24, 25, 106, 140, 141, 142, 257)
 - Sons désactivés (fonctions vides)
+- **Sélecteur de ped (onglet Profil)** : changer de ped après la création est réservé aux
+  abonnés Gold/Diamond (le choix libre unique se fait à la création, via `pvp_character`).
+  Contrôle fait **côté serveur** (`server/server.lua`, event `pvp_inventory:savePedModel` —
+  vérifie l'abonnement via `exports['pvp_vcoins']:GetTier` + le tier du ped demandé, jamais
+  seulement côté NUI). Exporte `GetPedTier`/`IsPedInCatalog`/`IsPedCreationEligible`,
+  consommés par `pvp_character` pour valider le choix fait à la création.
 
 ### Profil joueur (pvp_inventory → onglet PROFIL)
 - **Carte identité** : avatar Discord, nom, identifier, badge actif, label prestige
@@ -256,13 +262,38 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 - `AdminConfig.OpenKey = 168` (F7)
 
 ### Création de personnage (pvp_character)
-- Remplace `esx_identity` (supprimé) : pas d'identité civile GTA, juste pseudo + genre
+- Remplace `esx_identity` (supprimé) : pas d'identité civile GTA — pseudo + apparence détaillée
+- Écran plein cadrage : panel semi-transparent ~32% à droite (style repris de
+  `pvp_outposts/html/weapon_custom.css`), personnage visible en entier à gauche,
+  rotation + bascule caméra corps/visage, toutes les modifications s'appliquent en direct sur le ped
 - NUI bloquant : `pvp_spawn` attend l'événement de fin de création avant de faire apparaître le joueur
+- **Deux types de personnage, choisis une seule fois à la création** :
+  - **Standard (freemode)** : personnalisation complète — 12 teintes de peau, morphologie
+    (père/mère/mix), barbe, sourcils, couleur des yeux, coiffure + 64 couleurs, et 5
+    emplacements de vêtements (masque, jambes, chaussures, accessoire cou, hauts —
+    volontairement pas de bras/torse, sac, decal, ni de sous-vêtement/gilet séparés du
+    haut) + 5 accessoires (navigation flèches, bornée par les variantes réellement dispo
+    sur le modèle via `GetNumberOfPedDrawableVariations`/`...TextureVariations`)
+  - **Ped spécial** : choix libre dans le catalogue de peds de `pvp_inventory`
+    (`ped_catalog.js`, partagé via `nui://pvp_inventory/html/ped_catalog.js` — pas de
+    duplication), catégorie "animaux" exclue. Accessible à tous sans condition
+    d'abonnement à la création, mais **définitif** : sans Gold/Diamond, plus aucun
+    changement de ped possible ensuite (voir pvp_inventory ci-dessous)
 - **Modération pseudo** : liste de mots interdits vérifiée en sous-chaîne, insensible à la casse
-- **Renommage** : payant (5000$) sauf abonnement VCoins Diamond (gratuit, illimité) — dépend de `pvp_vcoins`
+- **Renommage** (`/rename`) : payant (5000$) sauf abonnement VCoins Diamond (gratuit, illimité) —
+  dépend de `pvp_vcoins`, ne touche jamais l'apparence/le ped
 - Saison courante : `CURRENT_SEASON = 1` (indépendante de celle de `pvp_inventory`)
-- Table : `characters` (identifier, firstname, lastname, dateofbirth, sex, height)
-- Ajoute par migration des colonnes à `pvp_player_stats` : `skin_tone`, `hair_style`, `rename_free_season`, `rename_last_week`, `ped_model`, `hud_type`, `hotbar`
+- Pas de table `characters` dédiée : le pseudo vit dans `users.firstname`/`sex` (ESX standard)
+- Apparence détaillée stockée en JSON compact dans `pvp_player_stats.appearance_json`
+  (tableaux de nombres uniquement — jamais de `null`), le ped choisi dans
+  `pvp_player_stats.ped_model` (colonne partagée avec `pvp_inventory`). Les anciennes
+  colonnes `skin_tone`/`hair_style` (index 0-3) sont converties automatiquement vers
+  `appearance_json` à la première connexion post-refonte, puis ignorées.
+- Ajoute par migration les colonnes à `pvp_player_stats` : `skin_tone`, `hair_style`,
+  `rename_free_season`, `rename_last_week`, `appearance_json` (`ped_model`/`hud_type`/`hotbar`
+  restent migrées par `pvp_inventory`, voir plus bas)
+- `fxmanifest.lua` déclare `dependencies { es_extended, mysql-async, vanta_ui, pvp_inventory }`
+  — chargé APRÈS `pvp_inventory` dans `server.cfg` (catalogue de peds + table `pvp_player_stats`)
 
 ### VCoins (pvp_vcoins) — monnaie premium
 - Deux abonnements : **Gold** (800 VC/30j, bonus stash +5%) et **Diamond** (1500 VC/30j, bonus stash +10%)

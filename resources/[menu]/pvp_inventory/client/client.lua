@@ -206,21 +206,6 @@ Citizen.CreateThread(function()
     end
 end)
 
--- ── Kit de départ (items invendables) ────────────────────────────────────
-local KIT_ITEMS_SET = { weapon_pistol = true, vehicle_bmx = true }
-
--- Donner le kit au premier spawn et à chaque respawn
--- RegisterNetEvent requis : esx:playerLoaded arrive via TriggerClientEvent
--- (réseau) depuis es_extended/server ; sans ça, FiveM logue "event ... was not
--- safe for net" et peut refuser de livrer l'event à ce handler.
-RegisterNetEvent('esx:playerLoaded')
-AddEventHandler('esx:playerLoaded', function()
-    Citizen.CreateThread(function()
-        Citizen.Wait(3000) -- laisser le temps au joueur de spawner
-        TriggerServerEvent('pvp_inventory:giveKit')
-    end)
-end)
-
 -- ── Callbacks NUI → Lua ───────────────────────────────────────────────────
 RegisterNUICallback('close', function(_, cb)
     closeInventory()
@@ -282,12 +267,6 @@ RegisterNUICallback('syncHotbar', function(data, cb)
 end)
 
 RegisterNUICallback('createListing', function(data, cb)
-    -- Bloquer les items de kit (invendables)
-    if KIT_ITEMS_SET[data.item] then
-        SendNUIMessage({ type = 'notify', msg = 'Cet item de kit est invendable !', success = false })
-        cb('ok')
-        return
-    end
     if not isInSafeZone() then
         SendNUIMessage({ type = 'notify', msg = 'Achats/ventes uniquement en zone safe !', success = false })
         cb('ok')
@@ -1067,11 +1046,6 @@ Citizen.CreateThread(function()
             if isOpen then closeInventory() end
         elseif not isDead and wasDead then
             wasDead = false
-            -- Redonner le kit de départ après respawn
-            Citizen.CreateThread(function()
-                Citizen.Wait(3000) -- laisser le temps au spawn de se faire
-                TriggerServerEvent('pvp_inventory:giveKit')
-            end)
         end
         Citizen.Wait(500)
     end
@@ -1312,9 +1286,12 @@ end)
 -- ══════════════════════════════════════════════════════════════════════════
 
 -- Relaie le sync VCoins depuis pvp_vcoins vers le NUI
+local myTier = 'none' -- tier VCoins courant, mis à jour ici — gate le sélecteur de ped plus bas
+
 RegisterNetEvent('pvp_vcoins:syncData')
 AddEventHandler('pvp_vcoins:syncData', function(data)
     if not data then return end
+    if data.tier then myTier = data.tier end
     local bonus = 0.0
     if data.tier == 'gold'    then bonus = 5.0
     elseif data.tier == 'diamond' then bonus = 10.0 end
@@ -1377,6 +1354,10 @@ local function loadModel(model)
     end
 end
 
+local function isFreemodeModelPed(model)
+    return model == '' or model == nil or model == 'mp_m_freemode_01' or model == 'mp_f_freemode_01'
+end
+
 local function restoreWeapons()
     local ped = PlayerPedId()
     for itemName, _ in pairs(equippedWeapons) do
@@ -1418,7 +1399,12 @@ local function destroyPedPreviewCam()
 end
 
 RegisterNUICallback('openPedSelector', function(_, cb)
-    cb({})
+    if myTier ~= 'gold' and myTier ~= 'diamond' then
+        cb({ ok = false, reason = 'subscription' })
+        TriggerEvent('esx:showNotification', '~r~Changement de ped réservé aux abonnés Gold / Diamond')
+        return
+    end
+    cb({ ok = true })
     if pedSelectorOpen then return end
     local ped = PlayerPedId()
     pedSelectorState = {
@@ -1469,6 +1455,9 @@ RegisterNUICallback('confirmPedModel', function(data, cb)
     restoreWeapons()
 
     local model = data and data.model or ''
+    if isFreemodeModelPed(model) then
+        pcall(function() exports['pvp_character']:ApplyStoredAppearance() end)
+    end
     TriggerServerEvent('pvp_inventory:savePedModel', model)
 end)
 
@@ -1494,14 +1483,27 @@ RegisterNUICallback('cancelPedSelector', function(_, cb)
 
     destroyPedPreviewCam()
 
-    -- Ré-appliquer l'apparence freemode si c'était un freemode
+    -- Ré-appliquer l'apparence freemode d'origine (teinte, cheveux, tenue)
     local fmM = GetHashKey('mp_m_freemode_01')
     local fmF = GetHashKey('mp_f_freemode_01')
     if origHash == fmM or origHash == fmF then
-        -- Le serveur rechargera l'apparence au prochain refresh
-        -- Pour l'instant, SetPedDefaultComponentVariation a déjà été appelé
+        pcall(function() exports['pvp_character']:ApplyStoredAppearance() end)
     end
 
     restoreWeapons()
     pedSelectorState = nil
+end)
+
+-- Rejet serveur (pas d'abonnement / ped hors tier) : restaure le ped courant
+RegisterNetEvent('pvp_inventory:pedModelRejected')
+AddEventHandler('pvp_inventory:pedModelRejected', function()
+    local ped = PlayerPedId()
+    local currentHash = GetEntityModel(ped)
+    local fmM = GetHashKey('mp_m_freemode_01')
+    local fmF = GetHashKey('mp_f_freemode_01')
+
+    if currentHash == fmM or currentHash == fmF then
+        pcall(function() exports['pvp_character']:ApplyStoredAppearance() end)
+    end
+    restoreWeapons()
 end)

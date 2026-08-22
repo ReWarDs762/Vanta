@@ -11,6 +11,9 @@ local CURRENT_SEASON = 1
 -- ══ Kill streaks en mémoire (reset à la mort) ═════════════════════════════
 local playerStreaks = {} -- [identifier] = streak actuel
 
+-- ══ Lock anti-spam changement de ped ═══════════════════════════════════════
+local pedChangeLocks = {} -- [identifier] = true pendant une sauvegarde de ped
+
 -- ══ Utilitaire : trouver le source d'un joueur par identifier ═════════════
 local function getSourceByIdentifier(identifier)
     for _, src in ipairs(GetPlayers()) do
@@ -212,6 +215,7 @@ AddEventHandler('onResourceStart', function(res)
     addCol('pvp_player_stats', 'hotbar',             "TEXT DEFAULT '[]'")
     addCol('pvp_player_stats', 'hud_type',           "VARCHAR(10) DEFAULT 'gta'")
     addCol('pvp_player_stats', 'ped_model',          "VARCHAR(64) DEFAULT ''")
+    addCol('pvp_player_stats', 'kit_start_used',     'TINYINT DEFAULT 0')
     MySQL.Async.execute([[
         CREATE TABLE IF NOT EXISTS `pvp_player_stash` (
             `id`         INT AUTO_INCREMENT PRIMARY KEY,
@@ -1711,44 +1715,65 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
 end)
 
 -- ══ KIT DE DÉPART ═══════════════════════════════════════════════════════
--- Donné à chaque spawn, invendable sur le marché
-local KIT_ITEMS = {
-    { name = 'weapon_pistol', label = 'Pistolet' },
-    { name = 'vehicle_bmx',   label = 'BMX' },
+-- Donné une seule fois par personnage via /kitstart (items normaux, vendables)
+local KIT_START_ITEMS = {
+    { name = 'weapon_specialcarbine', label = 'Carabine Spéciale', count = 5 },
+    { name = 'revolter',              label = 'Revolter',          count = 5 },
+    { name = 'shot_attract',          label = 'Shot Attracteur',   count = 5 },
 }
 
--- SÉCURITÉ : rate-limit serveur. Sans ça, un client pouvait spam giveKit
--- pour dupliquer pistolet + BMX à l'infini en droppant entre chaque appel.
-local kitCooldown = {}  -- [identifier] = timestamp du dernier kit
+-- SÉCURITÉ : verrou en mémoire pendant la requête DB. Sans ça, un joueur qui
+-- spam /kitstart avant la fin du round-trip MySQL pourrait dupliquer le kit
+-- (même exploit que l'ancien giveKit, qui nécessitait un cooldown pour ça).
+local kitStartInProgress = {}  -- [identifier] = true pendant la vérification/écriture DB
+local kitStartDone       = {}  -- [identifier] = true une fois confirmé (évite un aller-retour DB)
 
-RegisterNetEvent('pvp_inventory:giveKit')
-AddEventHandler('pvp_inventory:giveKit', function()
-    local src     = source
+RegisterCommand('kitstart', function(source)
+    local src = source
+    if src == 0 then return end
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
+    local identifier = xPlayer.identifier
 
-    local now = os.time()
-    local last = kitCooldown[xPlayer.identifier] or 0
-    if (now - last) < 60 then
-        return  -- 60s minimum entre deux kits (protège spawn + respawn légitimes)
+    if kitStartDone[identifier] or kitStartInProgress[identifier] then
+        TriggerClientEvent('pvp_market:notify', src, 'Tu as déjà utilisé ton kit de départ.', false)
+        return
     end
-    kitCooldown[xPlayer.identifier] = now
+    kitStartInProgress[identifier] = true
 
-    for _, kitItem in ipairs(KIT_ITEMS) do
-        local existing = xPlayer.getInventoryItem(kitItem.name)
-        if not existing or existing.count < 1 then
-            xPlayer.addInventoryItem(kitItem.name, 1)
+    MySQL.Async.fetchScalar(
+        'SELECT kit_start_used FROM pvp_player_stats WHERE identifier = @id',
+        { ['@id'] = identifier },
+        function(used)
+            if (tonumber(used) or 0) == 1 then
+                kitStartInProgress[identifier] = nil
+                kitStartDone[identifier] = true
+                TriggerClientEvent('pvp_market:notify', src, 'Tu as déjà utilisé ton kit de départ.', false)
+                return
+            end
+
+            for _, kitItem in ipairs(KIT_START_ITEMS) do
+                xPlayer.addInventoryItem(kitItem.name, kitItem.count)
+            end
+
+            MySQL.Async.execute(
+                [[INSERT INTO pvp_player_stats (identifier, kit_start_used) VALUES (@id, 1)
+                  ON DUPLICATE KEY UPDATE kit_start_used = 1]],
+                { ['@id'] = identifier }
+            )
+
+            kitStartInProgress[identifier] = nil
+            kitStartDone[identifier] = true
+            TriggerClientEvent('pvp_market:notify', src, 'Kit de départ reçu : 5x Carabine Spéciale, 5x Revolter, 5x Shot Attracteur !', true)
         end
-    end
+    )
+end, false)
 
-    TriggerClientEvent('pvp_market:notify', src, 'Kit de départ reçu !', true)
-end)
-
--- Nettoyage du cache quand un joueur se déconnecte
+-- Nettoyage du verrou si le joueur se déconnecte pendant la requête DB
 AddEventHandler('playerDropped', function()
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
-    if xPlayer then kitCooldown[xPlayer.identifier] = nil end
+    if xPlayer then kitStartInProgress[xPlayer.identifier] = nil end
 end)
 
 -- ── Ranger un véhicule (K) → redonner l'item ────────────────────────────
@@ -1854,6 +1879,7 @@ AddEventHandler('playerDropped', function()
     if xPlayer then
         stashLocks[xPlayer.identifier] = nil
         playerStreaks[xPlayer.identifier] = nil
+        pedChangeLocks[xPlayer.identifier] = nil
     end
 end)
 
@@ -1892,15 +1918,112 @@ local function isValidPedModel(model)
     return false
 end
 
+-- ── Tiers de peds : parsés depuis le MÊME fichier que celui servi au NUI ──
+-- (html/ped_catalog.js) via LoadResourceFile, pour qu'il n'existe jamais
+-- qu'une seule source de vérité model→tier. Si le parsing échoue ou renvoie
+-- un nombre de peds anormalement bas, on passe en fail-safe : tout ped
+-- non-freemode est refusé plutôt que de risquer d'ouvrir la vanne.
+local PED_TIER = {}
+local PED_CAT  = {}
+local pedCatalogSafe = false
+
+Citizen.CreateThread(function()
+    local content = LoadResourceFile(GetCurrentResourceName(), 'html/ped_catalog.js')
+    if not content then
+        print('^1[pvp_inventory] ped_catalog.js introuvable — fail-safe : changement de ped désactivé^0')
+        return
+    end
+
+    local count = 0
+    for model, cat, tier in content:gmatch('model:%s*"([%w_]+)".-cat:%s*"(%a+)".-tier:%s*"(%a+)"') do
+        PED_TIER[model] = tier
+        PED_CAT[model]  = cat
+        count = count + 1
+    end
+
+    if count < 500 then
+        PED_TIER = {}
+        PED_CAT  = {}
+        print(('^1[pvp_inventory] catalogue de peds parsé de façon suspecte (%d entrées) — fail-safe activé^0'):format(count))
+        return
+    end
+
+    pedCatalogSafe = true
+end)
+
+exports('GetPedTier', function(model)
+    return PED_TIER[model]
+end)
+
+exports('IsPedInCatalog', function(model)
+    return PED_TIER[model] ~= nil
+end)
+
+-- Consommé par pvp_character à la création : n'importe quel ped humain du
+-- catalogue est autorisé (peu importe le tier — choix libre et unique), mais
+-- les animaux et l'entrée "freemode" (qui a sa propre branche dédiée) sont
+-- exclus d'un choix de personnage PVP permanent.
+exports('IsPedCreationEligible', function(model)
+    local cat = PED_CAT[model]
+    return cat ~= nil and cat ~= 'animal' and cat ~= 'freemode'
+end)
+
 RegisterNetEvent('pvp_inventory:savePedModel')
 AddEventHandler('pvp_inventory:savePedModel', function(model)
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
-    if not isValidPedModel(model) then return end
+
+    if pedChangeLocks[xPlayer.identifier] then return end
+    pedChangeLocks[xPlayer.identifier] = true
+
+    if not isValidPedModel(model) then
+        pedChangeLocks[xPlayer.identifier] = nil
+        return
+    end
+
+    -- SÉCURITÉ : le changement de ped après création est réservé aux abonnés
+    -- Gold/Diamond (le choix fait à la création, lui, est libre et unique —
+    -- géré par pvp_character, pas ici). Sans ce contrôle serveur, un client
+    -- modifié pouvait appeler cet event directement et changer de ped sans
+    -- aucun abonnement : le filtre par tier n'existait qu'en JS côté NUI.
+    local tier = 'none'
+    pcall(function()
+        tier = exports['pvp_vcoins']:GetTier(xPlayer.identifier) or 'none'
+    end)
+
+    if tier ~= 'gold' and tier ~= 'diamond' then
+        pedChangeLocks[xPlayer.identifier] = nil
+        TriggerClientEvent('esx:showNotification', src, '~r~Changement de ped réservé aux abonnés Gold / Diamond')
+        TriggerClientEvent('pvp_inventory:pedModelRejected', src)
+        return
+    end
+
+    -- Reset vers freemode = aussi un changement de ped, soumis au même gate
+    -- d'abonnement (sinon un joueur sans sub pourrait "revenir" en freemode
+    -- depuis un ped spécial choisi à la création).
+    if model ~= '' then
+        if not pedCatalogSafe then
+            pedChangeLocks[xPlayer.identifier] = nil
+            TriggerClientEvent('esx:showNotification', src, '~r~Catalogue de peds indisponible, réessaie plus tard')
+            TriggerClientEvent('pvp_inventory:pedModelRejected', src)
+            return
+        end
+        local pedTier = PED_TIER[model]
+        if not pedTier or (pedTier == 'diamond' and tier ~= 'diamond') then
+            pedChangeLocks[xPlayer.identifier] = nil
+            TriggerClientEvent('esx:showNotification', src, '~r~Ce ped nécessite un abonnement Diamond')
+            TriggerClientEvent('pvp_inventory:pedModelRejected', src)
+            return
+        end
+    end
+
     MySQL.Async.execute(
         'UPDATE pvp_player_stats SET ped_model = @m WHERE identifier = @id',
-        { ['@m'] = model, ['@id'] = xPlayer.identifier }
+        { ['@m'] = model, ['@id'] = xPlayer.identifier },
+        function()
+            pedChangeLocks[xPlayer.identifier] = nil
+        end
     )
 end)
 

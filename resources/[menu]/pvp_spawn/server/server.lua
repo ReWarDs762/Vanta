@@ -24,6 +24,8 @@ AddEventHandler('pvp_character:characterReady', function(src)
             { x = outpost.coords.x, y = outpost.coords.y, z = outpost.coords.z },
             outpost.heading
         )
+    else
+        print(('[pvp_spawn] ECHEC getAllOutposts (login) pour joueur %s - pvp_outposts indisponible ? erreur: %s'):format(src, tostring(outpost)))
     end
 end)
 
@@ -49,5 +51,7 @@ AddEventHandler('pvp_spawn:resetLastPosition', function()
             { x = nearest.coords.x, y = nearest.coords.y, z = nearest.coords.z },
             nearest.heading
         )
+    else
+        print(('[pvp_spawn] ECHEC getNearestOutpost (mort) pour joueur %s - pvp_outposts indisponible ? erreur: %s'):format(src, tostring(nearest)))
     end
 end)
