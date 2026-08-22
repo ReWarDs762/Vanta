@@ -31,6 +31,10 @@ logs/
 *.db
 *.sqlite
 
+# ── Sauvegardes/scratch BDD locales (dumps, logs de boot — peuvent
+#    contenir des identifiants joueurs réels, jamais à commiter) ──
+db_backups/
+
 # ── Certificats & clés TLS (SENSIBLE — ne jamais commiter) ──
 *.crt
 *.key
