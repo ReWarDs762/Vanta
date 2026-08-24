@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>VANTA — Notifications</title>
+<link rel="stylesheet" href="vanta.css">
+<style>
+  /* Page NUI transparente : seules les notifications sont visibles.
+     Aucune interaction souris — SetNuiFocus n'est JAMAIS appelé pour ce NUI. */
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    pointer-events: none;
+    font-family: var(--v-font);
+  }
+
+  #notify-stack {
+    position: fixed;
+    top: 96px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--v-space-2);
+    pointer-events: none;
+    z-index: 99999;
+  }
+
+  .v-notif {
+    display: flex;
+    align-items: center;
+    gap: var(--v-space-3);
+    min-width: 220px;
+    max-width: 420px;
+    padding: 10px 16px 10px 13px;
+    background: var(--v-surface-2);
+    border: 1px solid var(--v-border);
+    border-left: 3px solid var(--v-text-tertiary);
+    border-radius: var(--v-radius-xs);
+    color: var(--v-text);
+    font-size: var(--v-size-sm);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
+    animation: notifIn 0.18s var(--v-ease) both;
+  }
+
+  .v-notif.leaving {
+    animation: notifOut 0.16s var(--v-ease) both;
+  }
+
+  /* Pastille de statut — la couleur porte le sens, pas le texte */
+  .v-notif .dot {
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    background: var(--v-text-tertiary);
+    border-radius: var(--v-radius-full);
+  }
+
+  .v-notif .msg {
+    flex: 1 1 auto;
+    word-break: break-word;
+  }
+
+  .v-notif.success { border-left-color: var(--v-success); }
+  .v-notif.success .dot { background: var(--v-success); }
+
+  .v-notif.error   { border-left-color: var(--v-danger); }
+  .v-notif.error .dot { background: var(--v-danger); }
+
+  .v-notif.warning { border-left-color: var(--v-warning); }
+  .v-notif.warning .dot { background: var(--v-warning); }
+
+  .v-notif.info    { border-left-color: var(--v-info); }
+  .v-notif.info .dot { background: var(--v-info); }
+
+  /* Titre optionnel (annonces serveur type drop) */
+  .v-notif .title {
+    display: block;
+    font-size: var(--v-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--v-text-secondary);
+    margin-bottom: 3px;
+  }
+
+  /* Animations : fade + glissement court, pas de bounce ni de scale */
+  @keyframes notifIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes notifOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(12px); }
+  }
+</style>
+</head>
+<body class="v-reset">
+  <div id="notify-stack"></div>
+  <script src="notify.js"></script>
+</body>
+</html>

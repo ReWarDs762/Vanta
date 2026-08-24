@@ -5,7 +5,20 @@
 local ESX = nil
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
-local activeDrop = nil
+local activeDrop     = nil
+local dropItemLocks  = {}   -- [itemName] = true pendant le traitement
+
+-- ── Notifications ────────────────────────────────────────────────────────
+-- Système générique de vanta_ui : plus de détournement de `pvp_market:notify`
+-- (event nommé d'après pvp_market mais en réalité géré par pvp_inventory —
+-- pvp_drops cassait donc si l'une ou l'autre resource bougeait).
+local function notify(src, msg, kind)
+    exports['vanta_ui']:notify(src, msg, kind)
+end
+
+local function notifyAll(msg, kind, duration)
+    exports['vanta_ui']:notifyAll(msg, kind, duration, 'Drop de ravitaillement')
+end
 
 -- ── Tirage du loot ────────────────────────────────────────────────────────
 local function rollDropLoot()
@@ -37,6 +50,54 @@ local function rollDropLoot()
     return result
 end
 
+-- ── Contrôleur : le client qui pilote les entités (avion + caisse) ───────
+-- Les autres clients ne font qu'interpoler la même trajectoire localement.
+local function pickController(excludeSrc)
+    for _, pid in ipairs(GetPlayers()) do
+        local id = tonumber(pid)
+        if id and id ~= excludeSrc then return id end
+    end
+    return nil
+end
+
+-- ── Payload client ───────────────────────────────────────────────────────
+-- `elapsed` permet à un joueur qui rejoint en cours de drop de recaler sa
+-- timeline locale sur celle du serveur au lieu de rejouer l'animation depuis
+-- le début.
+local function dropPayload()
+    if not activeDrop then return nil end
+    return {
+        id           = activeDrop.id,
+        planeStartX  = activeDrop.planeStartX,
+        planeStartY  = activeDrop.planeStartY,
+        planeEndX    = activeDrop.planeEndX,
+        planeEndY    = activeDrop.planeEndY,
+        dropPct      = activeDrop.dropPct,
+        dropX        = activeDrop.dropX,
+        dropY        = activeDrop.dropY,
+        landZ        = activeDrop.landZ,
+        altitude     = Config.DropAltitude,
+        approachTime = Config.ApproachTime,
+        fallDuration = Config.FallDuration,
+        openDelay    = Config.OpenDelay,
+        controller   = activeDrop.controller,
+        elapsed      = GetGameTimer() - activeDrop.startedAt,
+    }
+end
+
+-- ── Fin de drop ──────────────────────────────────────────────────────────
+-- Toujours passer par ici : mettre `activeDrop = nil` sans prévenir les clients
+-- laissait la caisse, les blips et le marker affichés indéfiniment en jeu.
+local function endDrop(reason)
+    if not activeDrop then return end
+    local id = activeDrop.id
+    local remaining = #activeDrop.loot
+    activeDrop    = nil
+    dropItemLocks = {}
+    TriggerClientEvent('pvp_drops:ended', -1, id, reason)
+    print(('[pvp_drops] Drop #%d terminé (%s) — %d item(s) restant(s)'):format(id, reason, remaining))
+end
+
 -- ── Démarrer un drop ─────────────────────────────────────────────────────
 local function startDrop()
     if activeDrop then return end
@@ -60,11 +121,7 @@ local function startDrop()
     local dropPct = 0.5
 
     -- Désigner un contrôleur (premier joueur connecté)
-    local controller = nil
-    for _, pid in ipairs(GetPlayers()) do
-        controller = tonumber(pid)
-        break
-    end
+    local controller = pickController(nil)
 
     -- Si aucun joueur connecté, annuler le drop
     if not controller then
@@ -87,40 +144,39 @@ local function startDrop()
         loot        = rollDropLoot(),
         opened      = false,
         controller  = controller,
+        startedAt   = GetGameTimer(),
+        expiresAt   = os.time() + math.floor(Config.DropLifetime / 1000),
     }
 
-    TriggerClientEvent('pvp_drops:start', -1, {
-        id          = activeDrop.id,
-        planeStartX = startX,
-        planeStartY = startY,
-        planeEndX   = endX,
-        planeEndY   = endY,
-        dropPct     = dropPct,
-        dropX       = dropX,
-        dropY       = dropY,
-        landZ       = dropZ,   -- Z du sol envoyé directement
-        altitude    = Config.DropAltitude,
-        approachTime = Config.ApproachTime,
-        fallDuration = Config.FallDuration,
-        openDelay   = Config.OpenDelay,
-        controller  = controller,
-    })
+    TriggerClientEvent('pvp_drops:start', -1, dropPayload())
 
-    TriggerClientEvent('chat:addMessage', -1, {
-        color = { 255, 200, 50 },
-        args = { '★ DROP ★', 'Un avion de ravitaillement a été détecté ! Suivez sa trajectoire... [' .. zone.label .. ']' }
-    })
+    notifyAll(
+        'Un avion de ravitaillement a été détecté — suivez sa trajectoire. [' .. zone.label .. ']',
+        'warning',
+        8000
+    )
 
-    print(('[pvp_drops] Drop #%d — zone: %s (%.0f, %.0f, %.0f)'):format(
-        activeDrop.id, zone.label, dropX, dropY, dropZ
+    print(('[pvp_drops] Drop #%d — zone: %s (%.0f, %.0f, %.0f) — contrôleur: %d'):format(
+        activeDrop.id, zone.label, dropX, dropY, dropZ, controller
     ))
 end
 
+-- ── Synchronisation d'un client qui rejoint en cours de drop ─────────────
+RegisterNetEvent('pvp_drops:requestSync')
+AddEventHandler('pvp_drops:requestSync', function()
+    local src = source
+    local payload = dropPayload()
+    if not payload then return end
+    TriggerClientEvent('pvp_drops:start', src, payload)
+end)
+
 -- ── Le contrôleur rapporte le Z du sol au point de drop ──────────────────
+-- Filet de sécurité : en pratique le Z vient déjà de Config.DropZones.
 RegisterNetEvent('pvp_drops:reportGroundZ')
 AddEventHandler('pvp_drops:reportGroundZ', function(dropId, landX, landY, landZ)
     if not activeDrop or activeDrop.id ~= dropId then return end
-    if activeDrop.landZ then return end  -- déjà reçu
+    if activeDrop.landZ then return end  -- déjà connu
+    if type(landZ) ~= 'number' then return end
 
     activeDrop.landX = landX
     activeDrop.landY = landY
@@ -166,7 +222,7 @@ AddEventHandler('pvp_drops:open', function(dropId)
     local src = source
     if not activeDrop or activeDrop.id ~= dropId then return end
     if activeDrop.opened then
-        TriggerClientEvent('pvp_market:notify', src, 'La caisse a déjà été ouverte !', false)
+        notify(src, 'La caisse a déjà été ouverte !', 'error')
         return
     end
     -- SÉCURITÉ : timeout sur lockedBy (un joueur peut avoir déco sans trigger closeUI).
@@ -182,14 +238,14 @@ AddEventHandler('pvp_drops:open', function(dropId)
             activeDrop.lockedBy = nil
             activeDrop.lockedAt = nil
         else
-            TriggerClientEvent('pvp_market:notify', src, 'Un joueur accède déjà à ce drop !', false)
+            notify(src, 'Un joueur accède déjà à ce drop !', 'error')
             return
         end
     end
 
     -- SÉCURITÉ : le joueur doit être à proximité du drop.
     if not playerNearDrop(src) then
-        TriggerClientEvent('pvp_market:notify', src, 'Trop loin du drop.', false)
+        notify(src, 'Trop loin du drop.', 'error')
         return
     end
 
@@ -209,7 +265,7 @@ AddEventHandler('pvp_drops:open', function(dropId)
 
     TriggerClientEvent('pvp_inventory:openUIWithDrop', src, {
         dropId    = activeDrop.id,
-        dropLabel = '★ DROP DE RAVITAILLEMENT',
+        dropLabel = 'DROP DE RAVITAILLEMENT',
         dropItems = lootWithLabels(activeDrop.loot),
         inventory = inventory,
         money     = { bank = xPlayer.getAccount('bank').money },
@@ -219,8 +275,6 @@ AddEventHandler('pvp_drops:open', function(dropId)
 end)
 
 -- ── Prendre un item du drop ───────────────────────────────────────────────
-local dropItemLocks = {}  -- [itemName] = true pendant le traitement
-
 RegisterNetEvent('pvp_drops:takeItem')
 AddEventHandler('pvp_drops:takeItem', function(dropId, itemName, qty)
     local src = source
@@ -255,7 +309,7 @@ AddEventHandler('pvp_drops:takeItem', function(dropId, itemName, qty)
     if ok and res == false then canAdd = false end
     if not canAdd then
         dropItemLocks[itemName] = nil
-        TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd !', false)
+        notify(src, 'Sac trop lourd !', 'error')
         return
     end
 
@@ -294,13 +348,8 @@ AddEventHandler('pvp_drops:takeItem', function(dropId, itemName, qty)
     -- Drop vide → fermer pour tout le monde
     if #activeDrop.loot == 0 then
         local playerName = GetPlayerName(src) or 'Joueur'
-        TriggerClientEvent('chat:addMessage', -1, {
-            color = { 255, 200, 50 },
-            args = { '★ DROP ★', playerName .. ' a tout récupéré dans le drop !' }
-        })
-        TriggerClientEvent('pvp_drops:opened', -1, dropId)
-        activeDrop = nil
-        dropItemLocks = {}  -- Reset les locks
+        notifyAll(playerName .. ' a tout récupéré dans le drop.', 'info', 6000)
+        endDrop('looted')
     end
 end)
 
@@ -311,6 +360,7 @@ AddEventHandler('pvp_drops:closeUI', function(dropId)
     if not activeDrop or activeDrop.id ~= dropId then return end
     if activeDrop.lockedBy ~= src then return end
     activeDrop.lockedBy = nil  -- libère le drop pour un autre joueur
+    activeDrop.lockedAt = nil
     print('[pvp_drops] ' .. (GetPlayerName(src) or 'Joueur') .. ' ferme le drop #' .. dropId .. ' (' .. #activeDrop.loot .. ' items restants)')
 end)
 
@@ -325,9 +375,21 @@ CreateThread(function()
     startDrop()
     while true do
         Wait(Config.DropInterval)
-        activeDrop = nil
+        endDrop('replaced')
         Wait(5000)
         startDrop()
+    end
+end)
+
+-- ── Watchdog d'expiration ────────────────────────────────────────────────
+-- Un drop jamais vidé ne doit pas rester en jeu jusqu'au prochain cycle.
+CreateThread(function()
+    while true do
+        Wait(10000)
+        if activeDrop and activeDrop.expiresAt and os.time() >= activeDrop.expiresAt then
+            notifyAll('La caisse de ravitaillement n\'a pas été récupérée à temps.', 'info', 6000)
+            endDrop('expired')
+        end
     end
 end)
 
@@ -340,17 +402,33 @@ RegisterCommand('dropadmin', function(src, args, raw)
         local group = xPlayer.getGroup()
         if group ~= 'admin' and group ~= 'superadmin' then return end
     end
-    activeDrop = nil
+    endDrop('admin')
     startDrop()
 end, true)
 
--- SÉCURITÉ : si le joueur qui verrouillait le drop se déconnecte, libérer
--- le lock pour que le drop redevienne accessible aux autres.
+-- ── Déconnexion : libérer le lock ET réassigner le contrôleur ────────────
+-- Sans réassignation, la déco du contrôleur figeait l'avion et la caisse pour
+-- tous les autres joueurs, sans erreur ni message.
 AddEventHandler('playerDropped', function()
     local src = source
-    if activeDrop and activeDrop.lockedBy == src then
+    if not activeDrop then return end
+
+    if activeDrop.lockedBy == src then
         activeDrop.lockedBy = nil
         activeDrop.lockedAt = nil
+    end
+
+    if activeDrop.controller == src then
+        local newController = pickController(src)
+        if not newController then
+            -- Plus personne pour piloter les entités : le drop n'a plus de sens.
+            endDrop('no_players')
+            return
+        end
+        activeDrop.controller = newController
+        TriggerClientEvent('pvp_drops:controllerChanged', -1, activeDrop.id, newController)
+        print(('[pvp_drops] Contrôleur %d déconnecté — drop #%d réassigné à %d'):format(
+            src, activeDrop.id, newController))
     end
 end)
 
@@ -369,6 +447,6 @@ AddEventHandler('pvp_drops:forceStart', function()
             return
         end
     end
-    activeDrop = nil
+    endDrop('admin')
     startDrop()
 end)

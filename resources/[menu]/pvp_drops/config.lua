@@ -19,6 +19,14 @@ Config.FallDuration = 5 * 60 * 1000     -- 5 minutes
 -- Délai avant ouverture après atterrissage (ms)
 Config.OpenDelay = 5 * 60 * 1000        -- 5 minutes
 
+-- Durée de vie totale d'un drop, du largage à sa disparition (ms).
+-- Passé ce délai la caisse est retirée même si elle n'a pas été vidée, et tous
+-- les clients sont notifiés (sinon blips/caisse restaient affichés côté client
+-- pour un drop déjà supprimé côté serveur).
+-- Timeline : approche 45s + chute 5min + sécurisation 5min ≈ 11min avant
+-- ouverture → il reste ~49min de disponibilité réelle sur 1h.
+Config.DropLifetime = 60 * 60 * 1000    -- 1 heure
+
 -- Altitude de départ de la caisse (mètres au-dessus du sol)
 Config.DropAltitude = 450.0
 
@@ -33,6 +41,22 @@ Config.PlaneModel = 'cargoplane'
 
 -- Modèle de la caisse
 Config.CrateModel = 'prop_mil_crate_01'
+
+-- ── Fusées éclairantes autour de la caisse posée ─────────────────────────
+Config.FlareModel   = 'prop_flare_01'   -- prop de fusée éclairante
+Config.FlareCount   = 6                 -- nombre de fusées en cercle
+Config.FlareRadius  = 4.5               -- rayon du cercle (mètres)
+Config.FlarePtfxDict = 'core'           -- dictionnaire de particules
+Config.FlarePtfxName = 'exp_grd_flare'  -- effet de flamme/fumée rouge
+Config.FlareSoundSet = 'FBI_05_SOUNDS'  -- soundset contenant le son de flare
+Config.FlareSoundName = 'Flare'         -- son d'allumage joué à l'atterrissage
+Config.FlareSoundRange = 80             -- portée du son (mètres)
+
+-- ── Trajectoire sur la minimap (flèches rouges clignotantes) ─────────────
+Config.TrailSpacing     = 220.0  -- distance entre deux flèches (mètres)
+Config.TrailScale       = 0.45   -- taille des flèches (petites)
+Config.TrailFlashBase   = 450    -- intervalle de clignotement de base (ms)
+Config.TrailFlashStagger = 90    -- décalage par flèche → effet de vague (ms)
 
 -- ── Zones de drop (avec Z au sol précis) ─────────────────────────────────
 Config.DropZones = {
