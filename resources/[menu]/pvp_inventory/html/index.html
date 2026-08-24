@@ -262,6 +262,10 @@
             <span class="crew-stat-val" id="crew-s-best">—</span>
             <span class="crew-stat-lbl">MEILLEUR</span>
           </div>
+          <div class="crew-stat-card">
+            <span class="crew-stat-val" id="crew-s-bank">0</span>
+            <span class="crew-stat-lbl">CRÉDITS DE CREW</span>
+          </div>
         </div>
 
         <!-- Actions -->
@@ -278,6 +282,9 @@
           <button class="crew-subtab" data-subtab="stash">COFFRE</button>
           <button class="crew-subtab" data-subtab="objectives">OBJECTIFS</button>
           <button class="crew-subtab" data-subtab="events">EVENTS</button>
+          <button class="crew-subtab" data-subtab="contract">CONTRAT</button>
+          <button class="crew-subtab" data-subtab="shop">BOUTIQUE</button>
+          <button class="crew-subtab" data-subtab="history">HISTORIQUE</button>
         </div>
 
         <!-- Classement des membres -->
@@ -331,6 +338,22 @@
             <button id="crew-event-create" class="crew-btn-action">PLANIFIER</button>
           </div>
           <div id="crew-events-list" class="crew-member-list"></div>
+        </div>
+
+        <!-- Contrat quotidien de crew : élimination de zombies -->
+        <div id="crew-sub-contract" class="crew-sub-content" style="display:none">
+          <div id="crew-contract-box"></div>
+        </div>
+
+        <!-- Boutique de crew : avantages temporaires payés en crédits de crew -->
+        <div id="crew-sub-shop" class="crew-sub-content" style="display:none">
+          <p class="crew-empty" id="crew-shop-hint">Seuls le chef et les officiers peuvent acheter un bonus.</p>
+          <div id="crew-shop-list" class="crew-shop-grid"></div>
+        </div>
+
+        <!-- Historique des gains/dépenses de la trésorerie de crew -->
+        <div id="crew-sub-history" class="crew-sub-content" style="display:none">
+          <div id="crew-history-list" class="crew-member-list"></div>
         </div>
         <!-- Panel invite (liste joueurs en ligne) -->
         <div id="crew-invite-panel" style="display:none">

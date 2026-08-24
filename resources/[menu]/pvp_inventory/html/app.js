@@ -2097,6 +2097,7 @@ function renderCrewTab() {
   setText('crew-s-zombies', Number(crewData.zombies_total || 0).toLocaleString('fr-FR'));
   setText('crew-s-count', crewData.members ? crewData.members.length : 0);
   setText('crew-s-best', crewData.bestPlayer || '---');
+  setText('crew-s-bank', Number(crewData.bank || 0).toLocaleString('fr-FR'));
   const best = document.getElementById('crew-s-best');
   if (best) best.title = 'Niveau ' + (crewData.level || 1) + ' | XP ' + (crewData.xp || 0) + ' | Banque crew $' + (crewData.bank || 0);
 
@@ -2110,6 +2111,9 @@ function renderCrewTab() {
   renderCrewStash();
   renderCrewObjectives();
   renderCrewEvents();
+  renderCrewContract();
+  renderCrewShop();
+  renderCrewHistory();
 }
 
 function roleLabel(rank) {
@@ -2203,6 +2207,77 @@ function renderCrewEvents() {
   list.innerHTML = events.map(ev => `<div class="crew-event-row"><div><strong>${esc(ev.title || 'Event')}</strong><span>${esc(ev.starts_at || 'Date libre')} | ${esc(ev.status || 'planned')}</span></div><div class="crew-event-actions"><button class="crew-btn-sm promote" onclick="crewSetEventStatus(${Number(ev.id)}, 'active')">START</button><button class="crew-btn-sm promote" onclick="crewSetEventStatus(${Number(ev.id)}, 'won')">WIN</button><button class="crew-btn-sm danger" onclick="crewSetEventStatus(${Number(ev.id)}, 'cancelled')">X</button></div></div>`).join('');
 }
 
+// ── Contrat quotidien de crew (élimination de zombies) ──────────────────
+function renderCrewContract() {
+  const box = document.getElementById('crew-contract-box');
+  if (!box) return;
+  const c = crewData && crewData.contract;
+  if (!c) {
+    box.innerHTML = '<p class="crew-empty">Aucun contrat en cours.</p>';
+    return;
+  }
+  const progress = Number(c.progress || 0);
+  const target = Math.max(1, Number(c.target || 1));
+  const pct = Math.min(100, Math.floor((progress / target) * 100));
+  const done = Number(c.completed || 0) === 1;
+  const participants = Number(c.participants || 0);
+  const rewardLine = done ? ` | +${fmt(c.reward_credits || 0)} crédits gagnés` : '';
+  box.innerHTML = `<div class="crew-objective-row ${done ? 'done' : ''}">
+      <div class="crew-objective-head"><strong>Contrat du jour — Élimination de zombies</strong><span>${done ? 'TERMINÉ' : pct + '%'}</span></div>
+      <div class="crew-progress"><i style="width:${pct}%"></i></div>
+      <div class="crew-objective-meta">${fmt(progress)} / ${fmt(target)} zombies | ${participants} participant${participants > 1 ? 's' : ''} actif${participants > 1 ? 's' : ''}${rewardLine}</div>
+    </div>
+    <p class="crew-empty">L'objectif s'ajuste automatiquement au nombre de membres qui participent réellement ce jour-là. Récompense en crédits de crew, versée dans la trésorerie collective. Se réinitialise chaque jour.</p>`;
+}
+
+// ── Boutique de crew : avantages temporaires ─────────────────────────────
+function renderCrewShop() {
+  const list = document.getElementById('crew-shop-list');
+  if (!list) return;
+  const items = crewData && crewData.shopItems ? crewData.shopItems : [];
+  const canBuy = crewMyRank === 'owner' || crewMyRank === 'officer';
+  const hint = document.getElementById('crew-shop-hint');
+  if (hint) hint.style.display = canBuy ? 'none' : '';
+  if (!items.length) {
+    list.innerHTML = '<p class="crew-empty">Boutique indisponible.</p>';
+    return;
+  }
+  const now = Date.now() / 1000;
+  list.innerHTML = items.map(it => {
+    const active = it.activeUntil && it.activeUntil > now;
+    const minsLeft = active ? Math.max(1, Math.ceil((it.activeUntil - now) / 60)) : 0;
+    const disabled = active || !canBuy;
+    const btnLabel = active ? ('ACTIF — ' + minsLeft + ' min restantes') : ('ACHETER — ' + fmt(it.cost) + ' crédits');
+    return `<div class="crew-shop-item${active ? ' active' : ''}">
+        <div class="crew-shop-item-head"><strong>${esc(it.label)}</strong><span>${Number(it.durationMinutes || 0)} min</span></div>
+        <p class="crew-shop-item-desc">${esc(it.description || '')}</p>
+        <button class="crew-btn-action" ${disabled ? 'disabled' : ''} onclick="crewBuyShop('${esc(it.key)}')">${btnLabel}</button>
+      </div>`;
+  }).join('');
+}
+
+// ── Historique des gains/dépenses de la trésorerie de crew ──────────────
+function renderCrewHistory() {
+  const list = document.getElementById('crew-history-list');
+  if (!list) return;
+  const history = crewData && crewData.history ? crewData.history : [];
+  if (!history.length) {
+    list.innerHTML = '<p class="crew-empty">Aucune opération de trésorerie.</p>';
+    return;
+  }
+  list.innerHTML = history.map(h => {
+    const amount = Number(h.amount || 0);
+    const positive = amount > 0;
+    const d = new Date(h.created_at);
+    const time = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const who = h.player_name ? (' — ' + esc(h.player_name)) : '';
+    return `<div class="crew-history-row ${positive ? 'gain' : 'expense'}">
+        <div class="ch-info"><span class="ch-label">${esc(h.label || '')}${who}</span><span class="ch-time">${time}</span></div>
+        <span class="ch-amount">${positive ? '+' : ''}${fmt(amount)}</span>
+      </div>`;
+  }).join('');
+}
+
 function renderCrewInvites() {
   const list = document.getElementById('crew-invites-list');
   if (!list) return;
@@ -2245,7 +2320,7 @@ document.querySelectorAll('.crew-subtab').forEach(t => {
     document.querySelectorAll('.crew-subtab').forEach(s => s.classList.remove('active'));
     t.classList.add('active');
     const sub = t.dataset.subtab;
-    ['members', 'activity', 'stash', 'objectives', 'events'].forEach(name => {
+    ['members', 'activity', 'stash', 'objectives', 'events', 'contract', 'shop', 'history'].forEach(name => {
       const el = document.getElementById('crew-sub-' + name);
       if (el) el.style.display = sub === name ? '' : 'none';
     });
@@ -2289,6 +2364,7 @@ window.crewDeclineInvite = crewId => crewFetch('crewDeclineInvite', { crewId }).
 window.crewPromote = (identifier, rank) => crewShowConfirm('Changer le role de ce joueur ?', () => crewFetch('crewPromote', { identifier, rank }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); }));
 window.crewKick = identifier => crewShowConfirm('Exclure ce membre du crew ?', () => crewFetch('crewKick', { identifier }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 800); }));
 window.crewSetEventStatus = (eventId, status) => crewFetch('crewSetEventStatus', { eventId, status }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
+window.crewBuyShop = key => crewFetch('crewBuyShopItem', { key }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 // ══════════════════════════════════════════════════════════════════════════
 
 // Syncs depuis pvp_vcoins client (via NUI message relayé par le client Lua)

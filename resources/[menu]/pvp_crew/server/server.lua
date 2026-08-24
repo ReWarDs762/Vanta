@@ -5,6 +5,11 @@
 local ESX = nil
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
+-- ── Cache mémoire des bonus temporaires de crew (boutique) ─────────────────
+-- [crewId] = { [buff_key] = { value = number, expiresAt = os.time() epoch } }
+-- Rechargé depuis `pvp_crew_buffs` au démarrage (persistance redémarrage serveur).
+local crewBuffsCache = {}
+
 -- ── Création des tables au démarrage ──────────────────────────────────────
 Citizen.CreateThread(function()
     MySQL.Async.execute([[
@@ -99,6 +104,74 @@ Citizen.CreateThread(function()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
 
+    -- ── Contrat quotidien de crew (élimination de zombies) ────────────────
+    -- Une ligne par crew par jour (period_key = YYYY-MM-DD). `target` est
+    -- recalculé en cours de journée quand un nouveau participant contribue
+    -- (voir Config.DailyContract). Les lignes passées restent en base =
+    -- historique implicite des contrats (même logique que pvp_crew_objectives).
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pvp_crew_contracts` (
+            `id`             INT AUTO_INCREMENT PRIMARY KEY,
+            `crew_id`        INT NOT NULL,
+            `period_key`     VARCHAR(20) NOT NULL,
+            `target`         INT NOT NULL DEFAULT 0,
+            `progress`       INT NOT NULL DEFAULT 0,
+            `participants`   INT NOT NULL DEFAULT 0,
+            `completed`      TINYINT DEFAULT 0,
+            `reward_credits` INT DEFAULT 0,
+            `completed_at`   TIMESTAMP NULL DEFAULT NULL,
+            `created_at`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_crew_contract_period` (`crew_id`, `period_key`),
+            FOREIGN KEY (`crew_id`) REFERENCES `pvp_crews`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]])
+
+    -- ── Participants actifs par contrat (qui a contribué, combien) ─────────
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pvp_crew_contract_participants` (
+            `id`         INT AUTO_INCREMENT PRIMARY KEY,
+            `crew_id`    INT NOT NULL,
+            `period_key` VARCHAR(20) NOT NULL,
+            `identifier` VARCHAR(60) NOT NULL,
+            `kills`      INT NOT NULL DEFAULT 0,
+            UNIQUE KEY `unique_contract_participant` (`crew_id`, `period_key`, `identifier`),
+            FOREIGN KEY (`crew_id`) REFERENCES `pvp_crews`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]])
+
+    -- ── Historique des gains/dépenses de la trésorerie de crew ─────────────
+    -- amount > 0 = gain (contrat), amount < 0 = dépense (achat boutique).
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pvp_crew_treasury_log` (
+            `id`          INT AUTO_INCREMENT PRIMARY KEY,
+            `crew_id`     INT NOT NULL,
+            `type`        VARCHAR(30) NOT NULL,
+            `label`       VARCHAR(120) NOT NULL,
+            `amount`      INT NOT NULL,
+            `identifier`  VARCHAR(60) DEFAULT NULL,
+            `player_name` VARCHAR(60) DEFAULT NULL,
+            `created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (`crew_id`) REFERENCES `pvp_crews`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]])
+
+    -- ── Avantages temporaires de crew achetés en boutique ──────────────────
+    -- expires_at/purchased_at en UNIX timestamp (secondes, os.time()) plutôt
+    -- que TIMESTAMP SQL : évite tout décalage de fuseau horaire entre le
+    -- calcul Lua (os.time()) et la comparaison SQL (NOW()) au redémarrage.
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pvp_crew_buffs` (
+            `id`            INT AUTO_INCREMENT PRIMARY KEY,
+            `crew_id`       INT NOT NULL,
+            `buff_key`      VARCHAR(30) NOT NULL,
+            `value`         DECIMAL(10,2) NOT NULL,
+            `purchased_by`  VARCHAR(60) NOT NULL,
+            `purchased_at`  INT NOT NULL,
+            `expires_at`    INT NOT NULL,
+            FOREIGN KEY (`crew_id`) REFERENCES `pvp_crews`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]])
+
     -- Ajouter les colonnes manquantes si tables existent déjà (portable)
     local function addCol(tbl, col, def)
         MySQL.Async.fetchScalar(
@@ -125,6 +198,25 @@ Citizen.CreateThread(function()
     addCol('pvp_crew_members', 'stash_withdraws','INT DEFAULT 0')
 
     print('[pvp_crew] Tables crew créées.')
+end)
+
+-- ── Rechargement des bonus de crew actifs au démarrage (persistance) ───────
+-- Attend que les tables soient prêtes (créées dans le thread ci-dessus, sur
+-- la même connexion : l'ordre d'exécution des requêtes MySQL.Async est
+-- préservé). Réapplique aussi le bonus de conteneur à tout membre déjà
+-- connecté (cas: redémarrage resource pendant qu'un bonus est actif).
+Citizen.CreateThread(function()
+    Citizen.Wait(1500)
+    MySQL.Async.fetchAll('SELECT crew_id, buff_key, value, expires_at FROM pvp_crew_buffs WHERE expires_at > @now', {
+        ['@now'] = os.time()
+    }, function(rows)
+        for _, r in ipairs(rows or {}) do
+            crewBuffsCache[r.crew_id] = crewBuffsCache[r.crew_id] or {}
+            crewBuffsCache[r.crew_id][r.buff_key] = { value = tonumber(r.value), expiresAt = tonumber(r.expires_at) }
+        end
+        if reapplyAllCrewContainerBoosts then reapplyAllCrewContainerBoosts() end
+        print(('[pvp_crew] %d bonus de crew actifs rechargés.'):format(#(rows or {})))
+    end)
 end)
 
 -- ══════════════════════════════════════════════════════════════════════════
@@ -208,6 +300,9 @@ local function getCrewData(crewId, cb)
                     crew.stash = advanced.stash
                     crew.objectives = advanced.objectives
                     crew.events = advanced.events
+                    crew.contract = advanced.contract
+                    crew.history = advanced.history
+                    crew.shopItems = advanced.shopItems
                     cb(crew)
                 end)
             end)
@@ -276,9 +371,13 @@ local function getPeriodKey(kind)
     return os.date('%Y-%m-%d')
 end
 
+-- NOTE : l'ancien objectif générique 'daily_zombies' (75 zombies, cible fixe)
+-- a été retiré et remplacé par le Contrat Quotidien de Crew dédié ci-dessous
+-- (voir ensureCrewContract/progressContract) : cible qui s'adapte au nombre
+-- de participants actifs + récompense en crédits de crew + historique dédié.
+-- Le garder ici aurait doublé la récompense pour les mêmes kills de zombies.
 local DEFAULT_OBJECTIVES = {
     { key='daily_pvp_kills', label='Abattre 10 survivants', type='pvp_kill', target=10, rewardXp=300, rewardBank=750, period='daily' },
-    { key='daily_zombies', label='Nettoyer 75 zombies', type='zombie_kill', target=75, rewardXp=250, rewardBank=500, period='daily' },
     { key='weekly_redzone', label='Dominer la redzone: 25 kills', type='redzone_kill', target=25, rewardXp=1200, rewardBank=2500, period='weekly' },
 }
 
@@ -301,6 +400,218 @@ local function ensureCrewObjectives(crewId)
     end
 end
 
+-- ══════════════════════════════════════════════════════════════════════════
+--   TRÉSORERIE DE CREW — historique des gains/dépenses
+-- ══════════════════════════════════════════════════════════════════════════
+-- amount > 0 = gain (contrat), amount < 0 = dépense (achat boutique).
+local function logTreasury(crewId, opType, label, amount, identifier, playerName)
+    MySQL.Async.execute([[
+        INSERT INTO pvp_crew_treasury_log (crew_id, type, label, amount, identifier, player_name)
+        VALUES (@cid, @type, @label, @amount, @id, @name)
+    ]], {
+        ['@cid'] = crewId, ['@type'] = opType, ['@label'] = label,
+        ['@amount'] = amount, ['@id'] = identifier, ['@name'] = playerName,
+    })
+end
+
+-- ── Notifie tous les membres en ligne d'un crew (toast client) ────────────
+local function notifyCrewMembers(crewId, message)
+    MySQL.Async.fetchAll('SELECT identifier FROM pvp_crew_members WHERE crew_id = @cid', { ['@cid'] = crewId }, function(rows)
+        local ids = {}
+        for _, r in ipairs(rows or {}) do ids[r.identifier] = true end
+        local xPlayers = ESX.GetPlayers()
+        for _, playerId in ipairs(xPlayers) do
+            local xP = ESX.GetPlayerFromId(playerId)
+            if xP and ids[xP.identifier] then
+                TriggerClientEvent('pvp_crew:notify', playerId, message)
+            end
+        end
+    end)
+end
+
+local function getCrewMemberIdentifiers(crewId, cb)
+    MySQL.Async.fetchAll('SELECT identifier FROM pvp_crew_members WHERE crew_id = @cid', { ['@cid'] = crewId }, function(rows)
+        local ids = {}
+        for _, r in ipairs(rows or {}) do ids[#ids + 1] = r.identifier end
+        cb(ids)
+    end)
+end
+
+-- ── Applique/retire le bonus de conteneur "boutique de crew" à tous les
+--    membres d'un crew. Utilise la source dédiée 'crew' de pvp_inventory,
+--    additive avec les bonus prestige (vanta_xp) et abonnement (pvp_vcoins) —
+--    voir exports('setContainerBonus', ...) dans pvp_inventory/server/server.lua.
+--    Ré-appelée avec bonus=0 quand le buff expire ou qu'un membre part :
+--    ça ne supprime ni ne duplique aucun objet, ça ajuste juste la capacité
+--    max — un coffre déjà au-dessus de la nouvelle limite reste intact, le
+--    joueur ne peut simplement plus rien y déposer tant qu'il n'est pas repassé
+--    sous la limite (même logique que pour tout changement de capacité).
+function applyCrewContainerBoost(crewId)
+    local buffs = crewBuffsCache[crewId]
+    local buff = buffs and buffs.container_boost
+    local now = os.time()
+    local bonus = (buff and buff.expiresAt > now) and buff.value or 0
+    getCrewMemberIdentifiers(crewId, function(ids)
+        for _, identifier in ipairs(ids) do
+            pcall(function()
+                exports['pvp_inventory']:setContainerBonus(identifier, bonus, 'crew')
+            end)
+        end
+    end)
+end
+
+-- ── Retire le bonus de conteneur "boutique de crew" d'un joueur qui quitte
+--    (leave/kick/disband) : il n'est plus couvert par le buff de son ancien
+--    crew, quel que soit son état (actif ou déjà expiré).
+local function resetMemberCrewContainerBonus(identifier)
+    pcall(function()
+        exports['pvp_inventory']:setContainerBonus(identifier, 0, 'crew')
+    end)
+end
+
+-- ── Réapplique le bonus de conteneur pour tous les crews ayant un buff actif
+--    (appelé une seule fois au démarrage de la resource, après le rechargement
+--    de crewBuffsCache — couvre le cas d'un redémarrage pendant un bonus actif).
+function reapplyAllCrewContainerBoosts()
+    for crewId, buffs in pairs(crewBuffsCache) do
+        if buffs.container_boost then
+            applyCrewContainerBoost(crewId)
+        end
+    end
+end
+
+local BUFF_LABELS = {
+    zombie_xp2      = 'XP Zombies x2',
+    pvp_xp50        = 'XP PvP +50%',
+    container_boost = 'Coffre protégé (bonus temporaire)',
+}
+
+-- ── Construit le payload boutique pour la NUI (config statique + état live) ─
+local function buildShopPayload(crewId)
+    local buffs = crewBuffsCache[crewId] or {}
+    local now = os.time()
+    local list = {}
+    for _, it in ipairs(Config.CrewShop) do
+        local active = buffs[it.key]
+        local activeUntil = (active and active.expiresAt > now) and active.expiresAt or nil
+        list[#list + 1] = {
+            key = it.key,
+            label = it.label,
+            description = it.description,
+            cost = it.cost,
+            durationMinutes = it.durationMinutes,
+            value = it.value,
+            activeUntil = activeUntil, -- epoch secondes (os.time()), nil si inactif
+        }
+    end
+    return list
+end
+
+-- ══════════════════════════════════════════════════════════════════════════
+--   CONTRAT QUOTIDIEN DE CREW — élimination de zombies
+-- ══════════════════════════════════════════════════════════════════════════
+-- target = ZombiesPerMember × nombre de participants actifs (membres ayant
+-- contribué au moins 1 kill au contrat du jour). Recalculé à chaque nouveau
+-- participant. Progression et complétion 100% côté serveur (déclenché
+-- uniquement par le handler interne pvp_crew:zombieKill, jamais par le client).
+
+local function computeContractTarget(participants)
+    participants = math.max(Config.DailyContract.MinParticipants, math.min(participants, Config.DailyContract.MaxParticipants))
+    return Config.DailyContract.ZombiesPerMember * participants
+end
+
+local function ensureCrewContract(crewId, cb)
+    local period = getPeriodKey('daily')
+    MySQL.Async.fetchAll('SELECT * FROM pvp_crew_contracts WHERE crew_id = @cid AND period_key = @p', {
+        ['@cid'] = crewId, ['@p'] = period
+    }, function(rows)
+        if rows and rows[1] then cb(rows[1]) return end
+        local target = computeContractTarget(0)
+        MySQL.Async.insert([[
+            INSERT INTO pvp_crew_contracts (crew_id, period_key, target, participants)
+            VALUES (@cid, @p, @t, 0)
+        ]], { ['@cid'] = crewId, ['@p'] = period, ['@t'] = target }, function(id)
+            cb({
+                id = id, crew_id = crewId, period_key = period,
+                target = target, progress = 0, participants = 0,
+                completed = 0, reward_credits = 0,
+            })
+        end)
+    end)
+end
+
+local function completeContract(crewId, contract)
+    local participants = math.max(tonumber(contract.participants) or 1, 1)
+    local reward = math.floor(Config.DailyContract.RewardPerParticipant * participants)
+    reward = math.max(Config.DailyContract.MinReward, math.min(reward, Config.DailyContract.MaxReward))
+
+    -- Garde `completed = 0` dans le WHERE : anti-race si deux kills concurrents
+    -- déclenchent la complétion en même temps, un seul l'emporte réellement
+    -- (affected = 0 pour le second) → pas de double récompense.
+    MySQL.Async.execute(
+        'UPDATE pvp_crew_contracts SET completed = 1, reward_credits = @r, completed_at = NOW() WHERE id = @id AND completed = 0',
+        { ['@r'] = reward, ['@id'] = contract.id },
+        function(affected)
+            if not affected or affected < 1 then return end
+            MySQL.Async.execute('UPDATE pvp_crews SET bank = bank + @r WHERE id = @cid', { ['@r'] = reward, ['@cid'] = crewId })
+            logTreasury(crewId, 'contract_reward', 'Contrat quotidien : élimination de zombies', reward, nil, nil)
+            addCrewActivity(crewId, 'contract', ('Contrat quotidien terminé (%d participants) : +%d crédits de crew.'):format(participants, reward))
+            notifyCrewMembers(crewId, ('Contrat quotidien terminé ! +%d crédits de crew.'):format(reward))
+        end
+    )
+end
+
+-- ── Progression du contrat, appelée depuis le handler interne zombieKill.
+-- `identifier` est déjà garanti membre du crew par l'appelant.
+local function progressContract(crewId, identifier)
+    ensureCrewContract(crewId, function(contract)
+        if tonumber(contract.completed) == 1 then return end -- contrat du jour déjà bouclé
+
+        MySQL.Async.fetchScalar(
+            'SELECT COUNT(*) FROM pvp_crew_contract_participants WHERE crew_id = @cid AND period_key = @p AND identifier = @id',
+            { ['@cid'] = crewId, ['@p'] = contract.period_key, ['@id'] = identifier },
+            function(existCount)
+                local isNewParticipant = (tonumber(existCount) or 0) == 0
+
+                MySQL.Async.execute([[
+                    INSERT INTO pvp_crew_contract_participants (crew_id, period_key, identifier, kills)
+                    VALUES (@cid, @p, @id, 1)
+                    ON DUPLICATE KEY UPDATE kills = kills + 1
+                ]], { ['@cid'] = crewId, ['@p'] = contract.period_key, ['@id'] = identifier })
+
+                local function bumpProgress()
+                    -- LEAST(...) : ne dépasse jamais la cible même si plusieurs
+                    -- kills arrivent groupés juste avant la complétion.
+                    MySQL.Async.execute(
+                        'UPDATE pvp_crew_contracts SET progress = LEAST(progress + 1, target) WHERE id = @id AND completed = 0',
+                        { ['@id'] = contract.id },
+                        function()
+                            MySQL.Async.fetchAll('SELECT * FROM pvp_crew_contracts WHERE id = @id', { ['@id'] = contract.id }, function(rows2)
+                                local c = rows2 and rows2[1]
+                                if c and tonumber(c.completed) == 0 and tonumber(c.target) > 0 and tonumber(c.progress) >= tonumber(c.target) then
+                                    completeContract(crewId, c)
+                                end
+                            end)
+                        end
+                    )
+                end
+
+                if isNewParticipant then
+                    local newParticipants = math.min((tonumber(contract.participants) or 0) + 1, Config.DailyContract.MaxParticipants)
+                    local newTarget = computeContractTarget(newParticipants)
+                    MySQL.Async.execute(
+                        'UPDATE pvp_crew_contracts SET participants = @pc, target = @t WHERE id = @id AND completed = 0',
+                        { ['@pc'] = newParticipants, ['@t'] = newTarget, ['@id'] = contract.id },
+                        bumpProgress
+                    )
+                else
+                    bumpProgress()
+                end
+            end
+        )
+    end)
+end
+
 function loadCrewAdvanced(crewId, cb)
     ensureCrewObjectives(crewId)
     MySQL.Async.fetchAll('SELECT item, count FROM pvp_crew_stash WHERE crew_id = @cid AND count > 0 ORDER BY item ASC', {
@@ -312,7 +623,19 @@ function loadCrewAdvanced(crewId, cb)
             MySQL.Async.fetchAll('SELECT id, type, title, status, starts_at, ends_at, created_by, created_at FROM pvp_crew_events WHERE crew_id = @cid ORDER BY created_at DESC LIMIT 20', {
                 ['@cid'] = crewId
             }, function(events)
-                cb({ stash = stash or {}, objectives = objectives or {}, events = events or {} })
+                ensureCrewContract(crewId, function(contract)
+                    MySQL.Async.fetchAll([[
+                        SELECT type, label, amount, identifier, player_name, created_at
+                        FROM pvp_crew_treasury_log WHERE crew_id = @cid
+                        ORDER BY created_at DESC LIMIT 30
+                    ]], { ['@cid'] = crewId }, function(history)
+                        cb({
+                            stash = stash or {}, objectives = objectives or {}, events = events or {},
+                            contract = contract, history = history or {},
+                            shopItems = buildShopPayload(crewId),
+                        })
+                    end)
+                end)
             end)
         end)
     end)
@@ -533,6 +856,17 @@ ESX.RegisterServerCallback('pvp_crew:acceptInvite', function(src, cb, crewId)
             addCrewActivity(crewId, 'join', getPlayerName(src) .. ' a rejoint le crew.')
             MySQL.Async.fetchScalar('SELECT tag FROM pvp_crews WHERE id = @cid', { ['@cid'] = crewId }, function(tag)
                 TriggerClientEvent('pvp_crew:updateTag', src, tag)
+
+                -- Si le crew a un bonus "Coffre protégé" actif, le nouveau
+                -- membre doit en bénéficier immédiatement.
+                local buffs = crewBuffsCache[crewId]
+                local buff = buffs and buffs.container_boost
+                if buff and buff.expiresAt > os.time() then
+                    pcall(function()
+                        exports['pvp_inventory']:setContainerBonus(identifier, buff.value, 'crew')
+                    end)
+                end
+
                 cb(true, 'Vous avez rejoint le crew !')
             end)
         end)
@@ -579,6 +913,7 @@ ESX.RegisterServerCallback('pvp_crew:kickMember', function(src, cb, targetIdenti
                 ['@cid'] = crewId, ['@tid'] = targetIdentifier
             })
             addCrewActivity(crewId, 'kick', getPlayerName(src) .. ' a exclu un membre.')
+            resetMemberCrewContainerBonus(targetIdentifier)
             cb(true, 'Membre exclu.')
 
             -- Notifier la cible si en ligne
@@ -639,6 +974,7 @@ ESX.RegisterServerCallback('pvp_crew:leaveCrew', function(src, cb)
                     -- Seul membre → dissoudre
                     MySQL.Async.execute('DELETE FROM pvp_crews WHERE id = @cid', { ['@cid'] = crewId })
                     TriggerClientEvent('pvp_crew:updateTag', src, nil)
+                    resetMemberCrewContainerBonus(identifier)
                     cb(true, 'Crew dissous (vous étiez le dernier membre).')
                 else
                     -- Transférer
@@ -653,6 +989,7 @@ ESX.RegisterServerCallback('pvp_crew:leaveCrew', function(src, cb)
                         ['@cid'] = crewId, ['@id'] = identifier
                     })
                     TriggerClientEvent('pvp_crew:updateTag', src, nil)
+                    resetMemberCrewContainerBonus(identifier)
                     cb(true, 'Vous avez quitté le crew. Le chef a été transféré.')
                 end
             end)
@@ -661,6 +998,7 @@ ESX.RegisterServerCallback('pvp_crew:leaveCrew', function(src, cb)
                 ['@cid'] = crewId, ['@id'] = identifier
             })
             TriggerClientEvent('pvp_crew:updateTag', src, nil)
+            resetMemberCrewContainerBonus(identifier)
             cb(true, 'Vous avez quitté le crew.')
         end
     end)
@@ -679,6 +1017,12 @@ ESX.RegisterServerCallback('pvp_crew:disbandCrew', function(src, cb)
             ['@cid'] = crewId
         }, function(members)
             MySQL.Async.execute('DELETE FROM pvp_crews WHERE id = @cid', { ['@cid'] = crewId })
+
+            -- Plus de crew : retire le bonus de conteneur de tous les membres
+            -- (en ligne ou non — le mapping est par identifiant, pas par session).
+            for _, m in ipairs(members or {}) do
+                resetMemberCrewContainerBonus(m.identifier)
+            end
 
             -- Notifier tous les membres en ligne
             local xPlayers = ESX.GetPlayers()
@@ -881,6 +1225,77 @@ ESX.RegisterServerCallback('pvp_crew:setEventStatus', function(src, cb, eventId,
         cb(true, 'Evenement mis a jour.')
     end)
 end)
+
+-- ══════════════════════════════════════════════════════════════════════════
+--   BOUTIQUE DE CREW — achat d'un avantage temporaire
+-- ══════════════════════════════════════════════════════════════════════════
+ESX.RegisterServerCallback('pvp_crew:buyShopItem', function(src, cb, buffKey)
+    local identifier = getIdentifier(src)
+    if not identifier then cb(false, 'Erreur joueur.') return end
+
+    local shopItem = nil
+    for _, it in ipairs(Config.CrewShop) do
+        if it.key == buffKey then shopItem = it break end
+    end
+    if not shopItem then cb(false, 'Bonus invalide.') return end
+
+    getPlayerCrewInfo(identifier, function(crewId, rank)
+        if not crewId then cb(false, 'Pas de crew.') return end
+        -- Dépense de la trésorerie collective : réservé au chef/officier,
+        -- même permission que MOTD/couleur ('manage').
+        if not hasPermission(rank, 'manage') then
+            cb(false, 'Seuls le chef et les officiers peuvent acheter un bonus.')
+            return
+        end
+
+        -- Anti cumul abusif : un bonus déjà actif ne peut pas être racheté
+        -- par-dessus (pas d'extension ni de stack de valeur), il faut attendre
+        -- son expiration.
+        local now = os.time()
+        local buffs = crewBuffsCache[crewId]
+        local active = buffs and buffs[buffKey]
+        if active and active.expiresAt > now then
+            local minsLeft = math.ceil((active.expiresAt - now) / 60)
+            cb(false, ('%s est déjà actif (expire dans %d min).'):format(shopItem.label, minsLeft))
+            return
+        end
+
+        -- Débit atomique de la trésorerie : la condition bank >= cost dans le
+        -- WHERE empêche un double-achat concurrent de passer en négatif.
+        MySQL.Async.execute('UPDATE pvp_crews SET bank = bank - @cost WHERE id = @cid AND bank >= @cost', {
+            ['@cost'] = shopItem.cost, ['@cid'] = crewId
+        }, function(affected)
+            if not affected or affected < 1 then
+                cb(false, 'Crédits de crew insuffisants (' .. shopItem.cost .. ' requis).')
+                return
+            end
+
+            local expiresAt = now + (shopItem.durationMinutes * 60)
+            MySQL.Async.execute([[
+                INSERT INTO pvp_crew_buffs (crew_id, buff_key, value, purchased_by, purchased_at, expires_at)
+                VALUES (@cid, @key, @val, @by, @now, @exp)
+            ]], {
+                ['@cid'] = crewId, ['@key'] = buffKey, ['@val'] = shopItem.value,
+                ['@by'] = identifier, ['@now'] = now, ['@exp'] = expiresAt,
+            }, function()
+                crewBuffsCache[crewId] = crewBuffsCache[crewId] or {}
+                crewBuffsCache[crewId][buffKey] = { value = shopItem.value, expiresAt = expiresAt }
+
+                logTreasury(crewId, 'shop_purchase', shopItem.label, -shopItem.cost, identifier, getPlayerName(src))
+                addCrewActivity(crewId, 'shop', ('%s a acheté "%s" (-%d crédits, %d min).'):format(
+                    getPlayerName(src), shopItem.label, shopItem.cost, shopItem.durationMinutes))
+
+                if buffKey == 'container_boost' then
+                    applyCrewContainerBoost(crewId)
+                end
+
+                notifyCrewMembers(crewId, ('%s activé pour %d minutes !'):format(shopItem.label, shopItem.durationMinutes))
+                cb(true, shopItem.label .. ' activé !')
+            end)
+        end)
+    end)
+end)
+
 AddEventHandler('pvp_crew:zombieKill', function(identifier)
     if type(identifier) ~= 'string' or identifier == '' then return end
 
@@ -892,6 +1307,7 @@ AddEventHandler('pvp_crew:zombieKill', function(identifier)
             MySQL.Async.execute('UPDATE pvp_crew_members SET zombies_killed = zombies_killed + 1 WHERE identifier = @id', { ['@id'] = identifier })
             MySQL.Async.execute('UPDATE pvp_crews SET zombies_total = zombies_total + 1 WHERE id = @cid', { ['@cid'] = crewId })
             updateCrewObjectives(crewId, 'zombie_kill', 1)
+            progressContract(crewId, identifier)
         end
     end)
 end)
@@ -1091,20 +1507,80 @@ exports('getPlayerCrewTag', function(src)
     return nil
 end)
 
--- ── Charger le tag au login ──────────────────────────────────────────────
+-- ── Export : multiplicateur d'XP courant pour un joueur (boutique de crew) ─
+-- Appelé par vanta_xp (synchrone, même style que getPlayerCrewTag ci-dessus)
+-- juste avant d'ajouter de l'XP : addXP() n'a pas de notion de callback async,
+-- donc pvp_crew reste la seule source de vérité pour ses propres buffs mais
+-- doit répondre immédiatement. sourceKind = 'zombie_kill' | 'player_kill'.
+exports('getXPMultiplier', function(identifier, sourceKind)
+    if not identifier or not sourceKind then return 1.0 end
+    local ok, result = pcall(function()
+        return MySQL.Sync.fetchAll('SELECT crew_id FROM pvp_crew_members WHERE identifier = @id', { ['@id'] = identifier })
+    end)
+    if not ok or not result or #result == 0 then return 1.0 end
+
+    local crewId = result[1].crew_id
+    local buffs = crewBuffsCache[crewId]
+    if not buffs then return 1.0 end
+
+    local now = os.time()
+    local buffKey = (sourceKind == 'zombie_kill') and 'zombie_xp2'
+        or (sourceKind == 'player_kill') and 'pvp_xp50'
+        or nil
+    if not buffKey then return 1.0 end
+
+    local b = buffs[buffKey]
+    if b and b.expiresAt > now and type(b.value) == 'number' and b.value > 0 then
+        return b.value
+    end
+    return 1.0
+end)
+
+-- ── Charger le tag au login + réappliquer le bonus de conteneur de crew ────
+-- (couvre le cas d'un membre qui se reconnecte pendant qu'un bonus
+-- "Coffre protégé" acheté par son crew est toujours actif).
 RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded', function(playerId)
     local src = source
     Citizen.Wait(2000) -- attendre que tout soit chargé
     local identifier = getIdentifier(src)
     if not identifier then return end
-    MySQL.Async.fetchAll('SELECT c.tag FROM pvp_crews c JOIN pvp_crew_members m ON m.crew_id = c.id WHERE m.identifier = @id', {
+    MySQL.Async.fetchAll('SELECT c.id AS crew_id, c.tag FROM pvp_crews c JOIN pvp_crew_members m ON m.crew_id = c.id WHERE m.identifier = @id', {
         ['@id'] = identifier
     }, function(results)
         if results and #results > 0 then
             TriggerClientEvent('pvp_crew:updateTag', src, results[1].tag)
+
+            local crewId = results[1].crew_id
+            local buffs = crewBuffsCache[crewId]
+            local buff = buffs and buffs.container_boost
+            local bonus = (buff and buff.expiresAt > os.time()) and buff.value or 0
+            pcall(function()
+                exports['pvp_inventory']:setContainerBonus(identifier, bonus, 'crew')
+            end)
         end
     end)
+end)
+
+-- ── Balayage périodique : expire les bonus de crew arrivés à échéance ──────
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(30000) -- 30s : assez réactif sans matraquer la BDD
+        local now = os.time()
+        for crewId, buffs in pairs(crewBuffsCache) do
+            for key, b in pairs(buffs) do
+                if b.expiresAt <= now then
+                    buffs[key] = nil
+                    if key == 'container_boost' then
+                        applyCrewContainerBoost(crewId) -- réapplique avec bonus=0
+                    end
+                    local label = BUFF_LABELS[key] or key
+                    addCrewActivity(crewId, 'shop', 'Bonus expiré : ' .. label .. '.')
+                    notifyCrewMembers(crewId, 'Le bonus "' .. label .. '" est terminé.')
+                end
+            end
+        end
+    end
 end)
 
 print('[pvp_crew] Resource démarrée.')

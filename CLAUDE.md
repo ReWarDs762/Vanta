@@ -228,6 +228,54 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 ### Crew (pvp_crew)
 - Créer / rejoindre un crew
 - Tag de crew visible sur le joueur
+- Hiérarchie de rôles (`owner`/`officer`/`quartermaster`/`recruiter`/`member`/`recruit`),
+  coffre partagé (`pvp_crew_stash`), objectifs génériques (`pvp_crew_objectives` : PVP,
+  redzone — l'ancien objectif générique de zombies a été retiré, remplacé par le Contrat
+  Quotidien ci-dessous), events de crew
+
+**Trésorerie de crew** : `pvp_crews.bank` — monnaie collective, jamais retirable en argent
+personnel, créditée uniquement par les objectifs/le contrat quotidien, dépensée uniquement
+en boutique. Historique complet (gains + dépenses) dans `pvp_crew_treasury_log`.
+
+**Contrat quotidien de crew** (`Config.DailyContract` dans `pvp_crew/config.lua`) :
+- Élimination de zombies, un contrat par crew par jour (`pvp_crew_contracts`,
+  `period_key` = date du jour, même logique que les objectifs génériques)
+- Objectif = `ZombiesPerMember` (25 par défaut) × nombre de participants actifs
+  (membres ayant tué au moins 1 zombie pour le contrat ce jour-là,
+  `pvp_crew_contract_participants`) — recalculé à chaque nouveau participant
+- Déclenché depuis le handler interne `pvp_crew:zombieKill` existant (même pipeline que
+  les stats/objectifs zombies, 100% serveur — jamais de `RegisterNetEvent`)
+- Récompense : crédits de crew = `RewardPerParticipant × participants` (borné par
+  `MinReward`/`MaxReward`), versée dans `pvp_crews.bank` + entrée dans
+  `pvp_crew_treasury_log`
+
+**Boutique de crew** (`Config.CrewShop`) : 3 avantages temporaires payés en crédits de
+crew, réservés au chef/officier (permission `manage`), pas de cumul (achat refusé tant
+qu'un bonus du même type est actif) :
+- `zombie_xp2` — XP zombies ×2 pour tout le crew
+- `pvp_xp50` — XP PvP +50% pour tout le crew
+- `container_boost` — bonus temporaire de capacité du coffre protégé **personnel** de
+  chaque membre (+10kg / 2h par défaut, configurable) — ce n'est pas un coffre de crew,
+  ça augmente la capacité du coffre protégé individuel de `pvp_inventory`
+- État persistant dans `pvp_crew_buffs` (`expires_at` en epoch Unix, pas TIMESTAMP SQL —
+  évite tout décalage de fuseau horaire), rechargé en mémoire (`crewBuffsCache`) au
+  démarrage de la resource : un bonus actif survit à un redémarrage serveur
+- Multiplicateur XP exposé via l'export synchrone `pvp_crew:getXPMultiplier(identifier,
+  sourceKind)`, appelé par `vanta_xp` juste avant `addXP()` (`vanta_xp` reste l'unique
+  source de vérité de la progression, `pvp_crew` ne fournit qu'un multiplicateur ponctuel)
+- Bonus de conteneur appliqué/retiré via `exports['pvp_inventory']:setContainerBonus(id,
+  bonus, 'crew')` — voir « Piège corrigé » ci-dessous. Appliqué à la connexion/reconnexion
+  d'un membre, retiré quand il quitte/est exclu/le crew est dissous, remis à 0 à
+  l'expiration (balayage toutes les 30s). Un coffre déjà au-dessus de la capacité normale
+  après expiration n'est jamais tronqué : juste plus possible d'y déposer tant qu'on n'est
+  pas repassé sous la limite (aucune suppression ni duplication d'objets)
+
+> **Piège corrigé (bonus de conteneur multi-sources)** : `pvp_inventory` centralise le
+> bonus de capacité du coffre protégé personnel, alimenté par 3 sources indépendantes —
+> prestige (`vanta_xp`), abonnement (`pvp_vcoins`), boutique de crew (`pvp_crew`).
+> `exports('setContainerBonus', ...)` prend maintenant un 3ᵉ paramètre `source` et somme
+> les bonus par source au lieu d'écraser une valeur unique (l'écrasement silencieux entre
+> `vanta_xp` et `pvp_vcoins` existait avant l'ajout de ce 3ᵉ système — voir `STATUS.md`).
 
 ### Marché joueur (pvp_market)
 - Listings persistants (joueur → joueur)
@@ -363,9 +411,15 @@ dans `pvp_player_stats` (voir ci-dessous).
 - `society_moneywash` — blanchiment société (hérité ESX, jobs désactivés sur ce serveur)
 
 ### Crew
-- `pvp_crews` — crew : nom, tag, owner, stats agrégées, xp/level/bank de crew
+- `pvp_crews` — crew : nom, tag, owner, stats agrégées, xp/level/`bank` (= trésorerie/monnaie
+  collective du crew, voir CLAUDE.md → Crew)
 - `pvp_crew_members`, `pvp_crew_invites`, `pvp_crew_stash`, `pvp_crew_activity`,
   `pvp_crew_events`, `pvp_crew_objectives`
+- `pvp_crew_contracts`, `pvp_crew_contract_participants` — contrat quotidien de crew
+  (élimination de zombies), une ligne par crew par jour + participants actifs
+- `pvp_crew_treasury_log` — historique des gains/dépenses de la trésorerie de crew
+- `pvp_crew_buffs` — avantages temporaires achetés en boutique de crew (`expires_at` en
+  epoch Unix)
 
 ### Admin & logs
 - `pvp_admin_bans` — bannissements (identifier, raison, durée, actif)

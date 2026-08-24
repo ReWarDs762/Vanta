@@ -85,9 +85,19 @@ end
 -- ══ Système de poids du sac ═══════════════════════════════════════════════
 local MAX_BAG_WEIGHT = Config.MaxWeight or 50.0
 
--- ── Bonus de capacité par joueur (utilisé par vanta_xp prestige) ──────────
-local playerBagBonus       = {}  -- [identifier] = bonus kg
-local playerContainerBonus = {}  -- [identifier] = bonus kg
+-- ── Bonus de capacité par joueur (utilisé par vanta_xp prestige, pvp_vcoins,
+--    et pvp_crew) ────────────────────────────────────────────────────────
+local playerBagBonus = {}  -- [identifier] = bonus kg
+
+-- SÉCURITÉ/COHÉRENCE : le bonus de conteneur a plusieurs sources indépendantes
+-- (prestige vanta_xp, abonnement pvp_vcoins, boutique de crew pvp_crew) qui
+-- peuvent toutes être actives en même temps. Avant, `setContainerBonus`
+-- écrasait une valeur unique par identifiant : la dernière source à appeler
+-- l'export gagnait et effaçait silencieusement le bonus des autres (ex:
+-- reconnexion → vanta_xp applique le bonus prestige, puis pvp_vcoins écrase
+-- avec le bonus d'abonnement, prestige perdu). Stocké maintenant par source,
+-- additionné à la lecture.
+local containerBonusSources = {}  -- [identifier] = { [source] = bonus kg }
 
 -- Export : définir le bonus sac d'un joueur (appelé par vanta_xp)
 exports('setBagBonus', function(identifier, bonus)
@@ -95,11 +105,32 @@ exports('setBagBonus', function(identifier, bonus)
     playerBagBonus[identifier] = tonumber(bonus) or 0
 end)
 
--- Export : définir le bonus conteneur d'un joueur (appelé par vanta_xp)
-exports('setContainerBonus', function(identifier, bonus)
+-- Export : définir le bonus conteneur d'un joueur pour une source donnée
+-- (appelé par vanta_xp avec source='prestige', pvp_vcoins avec
+-- source='subscription', pvp_crew avec source='crew'). `source` omis => 'default'.
+exports('setContainerBonus', function(identifier, bonus, source)
     if not identifier then return end
-    playerContainerBonus[identifier] = tonumber(bonus) or 0
+    source = source or 'default'
+    containerBonusSources[identifier] = containerBonusSources[identifier] or {}
+    containerBonusSources[identifier][source] = tonumber(bonus) or 0
+
+    -- Pousse immédiatement la nouvelle capacité au client si en ligne
+    -- (sinon le bonus n'apparaît qu'au prochain refresh déclenché ailleurs)
+    local src = getSourceByIdentifier(identifier)
+    if src then
+        local xPlayer = ESX.GetPlayerFromId(src)
+        if xPlayer then refreshStash(src, xPlayer) end
+    end
 end)
+
+-- Helper : somme de tous les bonus conteneur (toutes sources) pour un joueur
+local function getContainerBonusTotal(identifier)
+    local sources = containerBonusSources[identifier]
+    if not sources then return 0 end
+    local total = 0
+    for _, v in pairs(sources) do total = total + v end
+    return total
+end
 
 -- Export : récupérer la capacité effective du sac d'un joueur
 exports('getPlayerBagCapacity', function(identifier)
@@ -108,7 +139,7 @@ end)
 
 -- Export : récupérer la capacité effective du conteneur d'un joueur
 exports('getPlayerContainerCapacity', function(identifier)
-    return 20.0 + (playerContainerBonus[identifier] or 0)
+    return 20.0 + getContainerBonusTotal(identifier)
 end)
 
 -- Helper : capacité sac effective pour un joueur
@@ -118,7 +149,7 @@ end
 
 -- Helper : capacité conteneur effective pour un joueur
 local function getEffectiveStashWeight(identifier)
-    return 20.0 + (playerContainerBonus[identifier] or 0)
+    return 20.0 + getContainerBonusTotal(identifier)
 end
 
 local ITEM_WEIGHTS = {
