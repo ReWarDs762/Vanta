@@ -21,7 +21,7 @@ resources/
 ├── [base]        — Resources FiveM de base (mapmanager, spawnmanager, chat, etc.)
 ├── [essential]   — ESX core (es_extended, mysql-async, essentialmode, esx_addonaccount)
 └── [menu]        — Resources custom PVP :
-    ├── vanta_ui       — Design system partagé v2 (CSS tokens, variables --v-*, font Inter)
+    ├── vanta_ui       — Design system partagé v2 (CSS tokens, --v-*, Inter) + notifications génériques
     ├── vanta_loading  — Écran de chargement
     ├── vanta_xp       — XP, niveaux 1-100, prestige 0-5 — source unique de progression
     ├── pvp_character  — Création de personnage (pseudo + genre), remplace esx_identity
@@ -60,6 +60,18 @@ Toutes les resources importent la feuille de style via :
 ```html
 <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
 ```
+
+**Notifications génériques.** `vanta_ui` expose aussi une pile de toasts partagée
+(`ui_page 'html/notify.html'`, transparente et sans focus NUI) :
+```lua
+exports['vanta_ui']:notify(src, 'Message', 'success')  -- serveur, un joueur
+exports['vanta_ui']:notifyAll('Message', 'info')       -- serveur, tous
+exports['vanta_ui']:notify('Message', 'success')       -- client
+```
+Types : `success` | `error` | `warning` | `info` (booléens `true`/`false` acceptés pour
+compat). Un 4ᵉ argument optionnel donne la durée en ms, un 5ᵉ un titre en surtitre.
+⚠️ Migration partielle : seul `pvp_drops` l'utilise. `pvp_market`, `pvp_zombies` et
+`pvp_inventory` passent encore par l'event `pvp_market:notify` — voir `STATUS.md`.
 **Toutes les resources sont sur v2.** Ne jamais utiliser les anciennes variables v1 (`--bg-primary`, `--accent-silver`, etc.).
 
 ### Palette de couleurs (variables v2)
@@ -246,9 +258,35 @@ mêmes services. Seul le rayon de la zone safe distingue les 2 grandes bases
 voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 
 ### Drops de ravitaillement (pvp_drops)
-- Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap
-- Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 5 min
-- **Loot exclusif** : items légendaires uniquement (armes + véhicules légendaires, AWP/AWP MK2)
+- Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap sous
+  forme de **petites flèches rouges clignotantes** orientées dans le sens du vol
+  (sprite 1 + `ShowHeadingIndicatorOnBlip` + `SetBlipFlashInterval` décalé par flèche →
+  effet de vague). Elles disparaissent au largage.
+- Le drop tombe en parachute pendant 5 min (`Config.FallDuration`), puis devient ouvrable
+  après 5 min de « sécurisation » au sol (`Config.OpenDelay`)
+- **À l'atterrissage** : cercle de fusées éclairantes autour de la caisse
+  (`prop_flare_01` × 6, `Config.FlareRadius`) + particules `core`/`exp_grd_flare` +
+  son d'allumage `Flare` du soundset `FBI_05_SOUNDS`. Particules et son sont **locaux à
+  chaque client** (pas de réseau, pas de doublon) ; seuls les props sont réseau et donc
+  créés par le contrôleur.
+- **Loot** : catégories Épic et Légendaire (AWP/AWP MK2 exclusifs aux drops). Le ratio réel
+  penche largement vers l'épic — voir `STATUS.md` → « Écarts de documentation connus ».
+- **Modèle contrôleur** : un client est désigné « contrôleur » et pilote les entités réseau
+  (avion, caisse, props de flares) ; les autres se contentent d'interpoler localement la
+  même trajectoire. Le serveur **réassigne automatiquement un nouveau contrôleur** si
+  celui-ci se déconnecte (`pvp_drops:controllerChanged`), et le nouveau *reprend* les
+  entités existantes (`findEntityNear` + `NetworkRequestControlOfEntity`) au lieu d'en
+  créer de nouvelles. Le filtre `NetworkGetEntityIsNetworked` y est indispensable : les
+  modèles utilisés existent aussi en décor statique sur la carte (Fort Zancudo est à la
+  fois une zone de drop et un site rempli de caisses militaires).
+- **Expiration** : un drop non vidé disparaît après `Config.DropLifetime` (1h) et tous les
+  clients sont prévenus via `pvp_drops:ended`. Ne jamais remettre `activeDrop = nil` sans
+  passer par `endDrop()` — sinon la caisse et les blips restent affichés côté client pour
+  un drop qui n'existe plus côté serveur.
+- **Sync à la connexion** : un client qui rejoint en cours de drop demande l'état via
+  `pvp_drops:requestSync` et reçoit un `elapsed` qui recale sa timeline locale.
+- Dépend de `vanta_ui` (notifications) et `pvp_inventory` (export `canAddToBag`, UI de la
+  caisse) — déclaré dans `fxmanifest.lua`
 
 ### Redzones (pvp_redzones)
 - 3 zones rouges actives en permanence sur la carte

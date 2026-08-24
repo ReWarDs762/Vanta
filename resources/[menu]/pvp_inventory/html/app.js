@@ -510,7 +510,7 @@ function openOutpostUI(data) {
 }
 
 function openDropUI(data) {
-  dropMode      = { id: data.dropId, label: data.dropLabel || '★ DROP DE RAVITAILLEMENT', items: data.dropItems || [] };
+  dropMode      = { id: data.dropId, label: data.dropLabel || 'DROP DE RAVITAILLEMENT', items: data.dropItems || [] };
   outpostMode   = null;
   deathBagMode  = null;
   state = {...state, inventory: data.inventory || [], money: data.money || state.money };
