@@ -1162,6 +1162,12 @@ RegisterNUICallback('crewSetEventStatus', function(data, cb)
     end, data.eventId, data.status)
 end)
 
+RegisterNUICallback('crewBuyShopItem', function(data, cb)
+    ESX.TriggerServerCallback('pvp_crew:buyShopItem', function(success, message)
+        cb({ ok = success, message = message })
+    end, data.key)
+end)
+
 RegisterNUICallback('leaderboardGetData', function(_, cb)
     ESX.TriggerServerCallback('pvp_inventory:getLeaderboards', function(payload)
         cb(payload or {

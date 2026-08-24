@@ -139,7 +139,7 @@ AddEventHandler('esx:playerLoaded', function(playerId)
         -- Applique le bonus de conteneur à pvp_inventory
         local bonus = (TIERS[tier] and TIERS[tier].stash_bonus) or 0.0
         local ok = pcall(function()
-            exports['pvp_inventory']:setContainerBonus(id, bonus)
+            exports['pvp_inventory']:setContainerBonus(id, bonus, 'subscription')
         end)
         if not ok then
             print('[pvp_vcoins] WARN: pvp_inventory:setContainerBonus non disponible')
@@ -301,7 +301,7 @@ AddEventHandler('pvp_vcoins:subscribe', function(tierName)
                 cache[id] = { tier = tierName, vcoins = remaining, expires = newExpiry }
 
                 pcall(function()
-                    exports['pvp_inventory']:setContainerBonus(id, tierDef.stash_bonus)
+                    exports['pvp_inventory']:setContainerBonus(id, tierDef.stash_bonus, 'subscription')
                 end)
                 pcall(function()
                     exports['pvp_inventory']:unlockBadge(id, tierName .. '_member')

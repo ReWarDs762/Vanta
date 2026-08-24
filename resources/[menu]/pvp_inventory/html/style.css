@@ -2306,6 +2306,34 @@ body {
 .crew-progress i { display:block; height:100%; background:linear-gradient(90deg, var(--v-warning), var(--v-success)); }
 .crew-event-create { display:grid; grid-template-columns:1fr .7fr auto; gap:8px; margin-bottom:10px; }
 .crew-event-actions { display:flex; gap:4px; }
+
+/* Boutique de crew */
+.crew-shop-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+.crew-shop-item {
+  background:var(--v-surface); border:1px solid var(--v-border); border-radius:8px;
+  padding:12px; display:flex; flex-direction:column; gap:8px;
+}
+.crew-shop-item.active { border-color:rgba(48,209,88,.35); background:rgba(48,209,88,.08); }
+.crew-shop-item-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.crew-shop-item-head strong { font-size:11px; color:var(--v-text); letter-spacing:.04em; }
+.crew-shop-item-head span { font-size:10px; color:var(--v-text-tertiary); }
+.crew-shop-item-desc { font-size:10px; color:var(--v-text-secondary); line-height:1.4; margin:0; flex:1; }
+.crew-shop-item .crew-btn-action:disabled { opacity:.55; cursor:default; }
+
+/* Historique trésorerie de crew */
+.crew-history-row {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--v-surface); border:1px solid var(--v-border); border-radius:8px;
+  padding:8px 10px; margin-bottom:6px;
+}
+.ch-info { display:flex; flex-direction:column; gap:2px; }
+.ch-label { font-size:11px; color:var(--v-text); }
+.ch-time { font-size:10px; color:var(--v-text-tertiary); }
+.ch-amount { font-size:12px; font-weight:600; }
+.crew-history-row.gain .ch-amount { color:var(--v-success); }
+.crew-history-row.expense .ch-amount { color:var(--v-danger); }
+
 @media (max-width: 900px) {
   .crew-advanced-grid, .crew-event-create { grid-template-columns:1fr; }
+  .crew-shop-grid { grid-template-columns:1fr; }
 }

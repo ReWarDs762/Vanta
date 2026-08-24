@@ -4,7 +4,7 @@ Ce fichier contient tout ce qui change souvent : avancement par resource, bugs a
 roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — bien plus vite que
 `CLAUDE.md`, qui ne décrit que l'architecture stable.
 
-**Dernière mise à jour :** 23 août 2026 (audit du système PVP + corrections de sécurité/gameplay, nouvelle resource `pvp_combat`)
+**Dernière mise à jour :** 24 août 2026 (audit du système PVP + corrections de sécurité/gameplay, nouvelle resource `pvp_combat` ; `pvp_crew` — contrat quotidien de crew, trésorerie/monnaie collective, boutique de bonus temporaires, historique + fix bonus conteneur multi-sources)
 
 ---
 
@@ -17,7 +17,7 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 | `pvp_drops` | Fonctionnel, polish en cours | À finir : UI d'annonce, animations, sons, polish visuel général |
 | `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
 | `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous. Annonces chat de série de kills retirées (23/08/2026, trop bruyantes à plusieurs joueurs) — le killfeed NUI et les leaders de session restent inchangés. |
-| `pvp_crew` | Fonctionnel, à approfondir | Vision long terme : hiérarchie (leader + membres), coffre partagé crew, système d'affrontement entre crews (à brainstormer), stats de crew. Le blocage de dégâts entre membres de SQUAD (pas crew) est maintenant réel côté serveur (23/08/2026, voir `pvp_outposts/server/server.lua`) — l'ancien code client ne faisait rien. |
+| `pvp_crew` | Fonctionnel, à approfondir | Ajouté (24/08/2026), **non testé en jeu** : contrat quotidien de crew (élimination de zombies, quota adaptatif au nombre de participants actifs), trésorerie/monnaie collective (réutilise `pvp_crews.bank`, jamais retirable en argent personnel), historique des gains/dépenses, boutique de 3 bonus temporaires (XP zombies x2, XP PvP +50%, bonus de coffre protégé personnel pour tout le crew). Le blocage de dégâts entre membres de SQUAD (pas crew) est maintenant réel côté serveur (23/08/2026, voir `pvp_outposts/server/server.lua`) — l'ancien code client ne faisait rien. Vision long terme restante : hiérarchie (leader + membres), coffre partagé crew, système d'affrontement entre crews (à brainstormer) |
 | `pvp_market` | Opérationnel, design à retravailler | À faire : refonte visuelle pour plus de lisibilité et de présence |
 | `vanta_loading` | Désactivé temporairement | Raison non documentée — écran de chargement prêt mais `# ensure vanta_loading` dans `server.cfg` |
 | `pvp_hud` | ✅ Réactivé (21/08/2026) | Restrictions de combat + nettoyage du monde ambiant confirmés voulus. Bug serveur trouvé et corrigé (voir Bugs corrigés). Dégâts de chute désactivés (23/08/2026). Le nettoyage périodique protège maintenant les zombies (voir `pvp_zombies`). |
@@ -49,6 +49,19 @@ celle de `pvp_admin`), ou faire relayer `pvp_admin` vers l'export `addXP` de `va
 ---
 
 ## Bugs corrigés
+
+### `pvp_inventory` — bonus de coffre protégé écrasé entre sources (corrigé 24/08/2026)
+
+`exports('setContainerBonus', ...)` stockait un unique bonus par identifiant
+(`playerContainerBonus[identifier] = bonus`). `vanta_xp` (bonus de prestige) et
+`pvp_vcoins` (bonus d'abonnement Gold/Diamond) l'appelaient tous les deux — le dernier à
+écrire écrasait silencieusement le bonus de l'autre (ex : à la reconnexion, l'ordre entre
+les deux handlers `esx:playerLoaded` décide qui « gagne », perte silencieuse du bonus
+prestige ou abonnement selon l'ordre de démarrage des resources). Découvert en implémentant
+la boutique de crew, qui ajoutait une **troisième** source concurrente au même point de
+collision. Corrigé : le bonus est maintenant stocké par source (`prestige` / `subscription`
+/ `crew`) et sommé à la lecture — les 3 sources peuvent être actives en même temps sans
+s'écraser.
 
 ### `pvp_character` — écran de création jamais affiché (corrigé 22/08/2026)
 
@@ -133,7 +146,11 @@ suit n'a été validé manette en main :
 - [ ] `pvp_combat` — nouveau (23/08/2026), jamais testé : déconnexion en combat (drop du
       stuff), blocage dépôt coffre protégé en combat, expiration 5s après le dernier coup
 - [ ] `pvp_killfeed` — créé, jamais testé
-- [ ] `pvp_crew` — 4 crews en base mais 0 membre, jamais réellement exercé
+- [ ] `pvp_crew` — 4 crews en base mais 0 membre, jamais réellement exercé. En particulier
+      le contrat quotidien (24/08/2026) : progression multi-participants, complétion +
+      crédit de trésorerie, boutique (achat, anti-cumul, expiration, application/retrait
+      du bonus de coffre à la connexion/déconnexion/exclusion), et non-régression du
+      bonus de coffre prestige/abonnement (fix multi-sources ci-dessus)
 - [ ] `pvp_drops` — avion, parachute, ouverture de caisse : jamais validés
 - [ ] `pvp_redzones` — rotation horaire, loot ×2 : jamais validés
 - [ ] `pvp_zombies` — spawn, IA, loot pondéré : jamais validés
@@ -179,6 +196,8 @@ doc fiable — hors périmètre de la session actuelle.
   - [ ] pvp_crew : tester, corriger, brainstormer la vision long terme
   - [ ] pvp_market : refonte design (plus lisible/visible)
   - [ ] `/givexp` : trancher la collision de commande (voir Bugs actifs)
-- [ ] Phase 4 — Crew system avancé (hiérarchie, coffre partagé, affrontements)
+- [x] Phase 4a — Crew : hiérarchie, coffre partagé, contrat quotidien, trésorerie/monnaie
+      collective, boutique de bonus temporaires, historique (24/08/2026, non testé en jeu)
+- [ ] Phase 4b — Crew : système d'affrontement entre crews (à brainstormer)
 - [ ] Phase 5 — Mapping avant-postes (CodeWalker)
 - [ ] Phase 6 — Lancement public

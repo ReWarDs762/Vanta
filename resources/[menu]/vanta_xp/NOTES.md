@@ -52,10 +52,15 @@ exports['vanta_xp']:getContainerBonus(identifier)-- retourne bonus kg conteneur
 
 ```lua
 exports['pvp_inventory']:setBagBonus(identifier, bonus_kg)
-exports['pvp_inventory']:setContainerBonus(identifier, bonus_kg)
+exports['pvp_inventory']:setContainerBonus(identifier, bonus_kg, source)
 exports['pvp_inventory']:getPlayerBagCapacity(identifier)
 exports['pvp_inventory']:getPlayerContainerCapacity(identifier)
 ```
+
+`setContainerBonus` prend un 3ᵉ paramètre `source` (24/08/2026) : le bonus conteneur a
+plusieurs sources indépendantes qui doivent s'additionner sans s'écraser — `'prestige'`
+(ce patch, vanta_xp), `'subscription'` (pvp_vcoins), `'crew'` (pvp_crew, boutique). Toujours
+passer une valeur `source` explicite lors d'un nouvel appel.
 
 ## Events écoutés (hooks)
 

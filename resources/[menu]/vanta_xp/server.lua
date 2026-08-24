@@ -150,7 +150,7 @@ local function applyPrestigeBonuses(identifier)
     end
 
     local ok2, err2 = pcall(function()
-        exports['pvp_inventory']:setContainerBonus(identifier, presData.cont_bonus)
+        exports['pvp_inventory']:setContainerBonus(identifier, presData.cont_bonus, 'prestige')
     end)
     if not ok2 then
         print('[vanta_xp] WARN: setContainerBonus échoué pour ' .. identifier .. ' : ' .. tostring(err2))
@@ -290,12 +290,26 @@ end)
 -- farmer de l'XP. Ces events ne sont plus que des AddEventHandler, et sont fired
 -- uniquement depuis le serveur par pvp_killfeed/pvp_zombies APRÈS leurs validations.
 
+-- ── Multiplicateur d'XP de crew (boutique pvp_crew : "XP Zombies x2" /
+--    "XP PvP +50%") — vanta_xp reste la seule source de vérité pour la
+--    progression, pvp_crew ne fait que fournir un multiplicateur ponctuel,
+--    même schéma que setBagBonus/setContainerBonus (pvp_inventory) pour le
+--    prestige : un export cross-resource, jamais l'inverse.
+local function getCrewXPMultiplier(identifier, sourceKind)
+    local ok, mult = pcall(function()
+        return exports['pvp_crew']:getXPMultiplier(identifier, sourceKind)
+    end)
+    if ok and type(mult) == 'number' and mult > 0 then return mult end
+    return 1.0
+end
+
 AddEventHandler('vanta_xp:internalPlayerKill', function(killerSrc)
     killerSrc = tonumber(killerSrc)
     if not killerSrc or killerSrc <= 0 then return end
     local killerXPlayer = ESX.GetPlayerFromId(killerSrc)
     if not killerXPlayer then return end
-    addXP(killerXPlayer.identifier, VantaXP.XPSources.player_kill, 'player_kill')
+    local mult = getCrewXPMultiplier(killerXPlayer.identifier, 'player_kill')
+    addXP(killerXPlayer.identifier, math.floor(VantaXP.XPSources.player_kill * mult), 'player_kill')
 end)
 
 AddEventHandler('vanta_xp:internalZombieKill', function(killerSrc)
@@ -303,7 +317,8 @@ AddEventHandler('vanta_xp:internalZombieKill', function(killerSrc)
     if not killerSrc or killerSrc <= 0 then return end
     local xPlayer = ESX.GetPlayerFromId(killerSrc)
     if not xPlayer then return end
-    addXP(xPlayer.identifier, VantaXP.XPSources.zombie_kill, 'zombie_kill')
+    local mult = getCrewXPMultiplier(xPlayer.identifier, 'zombie_kill')
+    addXP(xPlayer.identifier, math.floor(VantaXP.XPSources.zombie_kill * mult), 'zombie_kill')
 end)
 
 -- ══════════════════════════════════════════════════════════════════════════
