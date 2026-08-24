@@ -8,8 +8,8 @@ Config = {}
 Config.MaxZombiesPerPlayer  = 40
 
 -- Distance de spawn (min/max autour du joueur)
-Config.SpawnRadiusMin       = 40.0
-Config.SpawnRadiusMax       = 80.0
+Config.SpawnRadiusMin       = 15.0
+Config.SpawnRadiusMax       = 40.0
 
 -- Distance au-delà de laquelle un zombie (ou son cadavre non-fouillé) est supprimé
 Config.DespawnRadius        = 120.0
@@ -65,19 +65,24 @@ Config.ZombieType = {
 -- ══════════════════════════════════════════════════════════════════════════
 --  TABLE DE LOOT — 1 item par zombie, tirage pondéré
 --
---  Taux d'apparition cibles par catégorie :
---  Très Commun    90%   Soins, Shots, Pistols, SMG, Molotov
---  Commun          8%   AK47, Carabine, Carabine Spécial
---  Rare          1.5%   MK2 fusils, M60, Mitrailleuse, Pistolet paralysant + Véhicules rares
---  Épic          0.4%   Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
---  Légendaire   0.01%   Snipers, RPG, Lance-missiles + Véhicules légendaires
+--  Taux d'apparition cibles par catégorie (rééquilibrage prix, cf CLAUDE.md) :
+--  Très Commun   ~88%   Soins, Shots repel/attract, Pistols, SMG, Molotov
+--  Commun        ~9.2%  AK47, Carabine, Carabine Spécial
+--  Rare          ~2.2%  Kevlar, Shot vitesse/santé, MK2 fusils, M60, Mitrailleuse,
+--                       Pistolet paralysant + Véhicules rares
+--  Épic          ~0.46% Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
+--  Légendaire   ~0.013% Munitions Sniper, Snipers, RPG, Lance-missiles + Véhicules légendaires
 --
---  Total poids ≈ 9993 → taux réels :
---    Très Commun : 9001 /9993 = 90.07% ✓
---    Commun      :  800 /9993 =  8.01% ✓
---    Rare        :  151 /9993 =  1.51% ✓
---    Épic        :   40 /9993 =  0.40% ✓
---    Légendaire  :    1 /9993 =  0.01% ✓
+--  Kevlar / Shot vitesse / Shot santé / Munitions Sniper ont été déplacés hors de
+--  "très commun" lors du rééquilibrage prix (20 000$ / 10 000$ / 10 000$ / 80 000$
+--  à l'achat) — leur rareté doit rester cohérente avec leur valeur.
+--
+--  Total poids ≈ 8665 → taux réels :
+--    Très Commun : 7633   /8665 = 88.09% ✓
+--    Commun      :  800   /8665 =  9.23% ✓
+--    Rare        :  191   /8665 =  2.20% ✓
+--    Épic        :   40   /8665 =  0.46% ✓
+--    Légendaire  :    1.15/8665 =  0.013% ✓
 --
 --  `category` sert au boost redzone : en redzone, tout ce qui n'est PAS
 --  'tres_commun' voit son poids multiplié (voir server.lua / rollLoot).
@@ -88,12 +93,9 @@ Config.LootTable = {
     -- Soins
     { item = 'bandage',                  chance = 1642, count = 1, category = 'tres_commun' },
     { item = 'medkit',                   chance = 876,  count = 1, category = 'tres_commun' },
-    { item = 'kevlar',                   chance = 547,  count = 1, category = 'tres_commun' },
-    -- Shots
+    -- Shots courants (repel/attract — prix modeste, reste très commun)
     { item = 'shot_repel',               chance = 438,  count = 1, category = 'tres_commun' },
     { item = 'shot_attract',             chance = 328,  count = 1, category = 'tres_commun' },
-    { item = 'shot_speed',               chance = 438,  count = 1, category = 'tres_commun' },
-    { item = 'shot_health',              chance = 383,  count = 1, category = 'tres_commun' },
     -- Pistols + Molotov
     { item = 'weapon_molotov',           chance = 274,  count = 1, category = 'tres_commun' },
     { item = 'weapon_appistol',          chance = 328,  count = 1, category = 'tres_commun' },
@@ -117,6 +119,10 @@ Config.LootTable = {
     { item = 'weapon_specialcarbine',    chance = 266,  count = 1, category = 'commun' },
 
     -- ══ RARE (≈ 1.5%) ═══════════════════════════════════════════════════
+    -- Équipement premium (prix élevé en boutique → rendu rare ici)
+    { item = 'kevlar',                   chance = 8,    count = 1, category = 'rare' },
+    { item = 'shot_speed',               chance = 16,   count = 1, category = 'rare' },
+    { item = 'shot_health',              chance = 16,   count = 1, category = 'rare' },
     { item = 'weapon_assaultrifle_mk2',  chance = 13,   count = 1, category = 'rare' },
     { item = 'weapon_carbinerifle_mk2',  chance = 13,   count = 1, category = 'rare' },
     { item = 'weapon_specialcarbine_mk2',chance = 12,   count = 1, category = 'rare' },
@@ -154,6 +160,8 @@ Config.LootTable = {
     { item = 'vehicle_havok',            chance = 2.02, count = 1, category = 'epic' },
 
     -- ══ LÉGENDAIRE (≈ 0.01%) ════════════════════════════════════════════
+    -- Munitions Sniper (80 000$ à l'achat — aussi rare qu'une arme légendaire)
+    { item = 'ammo_sniper',              chance = 0.15,  count = 1, category = 'legendaire' },
     { item = 'weapon_sniperrifle',       chance = 0.183, count = 1, category = 'legendaire' },
     { item = 'weapon_marksmanrifle_mk2', chance = 0.146, count = 1, category = 'legendaire' },
     -- weapon_heavysniper (AWP) et weapon_heavysniper_mk2 (AWP MK2)

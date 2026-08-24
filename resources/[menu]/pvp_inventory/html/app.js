@@ -13,10 +13,12 @@ const ICONS = {
   kevlar:'🛡️',
   weapon_pistol:'🔫', weapon_rifle:'⚔️', weapon_sniper:'🎯',
   weapon_grenade:'💣', weapon_shotgun:'💥',
-  lockpick:'🔑', default:'📦',
+  default:'📦',
 };
 
 const WEAPON_SET = new Set([
+  // Mêlée (achat armurerie uniquement, pas de drop zombie)
+  'weapon_knife','weapon_machete','weapon_bat','weapon_crowbar','weapon_switchblade','weapon_hatchet',
   // Pistolets + lancers (très commun)
   'weapon_molotov','weapon_appistol',
   'weapon_pistol','weapon_pistol_mk2','weapon_snspistol','weapon_snspistol_mk2',
@@ -42,7 +44,7 @@ const WEAPON_SET = new Set([
 // NE PAS modifier ici : source de vérité = pvp_inventory/server/server.lua
 const WEIGHTS = {
   // Consommables
-  bandage:0.2, medkit:0.4, lockpick:0.1,
+  bandage:0.2, medkit:0.4,
   // Kevlar
   kevlar:1.0,
   // Shots
@@ -95,10 +97,12 @@ function isVehicle(name) { return name && name.startsWith('vehicle_'); }
 // ══ Rareté ═══════════════════════════════════════════════════════════════
 const RARITY = {
   // Consommables (très commun)
-  bandage:'common', medkit:'common', kevlar:'common',
-  ammo_sniper:'uncommon',
-  // Shots (très commun)
-  shot_repel:'common', shot_attract:'common', shot_speed:'common', shot_health:'common',
+  bandage:'common', medkit:'common',
+  kevlar:'rare',
+  ammo_sniper:'legendary',
+  // Shots
+  shot_repel:'common', shot_attract:'common',
+  shot_speed:'rare', shot_health:'rare',
   // Pistolets + lancers (très commun)
   weapon_molotov:'common', weapon_appistol:'common',
   weapon_pistol:'common', weapon_pistol_mk2:'common',
@@ -631,9 +635,14 @@ function renderStash() {
     sbar.className = '';
     renderGrid('grid-stash', dropMode.items, 'drop');
   } else if (outpostMode) {
-    // Coffre avant-poste : sans limite de poids
+    // Coffre avant-poste : sans limite de poids — on affiche le nombre d'items
+    // (la seule métrique utile ici) plutôt qu'un simple rappel « sans limite ».
     if (titleEl) titleEl.textContent = outpostMode.label;
-    weightEl.textContent = 'Sans limite de poids';
+    const nStacks = outpostMode.items.length;
+    const nUnits  = outpostMode.items.reduce((s, i) => s + (i.count || 1), 0);
+    weightEl.textContent = nStacks === 0
+      ? 'Vide · sans limite de poids'
+      : nUnits + ' item' + (nUnits > 1 ? 's' : '') + ' · sans limite de poids';
     sbar.style.width = '0%';
     sbar.className = '';
     renderGrid('grid-stash', outpostMode.items, 'outpost');

@@ -17,16 +17,17 @@ Config.SpawnInvincibleDuration = 5000
 Config.StashSlots = 20
 
 -- ── Avant-postes ───────────────────────────────────────────────────────────
--- 2 grandes bases (tous services) + 3 petits camps (spécialité unique)
+-- 12 avant-postes, tous identiques : chacun offre téléportation, boutique
+-- générale, armurerie (achat/vente + custom armes), garage (achat/vente +
+-- custom véhicules via pvp_garage) et coffre partagé. Seul le rayon de la
+-- zone safe distingue les 2 grandes bases (100m) des 10 autres (60m).
 Config.Outposts = {
     -- ═══════════════════════════════════════════════
-    -- GRANDES BASES (tous services : shop, teleport, custom armes, custom véhicules)
+    -- GRANDES BASES (zone safe 100m)
     -- ═══════════════════════════════════════════════
     [1] = {
         id          = 'murietta_base',
         label       = 'Avant-poste 1',
-        type        = 'military',
-        specialty   = 'all',          -- tous les services
         coords      = vector3(1153.0, -1520.0, 35.0),
         heading     = 0.0,
         safeRadius  = 100.0,           -- grande base = zone safe plus large
@@ -42,13 +43,11 @@ Config.Outposts = {
         stashProp        = vector3(1146.0, -1512.0, 35.0),
         stashPropHeading = 0.0,
         blipSprite  = 478,
-        blipColor   = 1,    -- rouge (base militaire)
+        blipColor   = 1,    -- rouge
     },
     [2] = {
         id          = 'zancudo_base',
         label       = 'Avant-poste 2',
-        type        = 'military',
-        specialty   = 'all',
         coords      = vector3(1130.0, -289.0, 69.5),
         heading     = 0.0,
         safeRadius  = 100.0,
@@ -67,13 +66,11 @@ Config.Outposts = {
     },
 
     -- ═══════════════════════════════════════════════
-    -- PETITS CAMPS (une spécialité chacun)
+    -- AVANT-POSTES SECONDAIRES (zone safe 60m, mêmes services)
     -- ═══════════════════════════════════════════════
     [3] = {
         id          = 'ls_armory',
         label       = 'Avant-poste 3',
-        type        = 'camp',
-        specialty   = 'all',      -- shop armes + custom armes
         coords      = vector3(-1049.9, -2020.0, 13.2),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -87,14 +84,12 @@ Config.Outposts = {
         headingVehicleCustom = 136.3,
         stashProp        = vector3(-1045.3, -2026.9, 13.2),
         stashPropHeading = 44.3,
-        blipSprite  = 110,   -- gun shop
+        blipSprite  = 110,
         blipColor   = 17,   -- orange
     },
     [4] = {
         id          = 'vespucci_camp',
         label       = 'Avant-poste 4',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-1269.0, -1360.0, 4.2),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -114,8 +109,6 @@ Config.Outposts = {
     [5] = {
         id          = 'ls_camp',
         label       = 'Avant-poste 5',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-518.0, -990.0, 23.4),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -135,8 +128,6 @@ Config.Outposts = {
     [6] = {
         id          = 'west_ls_camp',
         label       = 'Avant-poste 6',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-1545.0, -408.0, 42.0),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -156,8 +147,6 @@ Config.Outposts = {
     [7] = {
         id          = 'mountain_camp',
         label       = 'Avant-poste 7',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-430.0, 1122.0, 325.9),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -177,8 +166,6 @@ Config.Outposts = {
     [8] = {
         id          = 'route68_camp',
         label       = 'Avant-poste 8',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-1153.0, 2678.0, 18.1),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -198,8 +185,6 @@ Config.Outposts = {
     [9] = {
         id          = 'grand_senora_camp',
         label       = 'Avant-poste 9',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(1220.0, 1842.0, 79.2),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -219,8 +204,6 @@ Config.Outposts = {
     [10] = {
         id          = 'grapeseed_camp',
         label       = 'Avant-poste 10',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(2755.0, 3456.0, 55.9),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -240,8 +223,6 @@ Config.Outposts = {
     [11] = {
         id          = 'grapeseed_north_camp',
         label       = 'Avant-poste 11',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(1965.0, 5164.0, 47.5),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -261,8 +242,6 @@ Config.Outposts = {
     [12] = {
         id          = 'paleto_camp',
         label       = 'Avant-poste 12',
-        type        = 'camp',
-        specialty   = 'all',
         coords      = vector3(-675.0, 5786.0, 17.3),
         heading     = 0.0,
         safeRadius  = 60.0,
@@ -283,143 +262,75 @@ Config.Outposts = {
 
 
 -- ── Items vendus dans les shops ──────────────────────────────────────────
--- Chaque avant-poste vend selon sa spécialité
+-- Chaque avant-poste a 2 NPCs vendeurs identiques : le NPC boutique générale
+-- (Config.ShopItems) et le NPC armurerie (Config.WeaponShopItems).
 
--- Shop général (grandes bases uniquement)
+-- Shop général (NPC boutique, tous les avant-postes) — consommables uniquement.
+-- Aucune arme, aucun véhicule ici : séparation stricte 1 NPC = 1 catégorie
+-- (boutique générale = consommables, armurerie = armes, garagiste = véhicules).
 Config.ShopItems = {
-    { label = 'Bandage',          item = 'bandage',        price = 50   },
-    { label = 'Kit de soins',     item = 'medkit',         price = 150  },
-    { label = 'Kevlar',            item = 'kevlar',         price = 300  },
-    { label = 'Munitions Sniper', item = 'ammo_sniper',    price = 120  },
-    { label = 'Grenade',          item = 'weapon_grenade', price = 300  },
+    { label = 'Bandage',           item = 'bandage',        price = 50    },
+    { label = 'Kit de soins',      item = 'medkit',         price = 500   },
+    { label = 'Kevlar',            item = 'kevlar',         price = 20000 },
+    { label = 'Shot Répulsif',     item = 'shot_repel',     price = 1000  },
+    { label = 'Shot Attracteur',   item = 'shot_attract',   price = 1000  },
+    { label = 'Shot de Vitesse',   item = 'shot_speed',     price = 10000 },
+    { label = 'Shot de Santé',     item = 'shot_health',    price = 10000 },
+    { label = 'Munitions Sniper',  item = 'ammo_sniper',    price = 80000 },
+    { label = 'Grenade',           item = 'weapon_grenade', price = 500   },
 }
 
--- Shop armurerie (camp armes)
+-- Shop armurerie (NPC armurerie, tous les avant-postes) — armes uniquement.
+-- Palier "très commun" + mêlée : achetables (tout drop aussi sur zombie sauf
+-- la mêlée). Palier "commun"/"rare" : achat impossible, trouvable uniquement
+-- en loot zombie (revente flat via Config.AllItemPrices). Palier "épique"/
+-- "légendaire" : ni achat ni revente NPC — marché joueur/trade uniquement.
 Config.WeaponShopItems = {
-    { label = 'Pistolet',         item = 'weapon_pistol',       price = 300  },
-    { label = 'SMG',              item = 'weapon_smg',          price = 800  },
-    { label = 'Pompe',            item = 'weapon_pumpshotgun',  price = 600  },
-    { label = 'Fusil d\'assaut',  item = 'weapon_assaultrifle', price = 1500 },
-    { label = 'Sniper',           item = 'weapon_sniperrifle',  price = 3000 },
-    { label = 'Munitions Sniper', item = 'ammo_sniper',         price = 120  },
-    { label = 'Grenade',          item = 'weapon_grenade',      price = 300  },
-    { label = 'Couteau',          item = 'weapon_knife',        price = 100  },
+    -- Mêlée
+    { label = 'Couteau',          item = 'weapon_knife',        price = 200  },
     { label = 'Machette',         item = 'weapon_machete',      price = 200  },
+    { label = 'Batte de Baseball',item = 'weapon_bat',          price = 200  },
+    { label = 'Pied de Biche',    item = 'weapon_crowbar',      price = 200  },
+    { label = 'Cran d\'Arrêt',    item = 'weapon_switchblade',  price = 200  },
+    { label = 'Hachette',         item = 'weapon_hatchet',      price = 300  },
+    -- Très commun (armes à feu)
+    { label = 'Molotov',              item = 'weapon_molotov',          price = 5000 },
+    { label = 'Pistolet AP',          item = 'weapon_appistol',         price = 1500 },
+    { label = 'Pistolet',             item = 'weapon_pistol',           price = 1500 },
+    { label = 'Pistolet MK2',         item = 'weapon_pistol_mk2',       price = 3000 },
+    { label = 'SNS Pistol',           item = 'weapon_snspistol',        price = 1500 },
+    { label = 'SNS Pistol MK2',       item = 'weapon_snspistol_mk2',    price = 3000 },
+    { label = 'Pistolet Vintage',     item = 'weapon_vintagepistol',    price = 1500 },
+    { label = 'Pistolet Combat',      item = 'weapon_combatpistol',     price = 1500 },
+    { label = 'Pistolet Lourd',       item = 'weapon_heavypistol',      price = 3000 },
+    { label = 'Micro SMG',            item = 'weapon_microsmg',         price = 3000 },
+    { label = 'Mini SMG',             item = 'weapon_minismg',          price = 3000 },
+    { label = 'SMG',                  item = 'weapon_smg',              price = 3000 },
+    { label = 'SMG MK2',              item = 'weapon_smg_mk2',          price = 4000 },
+    { label = 'Pistolet Mitrailleur', item = 'weapon_machinepistol',    price = 3000 },
 }
 
--- Shop garage (camp véhicules)
-Config.VehicleShopItems = {
-    { label = 'BMX',              item = 'vehicle_bmx',         price = 200  },
-    { label = 'Blazer',           item = 'vehicle_blazer',      price = 500  },
-    { label = 'Sanchez',          item = 'vehicle_sanchez',     price = 800  },
-    { label = 'Bodhi',            item = 'vehicle_bodhi2',      price = 600  },
-    { label = 'Mesa',             item = 'vehicle_mesa',        price = 1200 },
-    { label = 'Kuruma',           item = 'vehicle_kuruma',      price = 2500 },
-    { label = 'Insurgent',        item = 'vehicle_insurgent',   price = 5000 },
-}
-
--- Shop médical (camp médical)
-Config.MedicalShopItems = {
-    { label = 'Bandage',          item = 'bandage',        price = 30   },
-    { label = 'Kit de soins',     item = 'medkit',         price = 100  },
-    { label = 'Kevlar',            item = 'kevlar',         price = 200  },
-}
-
--- Ratio de revente au NPC (50% du prix d'achat)
+-- Ratio de revente au NPC (50% du prix d'achat / prix de référence)
 Config.SellRatio = 0.5
 
--- ══ Prix de base de TOUS les items (pour la vente) ═══════════════════════
--- Sert de référence pour le prix de revente (prix × SellRatio).
--- Les items des shops sont déjà inclus, cette table couvre le reste.
+-- ══ Prix de référence pour la revente d'items NON achetables en armurerie ══
+-- Palier "commun" (AK-47, Carabine, Carabine Spéciale) et "rare" (MK2 fusils,
+-- M60, Mitrailleuse, Pistolet paralysant) : achat impossible, mais l'armurerie
+-- les rachète à prix flat (20 000$ × 50% = 10 000$) si trouvés en loot zombie.
+-- Aucune arme épique/légendaire ni aucun véhicule ici : ces paliers ne sont
+-- plus vendables à un NPC, uniquement échangeables via pvp_market (marché/trade).
 Config.AllItemPrices = {
-    -- Consommables
-    { item = 'bandage',              label = 'Bandage',               price = 50   },
-    { item = 'medkit',               label = 'Kit de Soins',          price = 150  },
-    { item = 'kevlar',               label = 'Kevlar',                price = 300  },
-    { item = 'ammo_sniper',          label = 'Munitions Sniper',      price = 120  },
-    { item = 'lockpick',             label = 'Lockpick',              price = 80   },
-    -- Mêlée
-    { item = 'weapon_knife',         label = 'Couteau',               price = 100  },
-    { item = 'weapon_bat',           label = 'Batte de Baseball',     price = 80   },
-    { item = 'weapon_crowbar',       label = 'Pied de Biche',         price = 90   },
-    { item = 'weapon_switchblade',   label = 'Cran d\'Arrêt',         price = 70   },
-    { item = 'weapon_hatchet',       label = 'Hachette',              price = 120  },
-    { item = 'weapon_machete',       label = 'Machette',              price = 200  },
-    -- Pistolets
-    { item = 'weapon_pistol',        label = 'Pistolet',              price = 300  },
-    { item = 'weapon_snspistol',     label = 'SNS Pistol',            price = 200  },
-    { item = 'weapon_vintagepistol', label = 'Pistolet Vintage',      price = 350  },
-    { item = 'weapon_machinepistol', label = 'Pistolet Mitrailleur',  price = 500  },
-    { item = 'weapon_combatpistol',  label = 'Pistolet Combat',       price = 400  },
-    { item = 'weapon_heavypistol',   label = 'Pistolet Lourd',        price = 500  },
-    { item = 'weapon_revolver',      label = 'Revolver',              price = 600  },
-    { item = 'weapon_doubleaction',  label = 'Revolver DA',           price = 500  },
-    -- SMGs
-    { item = 'weapon_microsmg',      label = 'Micro SMG',             price = 600  },
-    { item = 'weapon_minismg',       label = 'Mini SMG',              price = 700  },
-    { item = 'weapon_smg',           label = 'SMG',                   price = 800  },
-    { item = 'weapon_combatpdw',     label = 'PDW Combat',            price = 900  },
-    -- Shotguns
-    { item = 'weapon_pumpshotgun',   label = 'Pompe',                 price = 600  },
-    { item = 'weapon_sawnoffshotgun',label = 'Canon Scié',            price = 500  },
-    { item = 'weapon_dbshotgun',     label = 'Double Canon',          price = 700  },
-    { item = 'weapon_assaultshotgun',label = 'Shotgun Assaut',        price = 1200 },
-    -- Fusils d'assaut
-    { item = 'weapon_assaultrifle',  label = 'AK-47',                 price = 1500 },
-    { item = 'weapon_carbinerifle',  label = 'Carabine M4',           price = 1500 },
-    { item = 'weapon_compactrifle',  label = 'Fusil Compact',         price = 1200 },
-    -- LMGs
-    { item = 'weapon_combatmg',      label = 'Mitrailleuse Combat',   price = 2500 },
-    { item = 'weapon_mg',            label = 'Mitrailleuse',          price = 3000 },
-    -- Sniper
-    { item = 'weapon_sniperrifle',   label = 'Sniper',                price = 3000 },
-    -- Explosifs
-    { item = 'weapon_rpg',           label = 'Lance-Roquettes',       price = 5000 },
-    { item = 'weapon_grenadelauncher',label= 'Lance-Grenades',        price = 4000 },
-    { item = 'weapon_grenade',       label = 'Grenade',               price = 300  },
-    -- Véhicules communs
-    { item = 'vehicle_ratloader',    label = 'Ratloader',             price = 300  },
-    { item = 'vehicle_bodhi2',       label = 'Bodhi',                 price = 600  },
-    { item = 'vehicle_emperor',      label = 'Emperor',               price = 400  },
-    { item = 'vehicle_tornado',      label = 'Tornado',               price = 400  },
-    { item = 'vehicle_bmx',          label = 'BMX',                   price = 200  },
-    { item = 'vehicle_blazer',       label = 'Blazer',                price = 500  },
-    -- Véhicules peu communs
-    { item = 'vehicle_sanchez',      label = 'Sanchez',               price = 800  },
-    { item = 'vehicle_bati',         label = 'Bati 801',              price = 1000 },
-    { item = 'vehicle_mesa',         label = 'Mesa',                  price = 1200 },
-    { item = 'vehicle_dubsta',       label = 'Dubsta',                price = 1500 },
-    { item = 'vehicle_brawler',      label = 'Brawler',               price = 2000 },
-    { item = 'vehicle_kamacho',      label = 'Kamacho',               price = 2000 },
-    { item = 'vehicle_kuruma',       label = 'Kuruma',                price = 2500 },
-    { item = 'vehicle_buffalo',      label = 'Buffalo',               price = 1800 },
-    -- Véhicules rares
-    { item = 'vehicle_insurgent',    label = 'Insurgent',             price = 5000 },
-    { item = 'vehicle_buffalo3',     label = 'Buffalo S',             price = 3000 },
-    { item = 'vehicle_hellion',      label = 'Hellion',               price = 3500 },
-    { item = 'vehicle_dominator',    label = 'Dominator',             price = 3000 },
-    { item = 'vehicle_guardian',     label = 'Guardian',              price = 4000 },
-    { item = 'vehicle_nightshark',   label = 'Nightshark',            price = 6000 },
-    -- Véhicules rares blindés
-    { item = 'vehicle_baller3',      label = 'Baller Blindé',         price = 5000 },
-    { item = 'vehicle_baller6',      label = 'Baller LE Blindé',      price = 5500 },
-    { item = 'vehicle_schafter5',    label = 'Schafter V12 Blindé',   price = 5000 },
-    { item = 'vehicle_schafter6',    label = 'Schafter LWB Blindé',   price = 5500 },
-    -- Véhicules apocalypse
-    { item = 'vehicle_deathbike',    label = 'Deathbike',             price = 4000 },
-    { item = 'vehicle_dominator4',   label = 'Dominator Apocalypse',  price = 4500 },
-    { item = 'vehicle_impaler2',     label = 'Impaler Apocalypse',    price = 4500 },
-    { item = 'vehicle_imperator',    label = 'Imperator',             price = 5000 },
-    { item = 'vehicle_bruiser',      label = 'Bruiser',               price = 5000 },
-    { item = 'vehicle_brutus',       label = 'Brutus',                price = 5000 },
-    { item = 'vehicle_scarab',       label = 'Scarab',                price = 5500 },
-    { item = 'vehicle_slamvan4',     label = 'Slamvan Apocalypse',    price = 4500 },
-    { item = 'vehicle_zr380',        label = 'ZR380',                 price = 4000 },
-    -- Véhicules légendaires
-    { item = 'vehicle_zentorno',     label = 'Zentorno',              price = 8000 },
-    { item = 'vehicle_t20',          label = 'T20',                   price = 10000},
-    { item = 'vehicle_vigilante',    label = 'Vigilante',             price = 12000},
-    { item = 'vehicle_oppressor2',   label = 'Oppressor MK2',        price = 15000},
+    -- Commun
+    { item = 'weapon_assaultrifle',       label = 'AK-47',                   price = 20000 },
+    { item = 'weapon_carbinerifle',       label = 'Carabine M4',             price = 20000 },
+    { item = 'weapon_specialcarbine',     label = 'Carabine Spéciale',       price = 20000 },
+    -- Rare
+    { item = 'weapon_assaultrifle_mk2',   label = 'AK-47 MK2',               price = 20000 },
+    { item = 'weapon_carbinerifle_mk2',   label = 'Carabine M4 MK2',         price = 20000 },
+    { item = 'weapon_specialcarbine_mk2', label = 'Carabine Spéciale MK2',   price = 20000 },
+    { item = 'weapon_stungun',            label = 'Pistolet Paralysant',     price = 20000 },
+    { item = 'weapon_combatmg',           label = 'Mitrailleuse Combat',     price = 20000 },
+    { item = 'weapon_mg',                 label = 'Mitrailleuse',            price = 20000 },
 }
 
 -- ══ CUSTOM ARMES — Composants GTA natifs (gratuit) ══════════════════════
@@ -648,69 +559,8 @@ Config.WeaponsTintEnabled = {
     weapon_stungun = true,        weapon_musket = true,
 }
 
--- ══ CUSTOM VÉHICULES — Catégories de mods ═══════════════════════════════
--- modType = index GTA natif pour SetVehicleMod
-Config.VehicleMods = {
-    { label = 'Moteur',       modType = 11 },
-    { label = 'Freins',       modType = 12 },
-    { label = 'Transmission', modType = 13 },
-    { label = 'Suspension',   modType = 15 },
-    { label = 'Blindage',     modType = 16 },
-    { label = 'Turbo',        modType = 18, isTurbo = true },
-    { label = 'Klaxon',       modType = 14 },
-    { label = 'Roues',        modType = 23 },
-    { label = 'Échappement',  modType = 4  },
-    { label = 'Pare-chocs AV',modType = 1  },
-    { label = 'Pare-chocs AR',modType = 2  },
-    { label = 'Jupes lat.',   modType = 3  },
-    { label = 'Capot',        modType = 7  },
-    { label = 'Aileron',      modType = 0  },
-    { label = 'Grille',       modType = 6  },
-}
-
--- Mods supplémentaires pour véhicules Arena War / Apocalypse (modTypes 38-49)
-Config.ApocalypseMods = {
-    { label = 'Armure',           modType = 38 },
-    { label = 'Lames / Piques',   modType = 39 },
-    { label = 'Arme montée',     modType = 40 },
-    { label = 'Drapeau',          modType = 41 },
-    { label = 'Couleur néon',    modType = 42 },
-    { label = 'Roues Arena',      modType = 24 },
-    { label = 'Arche lumineuse',  modType = 43 },
-    { label = 'Plaque avant',     modType = 44 },
-    { label = 'Garniture',        modType = 46 },
-    { label = 'Hydrauliques',     modType = 47 },
-    { label = 'Boost (visuel)',   modType = 48 },
-}
-
--- Couleurs disponibles (index GTA)
-Config.VehicleColors = {
-    { label = 'Noir',          color = 0   },
-    { label = 'Noir carbone',  color = 1   },
-    { label = 'Gris foncé',   color = 3   },
-    { label = 'Argent',        color = 4   },
-    { label = 'Gris clair',   color = 6   },
-    { label = 'Blanc',         color = 111 },
-    { label = 'Rouge',         color = 27  },
-    { label = 'Rouge foncé',  color = 28  },
-    { label = 'Orange',        color = 38  },
-    { label = 'Jaune',         color = 42  },
-    { label = 'Vert foncé',   color = 49  },
-    { label = 'Vert',          color = 53  },
-    { label = 'Bleu foncé',   color = 61  },
-    { label = 'Bleu',          color = 64  },
-    { label = 'Bleu clair',   color = 70  },
-    { label = 'Violet',        color = 71  },
-    { label = 'Rose',          color = 135 },
-    { label = 'Beige',         color = 94  },
-    { label = 'Marron',        color = 97  },
-    { label = 'Rouille',       color = 36  },
-    { label = 'Or',             color = 37  },
-    { label = 'Camo vert',    color = 110 },
-    { label = 'Camo gris',    color = 155 },
-}
-
--- Véhicules apocalypse avec mods spéciaux (saut, boost, etc.)
+-- Véhicules Apocalypse (Arena War) — catégorie utilisée par pvp_garage pour
+-- proposer ses mods spéciaux dédiés (armure, lames, arme montée, etc.).
 -- SOURCE DE VÉRITÉ unique : pvp_garage lit cette liste via un export pour
 -- éviter la duplication et les désynchronisations.
 Config.ApocalypseVehicles = {

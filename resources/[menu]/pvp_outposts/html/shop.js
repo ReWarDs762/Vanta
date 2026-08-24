@@ -72,7 +72,6 @@ function buildImgTag(itemName, cls) {
 function getShopTitle(spec) {
   if (spec === 'weapons') return 'ARMURERIE';
   if (spec === 'vehicles') return 'GARAGE';
-  if (spec === 'medical') return 'INFIRMERIE';
   return "VENDEUR D'ÉQUIPEMENTS";
 }
 
@@ -459,16 +458,13 @@ window.addEventListener('message', function(e) {
     balance   = d.balance  || 0;
     outpostId = d.outpostId || '';
 
-    // Filtrer les items vendables selon la spécialité
+    // Filtrer les items vendables selon le NPC (armurerie = armes, garage = véhicules, boutique générale = consommables)
     const allSell = d.sellItems || [];
     if (specialty === 'weapons') {
       sellItems = allSell.filter(i => i.name.startsWith('weapon_') || i.name.startsWith('ammo_'));
     } else if (specialty === 'vehicles') {
       sellItems = allSell.filter(i => i.name.startsWith('vehicle_'));
-    } else if (specialty === 'medical') {
-      sellItems = allSell.filter(i => ['bandage','medkit','kevlar'].includes(i.name));
     } else {
-      // Shop général : seulement consommables (pas d'armes ni véhicules)
       sellItems = allSell.filter(i => !i.name.startsWith('weapon_') && !i.name.startsWith('vehicle_'));
     }
 
@@ -503,11 +499,6 @@ window.addEventListener('message', function(e) {
     renderCart();
 
     document.getElementById('shop-overlay').classList.add('open');
-  }
-
-  if (d.action === 'updateBalance') {
-    balance = d.balance;
-    document.getElementById('shop-vendor-balance').textContent = 'Solde : ' + fmt(balance);
   }
 
 });

@@ -583,6 +583,7 @@ AddEventHandler('pvp_character:applyModel', function(data)
             pendingApply = nil
             if not d then return end
             applyStoredAppearanceInternal(d.model, d.appearance)
+            TriggerServerEvent('pvp_character:appearanceApplied')
         end)
     end
 end)
@@ -617,6 +618,7 @@ AddEventHandler('playerSpawned', function()
             local d = pendingApply
             pendingApply = nil
             applyStoredAppearanceInternal(d.model, d.appearance)
+            TriggerServerEvent('pvp_character:appearanceApplied')
         end
     end)
 end)
@@ -789,8 +791,15 @@ AddEventHandler('pvp_character:creationDone', function(data)
         FreezeEntityPosition(ped, false)
         SetPlayerControl(PlayerId(), true, 0)
 
-        -- pvp_spawn va maintenant recevoir setLoginOutpost (via pvp_character:characterReady serveur)
-        -- et téléporter le joueur. En attendant on laisse le ped freeze court pour éviter la chute.
+        -- On laisse le ped freeze court pour éviter la chute pendant le court
+        -- laps de temps avant que pvp_spawn ne téléporte (voir plus bas).
         FreezeEntityPosition(ped, true)
+
+        -- Ne signale au serveur qu'ON A FINI d'appliquer le modèle/apparence
+        -- QUE MAINTENANT : le serveur attend ce signal avant de déclencher
+        -- pvp_character:characterReady (→ pvp_spawn:setLoginOutpost). Sans ça,
+        -- les deux resources bougeaient le ped en parallèle (SetPlayerModel ici
+        -- + téléportation là-bas), d'où les spawns sous la map.
+        TriggerServerEvent('pvp_character:appearanceApplied')
     end)
 end)

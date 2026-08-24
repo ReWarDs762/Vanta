@@ -41,10 +41,15 @@ local function spawnZombie(x, y, z)
         Citizen.Wait(0)
     end
 
+    -- bScriptHostPed=true (dernier param) : marque le ped comme mission entity
+    -- dès sa création. Sans ça, pvp_hud le traitait comme un ped ambiant et le
+    -- supprimait dans sa boucle de nettoyage toutes les 5s (IsEntityAMissionEntity
+    -- == false pour tout modèle humain non marqué). La durée de vie du zombie
+    -- reste entièrement gérée manuellement plus bas (DespawnRadius, mort, loot).
     local ped = CreatePed(4, model,
         x, y, z - 1.0,
         math.random(0, 360) * 1.0,
-        false, false
+        false, true
     )
 
     if not DoesEntityExist(ped) then

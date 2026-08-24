@@ -288,40 +288,57 @@ body {
   flex: unset;
 }
 
-/* ══ LAYOUT INVENTAIRE — MODE EXTERNE (côte à côte) ══ */
-#view-inventory.mode-external {
+/* ══ LAYOUT INVENTAIRE — MODE EXTERNE (côte à côte) ══
+   Coffre avant-poste / drop / sac de mort. Ce mode est celui qui accueille le
+   plus d'items : on récupère la largeur d'écran gaspillée par le padding du
+   mode normal (24px 400px) et on donne au conteneur externe plus de place
+   qu'au sac (le sac est limité en poids, pas le coffre). */
+#view-inventory.active.mode-external {
   overflow-y: hidden;
+  /* clamp : reste lisible en 1080p comme en ultrawide, sans coller aux bords */
+  padding: 20px clamp(32px, 4vw, 96px) 0;
 }
 #view-inventory.mode-external #inv-split {
   flex-direction: row;
-  gap: 2px;
+  align-items: stretch;   /* les 2 panneaux font la même hauteur */
+  gap: 16px;
   overflow: hidden;
 }
 #view-inventory.mode-external #inv-left,
 #view-inventory.mode-external #inv-right {
-  flex: 1;
   min-width: 0;
   min-height: 0;
-  flex-shrink: 1;
+  height: auto;           /* annule le height:320px du mode normal */
   border: 1px solid var(--v-separator-bold);
   border-radius: 4px;
-  padding: 16px;
+  padding: 18px 18px 12px;
   overflow: hidden;
 }
+/* Le conteneur externe est le plus rempli → il prend la plus grande part */
+#view-inventory.mode-external #inv-left  { flex: 42 1 0; }
+#view-inventory.mode-external #inv-right { flex: 58 1 0; }
+
 #view-inventory.mode-external #inv-left .item-grid,
 #view-inventory.mode-external #inv-right .item-grid {
+  height: auto;           /* annule le height:240px du mode normal */
+  min-height: 0;
   max-height: none;
   flex: 1;
   overflow-y: auto;
-  min-height: 0;
-}
-#view-inventory.mode-external #inv-right {
-  flex-shrink: 1;
+  /* cartes un peu plus étroites ici : plus de colonnes à largeur égale */
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  padding-right: 4px;     /* respire à côté de la scrollbar */
 }
 /* Séparateur visuel entre les deux panneaux */
 #view-inventory.mode-external #inv-split::after {
   content: '';
   display: none;
+}
+/* Hotbar compacte en mode externe : rend la hauteur gagnée aux grilles */
+#view-inventory.mode-external #inv-hotbar {
+  margin-bottom: 16px;
+  padding-top: 16px;
+  padding-bottom: 0;
 }
 
 /* ══ SECTION HOTBAR ══ */

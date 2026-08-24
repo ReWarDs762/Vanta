@@ -198,26 +198,15 @@ Citizen.CreateThread(function()
 end)
 
 -- ══════════════════════════════════════════════════════════════════════════
---   Friendly Fire Prevention
+--   Friendly Fire — voir pvp_outposts/server/server.lua (weaponDamageEvent)
 -- ══════════════════════════════════════════════════════════════════════════
-
-AddEventHandler('gameEventTriggered', function(name, args)
-    if name == 'CEventNetworkEntityDamage' then
-        local victim   = args[1]
-        local attacker = args[2]
-        if attacker == PlayerPedId() and IsEntityAPed(victim) and IsPedAPlayer(victim) then
-            if squadData and squadData.members then
-                local victimPlayer = NetworkGetPlayerIndexFromPed(victim)
-                local victimServerId = GetPlayerServerId(victimPlayer)
-                for _, member in ipairs(squadData.members) do
-                    if member.id == victimServerId then
-                        ClearEntityLastDamageEntity(victim)
-                        break
-                    end
-                end
-            end
-        end
-    end
-end)
+-- L'ancien blocage ici (ClearEntityLastDamageEntity) ne faisait qu'effacer
+-- l'ATTRIBUTION du dernier dégât, sans jamais annuler les dégâts eux-mêmes —
+-- les membres de squad se blessaient donc normalement malgré ce code.
+-- Le vrai blocage (côté serveur, seul juge fiable des dégâts PVP) vit
+-- maintenant dans pvp_outposts, qui appelle l'export pvp_crew:areInSameSquad
+-- (défini dans server/server.lua). Rappel produit : seule la SQUAD
+-- (sous-groupe volontaire) est protégée — le crew entier peut se tuer entre
+-- membres, c'est voulu.
 
 print('[pvp_crew] Client démarré — Squad: touche J')

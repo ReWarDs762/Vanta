@@ -34,27 +34,26 @@ end)
 
 -- [VEHICLE SHOP LIST]
 -- price = prix d'achat en $ | sellPrice = prix de revente (calculé automatiquement à 50% côté serveur)
+-- Seul point de vente véhicule du serveur (achat ET revente d'objets-véhicule).
+-- Les modèles marqués "Butin Rare" sont aussi un drop zombie (Config.LootTable
+-- dans pvp_zombies) ; les modèles épique/légendaire (Schafter V12, Baller LE,
+-- ZR380, Vigilante, Oppressor MK2, Nightshark, Scarab) ne sont VOLONTAIREMENT
+-- PAS ici — invendables/inachetables au garagiste, échange marché joueur/trade
+-- uniquement (voir le blocage explicite dans server/main.lua:sellVehicleItem).
 Config.Vehicles = {
     -- Military
     { label = 'Insurgent',   model = 'insurgent',   category = 'Militaire',    price = 60000 },
-    { label = 'Nightshark',  model = 'nightshark',  category = 'Militaire',    price = 80000 },
-    { label = 'Guardian',    model = 'guardian',    category = 'Militaire',    price = 50000 },
 
     -- Apocalypse
-    { label = 'Scarab',               model = 'scarab',      category = 'Apocalypse', price = 85000 },
     { label = 'Deathbike',            model = 'deathbike',   category = 'Apocalypse', price = 70000 },
-    { label = 'Dominator Apocalypse', model = 'dominator4',  category = 'Apocalypse', price = 65000 },
     { label = 'Impaler Apocalypse',   model = 'impaler2',    category = 'Apocalypse', price = 68000 },
     { label = 'Bruiser',              model = 'bruiser',     category = 'Apocalypse', price = 72000 },
     { label = 'Brutus',               model = 'brutus',      category = 'Apocalypse', price = 75000 },
     { label = 'Imperator',            model = 'imperator',   category = 'Apocalypse', price = 78000 },
-    { label = 'ZR380',                model = 'zr380',       category = 'Apocalypse', price = 62000 },
     { label = 'Slamvan Apocalypse',   model = 'slamvan4',    category = 'Apocalypse', price = 60000 },
 
     -- Armored
     { label = 'Baller Blindé',        model = 'baller3',   category = 'Blindé', price = 25000 },
-    { label = 'Baller LE Blindé',     model = 'baller6',   category = 'Blindé', price = 30000 },
-    { label = 'Schafter V12 Blindé',  model = 'schafter5', category = 'Blindé', price = 35000 },
     { label = 'Schafter LWB Blindé',  model = 'schafter6', category = 'Blindé', price = 40000 },
     { label = 'Kuruma Blindé',        model = 'kuruma',    category = 'Blindé', price = 45000 },
 
@@ -70,20 +69,32 @@ Config.Vehicles = {
     { label = 'Buffalo',      model = 'buffalo',   category = 'Muscle', price = 4500 },
     { label = 'Buffalo STX',  model = 'buffalo3',  category = 'Muscle', price = 6000 },
 
-    -- Sport
-    { label = 'Zentorno',   model = 'zentorno',   category = 'Sport', price = 50000  },
-    { label = 'T20',        model = 't20',        category = 'Sport', price = 60000  },
-    { label = 'Vigilante',  model = 'vigilante',  category = 'Sport', price = 100000 },
-    { label = 'Oppressor',  model = 'oppressor2', category = 'Sport', price = 150000 },
-
     -- Motorcycles
     { label = 'Sanchez',   model = 'sanchez', category = 'Motos', price = 1200 },
     { label = 'Bati 801',  model = 'bati',    category = 'Motos', price = 2500 },
+    { label = 'BMX',       model = 'bmx',     category = 'Motos', price = 300  },
 
     -- Utility
     { label = 'Ratloader', model = 'ratloader', category = 'Utilitaire', price = 1500 },
     { label = 'Bodhi',     model = 'bodhi2',    category = 'Utilitaire', price = 2000 },
     { label = 'Blazer',    model = 'blazer',    category = 'Utilitaire', price = 800  },
+
+    -- Butin Rare (aussi un drop zombie ~2.2% cumulé, palier "rare")
+    { label = 'Z-Type',               model = 'ztype',      category = 'Butin Rare', price = 30000 },
+    { label = 'Mule',                 model = 'mule',       category = 'Butin Rare', price = 15000 },
+    { label = 'Blazer 5',             model = 'blazer5',    category = 'Butin Rare', price = 15000 },
+    { label = 'Dominator Apocalypse', model = 'dominator4', category = 'Butin Rare', price = 30000 },
+    { label = 'Revolter',             model = 'revolter',   category = 'Butin Rare', price = 30000 },
+    { label = 'Ultralight',           model = 'ultralight', category = 'Butin Rare', price = 30000 },
+    { label = 'Speedo 2',             model = 'speedo2',    category = 'Butin Rare', price = 15000 },
+}
+
+-- Modèles épique/légendaire : jamais vendus/rachetés par le garagiste, quel que
+-- soit leur statut dans Config.Vehicles (fallback flat 500$ de sellVehicleItem
+-- neutralisé explicitement côté serveur pour ces modèles précis).
+Config.MarketOnlyVehicles = {
+    'schafter5', 'baller6', 'zr380', 'vigilante',       -- épique (loot zombie + caisse)
+    'oppressor2', 'nightshark', 'scarab',               -- légendaire (loot zombie + caisse)
 }
 
 -- [CUSTOMIZATION CATEGORY LABELS]

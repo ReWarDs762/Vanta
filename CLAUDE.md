@@ -27,6 +27,7 @@ resources/
     ├── pvp_character  — Création de personnage (pseudo + genre), remplace esx_identity
     ├── pvp_hud        — HUD coin bas-gauche (HP, armor, arme, munitions) + restrictions combat + nettoyage du monde
     ├── pvp_inventory  — Inventaire NUI complet (sac, coffre protégé, coffre avant-poste, hotbar, profil, paramètres)
+    ├── pvp_combat     — Mode combat : anti combat-log + coffre protégé bloqué en combat
     ├── pvp_spawn      — Spawn aléatoire aux avant-postes (login = random, mort = plus proche)
     ├── pvp_outposts   — Avant-postes avec zones safe, NPCs (shop/stash), custom armes (NUI + persistance DB)
     ├── pvp_zombies    — Système zombie (spawn, IA, loot pondéré)
@@ -95,7 +96,7 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - Tabs navigation avec icônes SVG inline (inventaire, marché, crew, classement, profil, paramètres)
 - Grille unique "MON SAC" (poids limité)
 - Coffre protégé personnel (persistant à la mort)
-- Coffre avant-poste (pas de limite de poids, par joueur par outpost)
+- Coffre avant-poste (pas de limite de poids, par joueur, **partagé entre tous les avant-postes**)
 - Hotbar 7 slots (hover + touche 1-7 pour bind)
 - Drag & drop custom (mousedown/mousemove/mouseup, pas HTML5 drag car cassé dans FiveM CEF)
 - Clic droit = transfert rapide entre sac ↔ coffre (pas de menu contextuel)
@@ -150,12 +151,15 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - HP : 200, Vitesse : 1.0, Dégâts : 15, Récompense : 20-60$
 - Animation : `move_m@drunk@verydrunk`
 - Loot pondéré : **1 zombie = 1 item**
-- **Taux de loot :**
-  - Très Commun (~82.8%) : Soins, Shots, Pistols, SMG, Molotov
-  - Commun (~15%) : AK47, Carabine, Carabine Spécial
-  - Rare (~1.5%) : MK2 fusils, M60, Mitrailleuse, Stungun + Véhicules rares
-  - Épic (~0.5%) : Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
-  - Légendaire (~0.01%) : Sniper, RPG, Homing Launcher + Véhicules légendaires
+- **Taux de loot** (poids `Config.LootTable`, total ≈ 8665) :
+  - Très Commun (~88.1%) : Bandage/Kit de soins, Shots repel/attract, Pistols, SMG, Molotov
+  - Commun (~9.2%) : AK47, Carabine, Carabine Spécial
+  - Rare (~2.2%) : Kevlar, Shot vitesse/santé, MK2 fusils, M60, Mitrailleuse, Stungun + Véhicules rares
+  - Épic (~0.46%) : Fusil précision, Lance-grenades, M60 MK2, Mousquet + Véhicules épic
+  - Légendaire (~0.013%) : Munitions Sniper, Sniper, RPG, Homing Launcher + Véhicules légendaires
+  - Kevlar / Shot vitesse / Shot santé / Munitions Sniper ont été déplacés hors de « très
+    commun » lors du rééquilibrage prix (20 000$/10 000$/10 000$/80 000$ à l'achat) — leur
+    rareté suit désormais leur valeur, pas leur ancienne classification.
 - **Zones d'exclusion** : `Config.ExclusionZones` dans pvp_zombies/config.lua (coords + rayon). À maintenir si les avant-postes bougent.
 - **Boost redzone** : items rares (chance < 10) × `Config.LootMultiplier` (x2)
 - **XP** : +50 XP par zombie tué (via `vanta_xp`, event interne `vanta_xp:internalZombieKill`)
@@ -183,34 +187,67 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - Respawn à l'avant-poste le plus proche
 - Armes retirées, véhicule spawné supprimé
 
-### Avant-postes (pvp_outposts) — 5 total
+### Mode combat (pvp_combat) — anti combat-log
+- Un coup donné OU reçu (dégât PVP réel, validé côté serveur par
+  `pvp_outposts` — hors zone safe, hors squad amie) passe l'attaquant ET la
+  victime en mode combat pour `Config.CombatDurationMs` (5s), fenêtre
+  glissante : tout nouveau coup pendant ce délai la prolonge
+- Indicateur "EN COMBAT" à l'écran (bandeau bas, natif, pas de NUI)
+- **Déconnexion pendant le mode combat** : le joueur meurt (perte du sac +
+  création d'un death bag à sa dernière position connue), exactement comme
+  une mort normale — délégué à `pvp_inventory:combatLogDeath`
+- **Coffre protégé bloqué en mode combat** : impossible de déposer un item
+  dans le coffre protégé personnel (`pvp_inventory:stashDeposit`) tant que le
+  mode combat est actif — empêche de sécuriser son loot en pleine fuite
+- État purement en mémoire (pas de table SQL, transitoire par nature) —
+  export `isInCombat(src)` consommé par `pvp_inventory`
+- Event interne `pvp_combat:registerHit(attackerSrc, victimSrc)`, déclenché
+  uniquement par `pvp_outposts` (jamais de `RegisterNetEvent`, un client ne
+  peut donc pas se déclencher lui-même le mode combat)
 
-**2 Grandes bases (tous services) :**
-| # | ID | Label | Emplacement | Zone safe |
-|---|----|-------|-------------|-----------|
-| 1 | `murietta_base` | Murietta Heights Base | Ville (carte GTA V standard — mapping custom retiré) | 60m |
-| 2 | `zancudo_base` | Zancudo Valley Base | Campagne | 60m |
+### Avant-postes (pvp_outposts) — 12 total, tous identiques
 
-**3 Petits camps (spécialité unique) :**
-| # | ID | Label | Spécialité | Zone safe |
-|---|----|-------|-----------|-----------|
-| 3 | `ls_armory` | LS Armurerie | Armes + custom armes | 35m |
-| 4 | `sandy_garage` | Sandy Shores Garage | Véhicules + custom véhicules | 35m |
-| 5 | `paleto_medical` | Paleto Bay Infirmerie | Soins | 35m |
+Pas de spécialisation par camp : les 12 avant-postes offrent exactement les
+mêmes services. Seul le rayon de la zone safe distingue les 2 grandes bases
+(100m) des 10 autres (60m).
 
-**Fonctionnalités :**
-- Zone safe = joueur invincible (`SetEntityInvincible`)
-- NPCs : téléport, shop (adapté à la spécialité), custom armes, custom véhicules
-- Coffres = props (pas de NPC), ouvre le NUI inventaire
-- Blips différenciés par type
-- Téléportation entre avant-postes via NPC pilote
+| # | ID | Zone safe |
+|---|----|-----------|
+| 1 | `murietta_base` | 100m |
+| 2 | `zancudo_base` | 100m |
+| 3 | `ls_armory` | 60m |
+| 4 | `vespucci_camp` | 60m |
+| 5 | `ls_camp` | 60m |
+| 6 | `west_ls_camp` | 60m |
+| 7 | `mountain_camp` | 60m |
+| 8 | `route68_camp` | 60m |
+| 9 | `grand_senora_camp` | 60m |
+| 10 | `grapeseed_camp` | 60m |
+| 11 | `grapeseed_north_camp` | 60m |
+| 12 | `paleto_camp` | 60m |
+
+**Fonctionnalités (identiques sur les 12) :**
+- Zone safe = joueur invincible (`SetEntityInvincible` client + refus des
+  dégâts côté serveur sur `weaponDamageEvent` si attaquant ou victime est en
+  zone safe — double protection anti-triche)
+- 4 NPCs par avant-poste : téléporteur, boutique générale (consommables),
+  armurerie (achat/vente armes + personnalisation composants/teintes),
+  garage (redirige entièrement vers `pvp_garage` — achat/vente véhicules
+  ET personnalisation, un seul point de vente véhicule sur tout le serveur ;
+  `pvp_outposts` n'a plus son propre catalogue véhicule, cf. « Séparation
+  stricte des boutiques » ci-dessous). Aucun de ces NPCs n'est réservé à un
+  abonnement VCoins.
+- Coffre = prop (pas de NPC), ouvre le NUI inventaire (`pvp_inventory`) —
+  coffre avant-poste partagé entre tous les avant-postes, voir plus haut
+- Téléportation entre avant-postes via le NPC pilote (carte NUI) ou en posant
+  un waypoint sur un avant-poste (prompt `[E]` automatique en zone safe)
 
 *Statut d'avancement de chaque resource ci-dessous (fonctionnel/en cours/testé ou non) :
 voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 
 ### Drops de ravitaillement (pvp_drops)
 - Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap
-- Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 3 min
+- Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 5 min
 - **Loot exclusif** : items légendaires uniquement (armes + véhicules légendaires, AWP/AWP MK2)
 
 ### Redzones (pvp_redzones)
@@ -248,7 +285,16 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 - Déclenché depuis `pvp_outposts` via `TriggerEvent('pvp_garage:openMechanic')` et `TriggerEvent('pvp_garage:openDealer')`
 - **Personnalisation** (12 catégories) : Peinture, Roues, Moteur, Freins, Transmission, Blindage, Turbo, Suspension, Livrée, Néons, Teinte vitres, Phares Xenon
 - **Mods Spéciaux** (véhicules Apocalypse) : Saut, Tourelle, Propulseurs, Bélier, Boost
-- **Concessionnaire** : grille de véhicules (35 entrées, 7 catégories), gratuit, double-clic = spawn
+- **Concessionnaire** : grille de véhicules (`Config.Vehicles`, ~35 entrées, catégories dont
+  « Butin Rare »), **payant** (achat → item inventaire → hotbar pour spawn, comme les
+  armes ; PAS un spawn gratuit malgré l'ancien libellé du menu). Revente symétrique au
+  garagiste (`pvp_garage:sellVehicleItem`, 50% du prix catalogue). Seul point de vente
+  véhicule du serveur — `pvp_outposts` n'a pas son propre catalogue.
+- **Véhicules épique/légendaire** (Schafter V12, Baller LE, ZR380, Vigilante, Oppressor MK2,
+  Nightshark, Scarab) : `Config.MarketOnlyVehicles` — absents de `Config.Vehicles`, et
+  explicitement bloqués côté serveur dans `sellVehicleItem` (sinon retombent sur le forfait
+  500$ par défaut). Trouvables uniquement en loot zombie/caisse, échangeables uniquement via
+  `pvp_market` (annonce ou trade direct) — jamais de prix NPC.
 - Annuler = restaure les mods d'origine
 - `Config.ApocalypseVehicles` : hash map pour détection rapide
 - Ordre server.cfg : `pvp_garage` avant `pvp_outposts`
@@ -348,9 +394,13 @@ dans `pvp_player_stats` (voir ci-dessous).
 
 ### Inventaire & customisation
 - `pvp_player_stash` — coffre protégé personnel (JSON items)
-- `pvp_outpost_stash` — coffre avant-poste (JSON items, par outpost_id par joueur)
+- `pvp_outpost_stash` — coffre avant-poste (par joueur ; la colonne `outpost_id` existe
+  mais vaut toujours `'global'` — le coffre est unique et partagé par tous les avant-postes)
 - `pvp_weapon_customs` — customisation armes (identifier + weapon_name → custom_json avec components[] et tint)
 - `pvp_vehicle_customs` — customisation véhicules (identifier + vehicle_model → mods_json)
+- `pvp_death_bags` — sacs de loot au sol (mort ou combat-log) : position + items_json,
+  persistés (survivent à un restart). Visibilité limitée par proximité côté serveur
+  (150m) — jamais broadcastée à tous les clients, voir `pvp_inventory/server/server.lua`
 - `user_inventory` — inventaire ESX standard (identifier, item, count)
 - `items` — items ESX (armes + véhicules enregistrés au démarrage)
 

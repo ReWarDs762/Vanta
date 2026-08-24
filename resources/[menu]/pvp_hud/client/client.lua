@@ -76,12 +76,34 @@ end
 -- Ancienne HP pour détecter les dégâts
 local lastHP = 200
 
+-- Dégâts de chute désactivés : snapshot de vie avant/après une chute (voir
+-- boucle principale ci-dessous). Pas de natif GTA dédié aux seuls dégâts de
+-- chute (SetEntityProofs n'a pas de flag "fall") — on utilise donc IS_PED_FALLING
+-- pour délimiter la fenêtre et restaurer la vie perdue pendant celle-ci.
+-- Limite assumée : un joueur touché par balle PENDANT sa chute verrait aussi
+-- ces dégâts restaurés — fenêtre trop courte en pratique pour justifier un
+-- système plus lourd.
+local wasFalling = false
+local healthBeforeFall = 200
+
 -- Boucle principale : se répète toutes les 100ms
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(100)
 
-        local ped    = PlayerPedId()
+        local ped = PlayerPedId()
+
+        local isFalling = IsPedFalling(ped)
+        if isFalling and not wasFalling then
+            healthBeforeFall = GetEntityHealth(ped)
+        elseif not isFalling and wasFalling then
+            local currentHealth = GetEntityHealth(ped)
+            if currentHealth > 0 and currentHealth < healthBeforeFall then
+                SetEntityHealth(ped, healthBeforeFall)
+            end
+        end
+        wasFalling = isFalling
+
         local health = GetEntityHealth(ped) - 100  -- GTA stocke la vie entre 100 et 200
         local armor  = GetPedArmour(ped)
 

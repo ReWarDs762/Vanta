@@ -250,10 +250,20 @@ local function notify(src, msg)
     TriggerClientEvent('esx:showNotification', src, msg)
 end
 
--- Dispatch : signale à pvp_spawn (et autres) que le personnage est prêt
+-- Dispatch : signale à pvp_spawn (et autres) que le personnage est prêt.
+-- SÉCURITÉ/FIABILITÉ : ne se déclenche QUE quand le client confirme avoir fini
+-- d'appliquer le modèle/apparence (event pvp_character:appearanceApplied),
+-- jamais immédiatement après l'envoi de applyModel/creationDone. Sans cette
+-- attente, pvp_spawn pouvait téléporter le joueur PENDANT que ce script
+-- déplaçait/recréait encore le ped (SetPlayerModel) → spawn sous la map.
 local function markCharacterReady(src)
     TriggerEvent('pvp_character:characterReady', src)
 end
+
+RegisterNetEvent('pvp_character:appearanceApplied')
+AddEventHandler('pvp_character:appearanceApplied', function()
+    markCharacterReady(source)
+end)
 
 -- ── Connexion : détecte nouveau vs existant ──────────────────────────────
 AddEventHandler('esx:playerLoaded', function(playerId)
@@ -318,7 +328,8 @@ AddEventHandler('esx:playerLoaded', function(playerId)
                     appearance = appearance,
                     sex        = row.sex or 'm',
                 })
-                markCharacterReady(src)
+                -- markCharacterReady() se déclenche via pvp_character:appearanceApplied
+                -- (voir plus haut), une fois le client confirmé avoir fini le swap de ped.
             else
                 -- Nouveau joueur : affiche le NUI
                 TriggerClientEvent('pvp_character:isNewPlayer', src)
@@ -433,7 +444,8 @@ AddEventHandler('pvp_character:saveCharacter', function(data)
                         appearance = appearance,
                         sex        = gender,
                     })
-                    markCharacterReady(src)
+                    -- markCharacterReady() se déclenche via pvp_character:appearanceApplied
+                    -- (voir plus haut), une fois le client confirmé avoir fini le swap de ped.
                 end
             )
         end

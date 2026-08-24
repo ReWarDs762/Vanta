@@ -76,6 +76,15 @@ local function GetVehiclePrice(model)
     return nil
 end
 
+-- [HELPER — modèles épique/légendaire exclus du garagiste : marché/trade uniquement]
+local MARKET_ONLY = {}
+for _, model in ipairs(Config.MarketOnlyVehicles or {}) do
+    MARKET_ONLY[model] = true
+end
+local function isMarketOnly(model)
+    return MARKET_ONLY[model] == true
+end
+
 -- SÉCURITÉ : validation format item véhicule
 local function isValidVehicleItemName(name)
     if type(name) ~= 'string' then return false end
@@ -134,7 +143,12 @@ ESX.RegisterServerCallback('pvp_garage:buyVehicleCart', function(source, cb, ite
             return
         end
         entry.count = count
-        local price = GetVehiclePrice(entry.name:gsub('^vehicle_', ''))
+        local model = entry.name:gsub('^vehicle_', '')
+        if isMarketOnly(model) then
+            cb(false, 'Ce véhicule est réservé au marché joueur / trade.')
+            return
+        end
+        local price = GetVehiclePrice(model)
         if not price then
             cb(false, 'Véhicule introuvable : ' .. tostring(entry.name))
             return
@@ -181,6 +195,16 @@ ESX.RegisterServerCallback('pvp_garage:sellVehicleItem', function(source, cb, it
     end
 
     local model = itemName:gsub('^vehicle_', '')
+
+    -- SÉCURITÉ / ÉCONOMIE : modèles épique/légendaire → jamais de rachat NPC,
+    -- même en forfait. Sans ce blocage explicite, un modèle absent de
+    -- Config.Vehicles retombe sur le forfait 500$ ci-dessous, ce qui
+    -- contournerait la règle "marché joueur uniquement".
+    if isMarketOnly(model) then
+        cb(false, 0)
+        return
+    end
+
     local price = GetVehiclePrice(model)
     local sellPrice = price and math.floor(price * 0.5) or 500
 

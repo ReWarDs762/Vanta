@@ -68,8 +68,6 @@ local function findShopItem(itemName, specialty)
     -- Cherche dans le shop correspondant à la spécialité
     local shopLists = {
         weapons  = Config.WeaponShopItems,
-        vehicles = Config.VehicleShopItems,
-        medical  = Config.MedicalShopItems,
         all      = Config.ShopItems,
     }
 
@@ -81,7 +79,7 @@ local function findShopItem(itemName, specialty)
     end
 
     -- Fallback : cherche dans tous les shops
-    local allLists = { Config.ShopItems, Config.WeaponShopItems, Config.VehicleShopItems, Config.MedicalShopItems }
+    local allLists = { Config.ShopItems, Config.WeaponShopItems }
     for _, l in ipairs(allLists) do
         for _, item in ipairs(l) do
             if item.item == itemName then return item end
@@ -101,7 +99,7 @@ local function buildPriceIndex()
         end
     end
     -- Puis les shops (écrase si doublon, les prix shop font foi)
-    local shopLists = { Config.ShopItems, Config.WeaponShopItems, Config.VehicleShopItems, Config.MedicalShopItems }
+    local shopLists = { Config.ShopItems, Config.WeaponShopItems }
     for _, l in ipairs(shopLists) do
         for _, item in ipairs(l) do
             index[item.item] = item
@@ -110,49 +108,6 @@ local function buildPriceIndex()
     return index
 end
 local PRICE_INDEX = buildPriceIndex()
-
--- ── Achat d'un item (legacy — conservé pour compatibilité) ────────────────
-RegisterNetEvent('pvp_outposts:buyItem')
-AddEventHandler('pvp_outposts:buyItem', function(itemName, itemPrice, specialty)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-
-    -- SÉCURITÉ : interaction boutique limitée aux zones safe (anti-triche).
-    if not isPlayerInSafeZone(src) then
-        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Achat uniquement en zone safe !')
-        return
-    end
-
-    -- SÉCURITÉ : valider type et bornes de itemPrice (client → serveur).
-    if type(itemName) ~= 'string' or type(itemPrice) ~= 'number' then return end
-    if itemPrice < 0 or itemPrice > 10000000 then return end
-
-    local account = xPlayer.getAccount('bank')
-    if not account then
-        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Erreur compte bancaire.')
-        return
-    end
-    if account.money < itemPrice then
-        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Fonds insuffisants.')
-        return
-    end
-
-    local itemConfig = findShopItem(itemName, specialty or 'all')
-    if not itemConfig then
-        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Item introuvable.')
-        return
-    end
-
-    if math.floor(itemConfig.price) ~= math.floor(itemPrice) then
-        TriggerClientEvent('pvp_outposts:buyResult', src, false, 'Prix invalide.')
-        return
-    end
-
-    xPlayer.removeAccountMoney('bank', itemConfig.price)
-    xPlayer.addInventoryItem(itemName, 1)
-    TriggerClientEvent('pvp_outposts:buyResult', src, true, itemConfig.label .. ' acheté pour $' .. itemConfig.price)
-end)
 
 -- ── Achat du panier NUI — Server Callback (attend la vraie réponse serveur)
 ESX.RegisterServerCallback('pvp_outposts:buyCartCb', function(src, cb, cartItems, destination)
@@ -259,52 +214,6 @@ ESX.RegisterServerCallback('pvp_outposts:buyCartCb', function(src, cb, cartItems
     end
 end)
 
--- ── Vente d'un item ─────────────────────────────────────────────────────────
-RegisterNetEvent('pvp_outposts:sellItem')
-AddEventHandler('pvp_outposts:sellItem', function(itemName, sellPrice)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-
-    -- SÉCURITÉ : vente uniquement en zone safe.
-    if not isPlayerInSafeZone(src) then
-        TriggerClientEvent('pvp_outposts:sellResult', src, false, 'Vente uniquement en zone safe !')
-        return
-    end
-
-    if type(itemName) ~= 'string' then return end
-
-    -- Vérifie que l'item a un prix de base
-    local itemConfig = PRICE_INDEX[itemName]
-    if not itemConfig then
-        TriggerClientEvent('pvp_outposts:sellResult', src, false, 'Cet item ne peut pas être vendu ici.')
-        return
-    end
-
-    -- Vérifie que le joueur possède l'item
-    local invItem = xPlayer.getInventoryItem(itemName)
-    if not invItem or invItem.count < 1 then
-        TriggerClientEvent('pvp_outposts:sellResult', src, false, 'Vous ne possédez pas cet item.')
-        return
-    end
-
-    -- Calcul prix serveur (anti-triche)
-    local realSellPrice = math.floor(itemConfig.price * Config.SellRatio)
-
-    -- Retirer l'item et créditer
-    xPlayer.removeInventoryItem(itemName, 1)
-    xPlayer.addAccountMoney('bank', realSellPrice)
-
-    -- Déséquiper l'arme si c'est une arme
-    if string.sub(itemName, 1, 7) == 'weapon_' then
-        TriggerClientEvent('pvp_inventory:unequipWeapon', src, itemName)
-    end
-
-    TriggerClientEvent('pvp_outposts:sellResult', src, true, itemConfig.label .. ' vendu pour $' .. realSellPrice)
-    -- Mise à jour du solde dans le NUI
-    TriggerClientEvent('pvp_outposts:nuiBalanceUpdate', src, getBankMoney(xPlayer))
-end)
-
 -- ── Vendre un item — Server Callback ──────────────────────────────────────
 ESX.RegisterServerCallback('pvp_outposts:sellItemCb', function(src, cb, itemName)
     local xPlayer = ESX.GetPlayerFromId(src)
@@ -343,6 +252,8 @@ ESX.RegisterServerCallback('pvp_outposts:sellItemCb', function(src, cb, itemName
 end)
 
 -- ── Utilitaire : vérifier si un item correspond à une spécialité ─────────
+-- 'all' = NPC boutique générale (consommables), 'weapons' = NPC armurerie,
+-- 'vehicles' = NPC garage.
 local function matchesSpecialty(itemName, spec)
     if spec == nil then return true end
     if spec == 'all' then
@@ -354,9 +265,6 @@ local function matchesSpecialty(itemName, spec)
     end
     if spec == 'vehicles' then
         return string.sub(itemName, 1, 8) == 'vehicle_'
-    end
-    if spec == 'medical' then
-        return itemName == 'bandage' or itemName == 'medkit' or itemName == 'kevlar'
     end
     return true
 end
@@ -422,89 +330,9 @@ ESX.RegisterServerCallback('pvp_outposts:getPlayerItems', function(src, cb)
     cb(result)
 end)
 
--- ── Ouverture du coffre ────────────────────────────────────────────────────
-RegisterNetEvent('pvp_outposts:openStash')
-AddEventHandler('pvp_outposts:openStash', function(outpostId)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    if not isValidOutpostId(outpostId) then return end
-
-    MySQL.Async.fetchAll(
-        'SELECT items FROM pvp_player_stash WHERE identifier = @id AND outpost_id = @op',
-        { ['@id'] = xPlayer.identifier, ['@op'] = outpostId },
-        function(result)
-            local items = {}
-            if result[1] and result[1].items then
-                items = json.decode(result[1].items) or {}
-            end
-            TriggerClientEvent('pvp_outposts:receiveStash', src, outpostId, items)
-        end
-    )
-end)
-
--- ── Récupérer un item du coffre ───────────────────────────────────────────
-RegisterNetEvent('pvp_outposts:retrieveItem')
-AddEventHandler('pvp_outposts:retrieveItem', function(outpostId, itemName)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    if not isValidOutpostId(outpostId) then return end
-    if type(itemName) ~= 'string' or itemName == '' then return end
-
-    MySQL.Async.fetchAll(
-        'SELECT items FROM pvp_player_stash WHERE identifier = @id AND outpost_id = @op',
-        { ['@id'] = xPlayer.identifier, ['@op'] = outpostId },
-        function(result)
-            if not result[1] then return end
-            local items = json.decode(result[1].items) or {}
-            local newItems = {}
-            local found = false
-
-            for _, item in ipairs(items) do
-                if item.name == itemName and not found then
-                    -- Restitue l'item au joueur
-                    xPlayer.addInventoryItem(itemName, item.count)
-                    found = true
-                else
-                    table.insert(newItems, item)
-                end
-            end
-
-            MySQL.Async.execute(
-                'UPDATE pvp_player_stash SET items = @items WHERE identifier = @id AND outpost_id = @op',
-                { ['@items'] = json.encode(newItems), ['@id'] = xPlayer.identifier, ['@op'] = outpostId }
-            )
-        end
-    )
-end)
-
--- ── Vider le coffre ────────────────────────────────────────────────────────
-RegisterNetEvent('pvp_outposts:clearStash')
-AddEventHandler('pvp_outposts:clearStash', function(outpostId)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    if not isValidOutpostId(outpostId) then return end
-
-    MySQL.Async.fetchAll(
-        'SELECT items FROM pvp_player_stash WHERE identifier = @id AND outpost_id = @op',
-        { ['@id'] = xPlayer.identifier, ['@op'] = outpostId },
-        function(result)
-            if not result[1] then return end
-            local items = json.decode(result[1].items) or {}
-            -- Restitue tous les items
-            for _, item in ipairs(items) do
-                xPlayer.addInventoryItem(item.name, item.count)
-            end
-            -- Vide le coffre en BDD
-            MySQL.Async.execute(
-                'UPDATE pvp_player_stash SET items = @items WHERE identifier = @id AND outpost_id = @op',
-                { ['@items'] = json.encode({}), ['@id'] = xPlayer.identifier, ['@op'] = outpostId }
-            )
-        end
-    )
-end)
+-- Note : l'ouverture/manipulation du coffre avant-poste est entièrement
+-- déléguée à pvp_inventory (event pvp_inventory:requestOutpostStash déclenché
+-- depuis client.lua). Table concernée : pvp_outpost_stash (GLOBAL_ID='global').
 
 -- ══════════════════════════════════════════════════════════════════════════
 --   CUSTOM VÉHICULES — Sauvegarde / Chargement par modèle
@@ -668,6 +496,56 @@ AddEventHandler('weaponDamageEvent', function(sender, data)
     local inSafeAttacker = playerIsInSafeZoneByPed(attackerPed)
     if inSafeVictim or inSafeAttacker then
         CancelEvent()
+        return
+    end
+
+    -- victimSrc : sur le serveur, NetworkGetEntityOwner(ped) renvoie le
+    -- server id du joueur propriétaire de ce ped.
+    local victimSrc = tonumber(NetworkGetEntityOwner(victimEntity))
+    local attackerSrc = tonumber(sender)
+
+    -- SÉCURITÉ / GAMEPLAY : les membres d'une même SQUAD (pas crew — le crew
+    -- entier peut se tuer entre membres, c'est voulu) sont immunisés entre
+    -- eux. Fait côté serveur, seul juge fiable des dégâts PVP — remplace
+    -- l'ancien ClearEntityLastDamageEntity côté client (pvp_crew) qui
+    -- n'annulait en réalité aucun dégât.
+    if attackerSrc and attackerSrc > 0 and victimSrc and victimSrc > 0 and attackerSrc ~= victimSrc then
+        local ok, sameSquad = pcall(function()
+            return exports['pvp_crew']:areInSameSquad(attackerSrc, victimSrc)
+        end)
+        if ok and sameSquad then
+            CancelEvent()
+            return
+        end
+    end
+
+    -- GAMEPLAY : dégât PVP réel et validé (hors zone safe, hors squad) →
+    -- passe attaquant et victime en mode combat (pvp_combat) : punit la
+    -- déconnexion pendant un fight et bloque le dépôt au coffre protégé.
+    if attackerSrc and attackerSrc > 0 then
+        TriggerEvent('pvp_combat:registerHit', attackerSrc, victimSrc)
+    end
+end)
+
+-- ── Explosions : ignoraient jusqu'ici la zone safe (seul weaponDamageEvent
+-- était filtré — un RPG/lance-grenades tué normalement à l'intérieur).
+-- explosionEvent ne donne pas de liste de victimes, seulement le point de
+-- détonation : on annule donc l'explosion entière si elle se déclenche à
+-- portée de souffle d'une zone safe (rayon + marge). Rien de légitime à
+-- faire exploser dans une zone safe de toute façon (zombies exclus de ces
+-- zones, cf. Config.ExclusionZones dans pvp_zombies).
+local EXPLOSION_SAFE_ZONE_BUFFER = 15.0
+AddEventHandler('explosionEvent', function(sender, ev)
+    if not ev or type(ev.posX) ~= 'number' then return end
+    for _, op in ipairs(Config.Outposts) do
+        local radius = (op.safeRadius or 50.0) + EXPLOSION_SAFE_ZONE_BUFFER
+        local dx = ev.posX - op.coords.x
+        local dy = ev.posY - op.coords.y
+        local dz = ev.posZ - op.coords.z
+        if (dx*dx + dy*dy + dz*dz) < (radius * radius) then
+            CancelEvent()
+            return
+        end
     end
 end)
 

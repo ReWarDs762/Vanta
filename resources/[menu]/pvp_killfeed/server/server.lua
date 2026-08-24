@@ -64,7 +64,6 @@ end
 -- ── Stats de session (reset au restart serveur) ──────────────────────────
 local sessionKills = {}     -- [identifier] = { name, kills, crewTag, crewName }
 local sessionCrewKills = {} -- [crewId] = { name, tag, kills }
-local combatStreaks = {}    -- [identifier] = streak PVP courant
 
 -- SÉCURITÉ : sanitisation anti-XSS (nom est injecté en NUI via template literal).
 local function sanitizeName(s)
@@ -137,38 +136,6 @@ local function broadcastLeaders()
     TriggerClientEvent('pvp_killfeed:updateLeaders', -1, killLeader, crewLeader)
 end
 
-local function announceCombat(message, color)
-    TriggerClientEvent('chat:addMessage', -1, {
-        color = color or { 255, 210, 80 },
-        args = { '[COMBAT]', message }
-    })
-end
-
-local function handleCombatPolish(killerIdentifier, victimIdentifier, killerName, victimName, weaponLabel, inRedzone)
-    if victimIdentifier then
-        local shutdownStreak = combatStreaks[victimIdentifier] or 0
-        if shutdownStreak >= 5 and killerIdentifier and killerIdentifier ~= victimIdentifier then
-            announceCombat(('%s stoppe la série de %s (%d kills) !'):format(killerName, victimName, shutdownStreak), { 120, 220, 255 })
-        end
-        combatStreaks[victimIdentifier] = 0
-    end
-
-    if killerIdentifier and killerIdentifier ~= victimIdentifier then
-        combatStreaks[killerIdentifier] = (combatStreaks[killerIdentifier] or 0) + 1
-        local streak = combatStreaks[killerIdentifier]
-        local rz = inRedzone and ' en redzone' or ''
-        if streak == 3 then
-            announceCombat(('%s est en série x3%s.'):format(killerName, rz), { 255, 180, 70 })
-        elseif streak == 5 then
-            announceCombat(('%s devient une menace x5%s.'):format(killerName, rz), { 255, 110, 60 })
-        elseif streak == 10 then
-            announceCombat(('%s domine le serveur x10%s.'):format(killerName, rz), { 255, 40, 40 })
-        elseif streak > 10 and streak % 5 == 0 then
-            announceCombat(('%s continue le massacre x%d avec %s%s.'):format(killerName, streak, weaponLabel or 'Arme', rz), { 255, 40, 40 })
-        end
-    end
-end
-
 -- ── Anti-spam killfeed : une victime ne peut déclarer qu'un kill / 5s ────
 -- SÉCURITÉ : empêche un client de spam playerKilled pour faire exploser
 -- artificiellement les stats d'un allié (ou ruiner celles d'un ennemi en
@@ -209,7 +176,8 @@ AddEventHandler('pvp_killfeed:playerKilled', function(killerSrc, weaponHash, inR
         killerSrc = tonumber(killerSrc)
         local killerXPlayer = ESX.GetPlayerFromId(killerSrc)
         if killerXPlayer then
-            -- SÉCURITÉ : distance sanity-check côté serveur (max 300m).
+            -- SÉCURITÉ : distance sanity-check côté serveur (max 2000m — au-delà
+            -- de la portée effective de toute arme du jeu, y compris sniper/AWP).
             -- Empêche un client de revendiquer un kill sur un joueur à
             -- l'autre bout de la map qu'il n'a pas pu toucher.
             local killerPed = GetPlayerPed(killerSrc)
@@ -220,7 +188,7 @@ AddEventHandler('pvp_killfeed:playerKilled', function(killerSrc, weaponHash, inR
                 local kc = GetEntityCoords(killerPed)
                 local vc = GetEntityCoords(victimPed)
                 local dx, dy, dz = kc.x - vc.x, kc.y - vc.y, kc.z - vc.z
-                if (dx*dx + dy*dy + dz*dz) > 90000.0 then distOk = false end
+                if (dx*dx + dy*dy + dz*dz) > 4000000.0 then distOk = false end
             end
             if distOk then
                 killerName = getPlayerName(killerSrc)
@@ -251,8 +219,11 @@ AddEventHandler('pvp_killfeed:playerKilled', function(killerSrc, weaponHash, inR
 
     -- Pipeline stats unifie: le killfeed valide le PVP, puis delegue aux
     -- systemes persistants sans repasser par un event client falsifiable.
+    -- Le suivi de série (kill streak) vit uniquement dans pvp_inventory
+    -- (kill_streak_record + badges) — plus de doublon ici, et plus
+    -- d'annonces de série dans le chat (retirées, trop bruyantes à plusieurs
+    -- joueurs).
     TriggerEvent('pvp_inventory:recordPvpKill', killerIdentifier, victimIdentifier, killerName, victimName)
-    handleCombatPolish(killerIdentifier, victimIdentifier, killerName, victimName, weaponLabel, inRedzone)
     if inRedzone then
         TriggerEvent('pvp_redzones:pvpKill', killerSrc, victimSrc)
     end

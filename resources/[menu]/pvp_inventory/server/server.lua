@@ -123,9 +123,14 @@ end
 
 local ITEM_WEIGHTS = {
     -- Consommables (0.2 kg)
-    bandage=0.2, medkit=0.4, lockpick=0.1,
+    bandage=0.2, medkit=0.4,
     -- Kevlar (1 kg)
     kevlar=1.0,
+    -- Munitions
+    ammo_sniper=0.1,
+    -- Mêlée
+    weapon_knife=0.3, weapon_bat=1.0, weapon_crowbar=1.2,
+    weapon_switchblade=0.2, weapon_hatchet=0.8, weapon_machete=0.7,
     -- Shots (0.2 kg)
     shot_repel=0.2, shot_attract=0.2, shot_speed=0.2, shot_health=0.2,
     -- ── Pistols (1 kg) ──
@@ -252,13 +257,12 @@ function registerConsumableItems()
         ('bandage',      'Bandage',                  -1, 0, 1),
         ('medkit',       'Kit de Soins',             -1, 0, 1),
         ('kevlar',       'Kevlar',                   -1, 0, 1),
-        ('lockpick',     'Lockpick',                 -1, 0, 1),
         ('shot_repel',   'Shot Répulsif',            -1, 0, 1),
         ('shot_attract', 'Shot Attracteur',          -1, 0, 1),
         ('shot_speed',   'Shot de Vitesse',          -1, 0, 1),
         ('shot_health',  'Shot de Santé',            -1, 0, 1)
     ]])
-    print('[pvp_inventory] 8 consommables enregistrés dans items.')
+    print('[pvp_inventory] 7 consommables enregistrés dans items.')
 end
 
 -- ── Enregistrer les armes comme items ESX ───────────────────────────────
@@ -817,6 +821,9 @@ local CONSUMABLE = {
     shot_repel=true, shot_attract=true, shot_speed=true, shot_health=true,
 }
 local WEAPONS = {
+    -- Mêlée
+    weapon_knife=true,        weapon_machete=true,       weapon_bat=true,
+    weapon_crowbar=true,      weapon_switchblade=true,   weapon_hatchet=true,
     -- Très commun
     weapon_molotov=true,
     weapon_appistol=true,     weapon_pistol=true,        weapon_pistol_mk2=true,
@@ -845,7 +852,7 @@ local function isValidItemName(name)
     if WEAPONS[name] then return true end
     if name:find('^vehicle_') then return true end
     -- Munitions spéciales
-    if name == 'ammo_sniper' or name == 'lockpick' then return true end
+    if name == 'ammo_sniper' then return true end
     return false
 end
 
@@ -945,6 +952,15 @@ AddEventHandler('pvp_inventory:stashDeposit', function(itemName, qty)
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
     if not isValidItemName(itemName) then return end
+
+    -- SÉCURITÉ / GAMEPLAY : impossible de ranger dans le coffre protégé en
+    -- mode combat (pvp_combat) — empêche de sécuriser son loot en pleine
+    -- fuite pendant un fight.
+    local ok, inCombat = pcall(function() return exports['pvp_combat']:isInCombat(src) end)
+    if ok and inCombat then
+        TriggerClientEvent('pvp_market:notify', src, 'Impossible en mode combat !', false)
+        return
+    end
 
     -- Anti race condition : une seule opération coffre à la fois par joueur
     if stashLocks[xPlayer.identifier] then
@@ -1120,44 +1136,9 @@ function refreshClient(src, xPlayer)
     end)
 end
 
--- ── Incrémente les kills/deaths (events INTERNES uniquement, pas réseau) ──
--- Sécurité : PAS de RegisterNetEvent — sinon un client peut forger l'event
--- pour booster ses stats et XP via F8. Ces events ne doivent être déclenchés
--- que par d'autres resources serveur (via TriggerEvent local).
--- Le vrai pipeline PVP passe par pvp_killfeed -> pvp_inventory:recordPvpKill.
-AddEventHandler('pvp_inventory:addKill', function(identifier)
-    if not identifier then return end
-    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
-    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
-    upsertPlayerStats(identifier, name, 1, 0, 0)
-    TriggerEvent('pvp_crew:pvpKill', identifier, nil)
-end)
-
-AddEventHandler('pvp_inventory:addDeath', function(identifier)
-    if not identifier then return end
-    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
-    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
-    upsertPlayerStats(identifier, name, 0, 1, 0)
-    TriggerEvent('pvp_crew:pvpKill', nil, identifier)
-end)
-
-AddEventHandler('pvp_inventory:addZombieKill', function(identifier)
-    if not identifier then return end
-    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
-    local name = xPlayer and getDisplayNameFromPlayer(xPlayer) or identifier
-    upsertPlayerStats(identifier, name, 0, 0, 1)
-    TriggerEvent('pvp_crew:zombieKill', identifier)
-end)
-
-AddEventHandler('pvp_inventory:addZombieKillBySource', function(targetSrc)
-    local src = tonumber(targetSrc)
-    if not src then return end
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    upsertPlayerStats(xPlayer.identifier, getDisplayNameFromPlayer(xPlayer), 0, 0, 1)
-    TriggerEvent('pvp_crew:zombieKill', xPlayer.identifier)
-end)
-
+-- ── Zombie tué : incrémente les stats (event INTERNE — déclenché par
+-- pvp_zombies via TriggerEvent local, jamais de RegisterNetEvent ici : sinon
+-- un client pourrait forger l'event pour booster ses stats/XP via F8).
 AddEventHandler('pvp_inventory:recordZombieKill', function(targetSrc)
     local src = tonumber(targetSrc)
     if not src then return end
@@ -1327,18 +1308,100 @@ ESX.RegisterServerCallback('pvp_inventory:getLeaderboards', function(src, cb)
 end)
 
 -- ══ DEATH BAGS ═══════════════════════════════════════════════════════════
-local deathBags = {}        -- [bagId] = { id, coords, items[], createdAt }
-local deathBagCounter = 0
-local DEATH_BAG_LIFETIME = 300 -- 5 minutes avant expiration
+-- Persistés en BDD (pvp_death_bags) : survivent à un restart serveur (avant,
+-- ils vivaient uniquement en mémoire et disparaissaient au redémarrage).
+-- Visibilité par proximité : un joueur n'apprend l'existence d'un sac (et
+-- son prop n'apparaît chez lui) que s'il se trouve à moins de
+-- DEATH_BAG_VISIBILITY_RADIUS mètres. Avant, la position de TOUS les sacs de
+-- la map était broadcastée à TOUS les clients (à la création ET à la connexion
+-- via requestDeathBagSync) — un client modifié pouvait donc cartographier
+-- tous les sacs du serveur en temps réel. La fonctionnalité (n'importe qui
+-- peut looter n'importe quel sac en s'approchant) est inchangée.
+local deathBags = {}        -- [bagId] = { dbId, coords, items[] }
 local deathBagLocks = {}    -- anti-race-condition per bag
+local knownBags = {}        -- [src] = { [bagId] = true } — sacs déjà notifiés à ce joueur
+local DEATH_BAG_VISIBILITY_RADIUS = 150.0
+local DEATH_BAG_VIS_RADIUS_SQ = DEATH_BAG_VISIBILITY_RADIUS * DEATH_BAG_VISIBILITY_RADIUS
 
--- ── Mort du joueur : créer un sac de loot à l'emplacement de la mort ─────
-RegisterNetEvent('pvp_inventory:playerDied')
-AddEventHandler('pvp_inventory:playerDied', function(deathCoords)
-    local src     = source
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
+AddEventHandler('onResourceStart', function(res)
+    if res ~= GetCurrentResourceName() then return end
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pvp_death_bags` (
+            `id`         INT AUTO_INCREMENT PRIMARY KEY,
+            `pos_x`      FLOAT NOT NULL,
+            `pos_y`      FLOAT NOT NULL,
+            `pos_z`      FLOAT NOT NULL,
+            `items_json` LONGTEXT NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ]], {}, function()
+        MySQL.Async.fetchAll('SELECT id, pos_x, pos_y, pos_z, items_json FROM pvp_death_bags', {}, function(rows)
+            for _, row in ipairs(rows or {}) do
+                local ok, items = pcall(json.decode, row.items_json)
+                if ok and type(items) == 'table' and #items > 0 then
+                    deathBags['dbag_' .. row.id] = {
+                        dbId   = row.id,
+                        coords = { x = row.pos_x, y = row.pos_y, z = row.pos_z },
+                        items  = items,
+                    }
+                end
+            end
+            print(('[pvp_inventory] %d death bag(s) rechargé(s) depuis la BDD'):format(#(rows or {})))
+        end)
+    end)
+end)
 
+local function persistDeathBagItems(bag)
+    MySQL.Async.execute(
+        'UPDATE pvp_death_bags SET items_json = @items WHERE id = @id',
+        { ['@id'] = bag.dbId, ['@items'] = json.encode(bag.items) }
+    )
+end
+
+-- Joueurs connectés à moins de sqrt(radiusSq) mètres de coords
+local function getPlayersNear(coords, radiusSq)
+    local nearby = {}
+    for _, src in ipairs(GetPlayers()) do
+        src = tonumber(src)
+        local ped = GetPlayerPed(src)
+        if ped and ped ~= 0 then
+            local pCoords = GetEntityCoords(ped)
+            local dx = pCoords.x - coords.x
+            local dy = pCoords.y - coords.y
+            local dz = pCoords.z - coords.z
+            if (dx*dx + dy*dy + dz*dz) <= radiusSq then
+                nearby[#nearby+1] = src
+            end
+        end
+    end
+    return nearby
+end
+
+local function notifyBagToPlayer(src, bagId, bag)
+    knownBags[src] = knownBags[src] or {}
+    if knownBags[src][bagId] then return end
+    knownBags[src][bagId] = true
+    TriggerClientEvent('pvp_inventory:deathBagCreated', src, bagId, bag.coords)
+end
+
+-- ── Scan périodique : notifie les sacs existants aux joueurs qui s'en
+-- approchent (couvre les sacs créés avant leur connexion, ou rechargés
+-- depuis la BDD après un restart, sans jamais broadcaster à tout le monde).
+CreateThread(function()
+    while true do
+        Wait(6000)
+        for bagId, bag in pairs(deathBags) do
+            for _, src in ipairs(getPlayersNear(bag.coords, DEATH_BAG_VIS_RADIUS_SQ)) do
+                notifyBagToPlayer(src, bagId, bag)
+            end
+        end
+    end
+end)
+
+-- ── Vide l'inventaire du joueur dans un sac de loot au sol ───────────────
+-- Partagé entre une mort normale (playerDied) et une mort par combat-log
+-- (combatLogDeath, déclenché par pvp_combat à la déconnexion).
+local function createDeathBagFromInventory(src, xPlayer, deathCoords)
     -- Vérifier si la mort s'est produite en zone safe → inventaire préservé
     if deathCoords and deathCoords.x then
         local ok, outposts = pcall(function() return exports['pvp_outposts']:getAllOutposts() end)
@@ -1373,17 +1436,41 @@ AddEventHandler('pvp_inventory:playerDied', function(deathCoords)
 
     -- Créer le sac de loot si le joueur avait des items
     if #bagItems > 0 and deathCoords and deathCoords.x then
-        deathBagCounter = deathBagCounter + 1
-        local bagId = 'dbag_' .. deathBagCounter
-        deathBags[bagId] = {
-            id        = bagId,
-            coords    = { x = deathCoords.x, y = deathCoords.y, z = deathCoords.z },
-            items     = bagItems,
-            createdAt = os.time(),
-        }
-        -- Informer tous les clients du nouveau sac
-        TriggerClientEvent('pvp_inventory:deathBagCreated', -1, bagId, deathBags[bagId].coords)
+        MySQL.Async.insert(
+            'INSERT INTO pvp_death_bags (pos_x, pos_y, pos_z, items_json) VALUES (@x, @y, @z, @items)',
+            { ['@x'] = deathCoords.x, ['@y'] = deathCoords.y, ['@z'] = deathCoords.z, ['@items'] = json.encode(bagItems) },
+            function(dbId)
+                if not dbId then return end
+                local bagId = 'dbag_' .. dbId
+                local coords = { x = deathCoords.x, y = deathCoords.y, z = deathCoords.z }
+                local bag = { dbId = dbId, coords = coords, items = bagItems }
+                deathBags[bagId] = bag
+                -- Notifie tout de suite les joueurs déjà à proximité — les
+                -- autres le découvriront via le scan périodique en s'approchant.
+                for _, nearSrc in ipairs(getPlayersNear(coords, DEATH_BAG_VIS_RADIUS_SQ)) do
+                    notifyBagToPlayer(nearSrc, bagId, bag)
+                end
+            end
+        )
     end
+end
+
+-- ── Mort du joueur : créer un sac de loot à l'emplacement de la mort ─────
+RegisterNetEvent('pvp_inventory:playerDied')
+AddEventHandler('pvp_inventory:playerDied', function(deathCoords)
+    local src     = source
+    local xPlayer = ESX.GetPlayerFromId(src)
+    if not xPlayer then return end
+    createDeathBagFromInventory(src, xPlayer, deathCoords)
+end)
+
+-- ── Mort par combat-log (anti combat-log, déclenché par pvp_combat quand un
+-- joueur en mode combat se déconnecte) — event INTERNE, pas de RegisterNetEvent
+-- (src vient de pvp_combat, pas d'un client).
+AddEventHandler('pvp_inventory:combatLogDeath', function(src, deathCoords)
+    local xPlayer = ESX.GetPlayerFromId(src)
+    if not xPlayer then return end
+    createDeathBagFromInventory(src, xPlayer, deathCoords)
 end)
 
 -- ── Demander l'ouverture d'un death bag ──────────────────────────────────
@@ -1506,38 +1593,41 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
         bagItems  = bag.items,
     })
 
-    -- Si le sac est vide → le supprimer
+    -- Si le sac est vide → le supprimer (BDD + mémoire), sinon persister le reste
     if #bag.items == 0 then
         deathBags[bagId] = nil
+        for _, ks in pairs(knownBags) do ks[bagId] = nil end
+        MySQL.Async.execute('DELETE FROM pvp_death_bags WHERE id = @id', { ['@id'] = bag.dbId })
         TriggerClientEvent('pvp_inventory:deathBagRemoved', -1, bagId)
+    else
+        persistDeathBagItems(bag)
     end
 end)
 
--- ── Sync : envoyer tous les death bags au joueur qui se connecte ─────────
+-- ── Sync à la connexion : n'envoie que les sacs déjà à portée du joueur —
+-- le scan périodique se charge des sacs découverts en se déplaçant ensuite.
 RegisterNetEvent('pvp_inventory:requestDeathBagSync')
 AddEventHandler('pvp_inventory:requestDeathBagSync', function()
     local src = source
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return end
+    local pCoords = GetEntityCoords(ped)
     for bagId, bag in pairs(deathBags) do
-        TriggerClientEvent('pvp_inventory:deathBagCreated', src, bagId, bag.coords)
-    end
-end)
-
--- ── Nettoyage automatique des death bags expirés ─────────────────────────
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(30000) -- vérifier toutes les 30s
-        local now = os.time()
-        for bagId, bag in pairs(deathBags) do
-            if now - bag.createdAt > DEATH_BAG_LIFETIME then
-                deathBags[bagId] = nil
-                TriggerClientEvent('pvp_inventory:deathBagRemoved', -1, bagId)
-            end
+        local dx = pCoords.x - bag.coords.x
+        local dy = pCoords.y - bag.coords.y
+        local dz = pCoords.z - bag.coords.z
+        if (dx*dx + dy*dy + dz*dz) <= DEATH_BAG_VIS_RADIUS_SQ then
+            notifyBagToPlayer(src, bagId, bag)
         end
     end
 end)
 
 -- ══ COFFRE AVANT-POSTE ═══════════════════════════════════════════════════
-local OUTPOST_STASH_MAX_WEIGHT = 100.0  -- 100 kg max (généreux mais pas infini)
+-- Coffre unifié : un seul contenu par joueur, partagé par TOUS les avant-postes
+-- du serveur (l'outpost_id envoyé par le client est ignoré au profit de 'global',
+-- donc un avant-poste ajouté plus tard ouvre automatiquement le même coffre).
+-- Pas de limite de poids : c'est le stockage longue durée, la limite ne vit que
+-- sur le sac (Config.MaxWeight) et sur le conteneur protégé (20 kg + bonus).
 
 -- Helper : charger le coffre d'un avant-poste pour un joueur
 function loadOutpostStash(identifier, outpostId, cb)
@@ -1586,7 +1676,7 @@ AddEventHandler('pvp_inventory:requestOutpostStash', function(_, outpostLabel)
     end)
 end)
 
--- Déposer un item dans le coffre avant-poste (coffre unifié, avec limite de poids)
+-- Déposer un item dans le coffre avant-poste (coffre unifié, sans limite de poids)
 RegisterNetEvent('pvp_inventory:outpostStashDeposit')
 AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
     local src     = source
@@ -1610,39 +1700,26 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
         return
     end
 
-    -- Vérifier le poids du coffre avant-poste
-    loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(outpostItems)
-        local currentWeight = 0
-        for _, s in ipairs(outpostItems) do
-            currentWeight = currentWeight + getItemWeight(s.name) * s.count
+    -- Pas de vérification de poids : le coffre avant-poste est illimité.
+    xPlayer.removeInventoryItem(itemName, qty)
+    -- Déséquiper l'arme si elle était en main
+    if WEAPONS[itemName] then
+        TriggerClientEvent('pvp_inventory:unequipWeapon', src, itemName)
+    end
+    MySQL.Async.execute(
+        [[INSERT INTO pvp_outpost_stash (identifier, outpost_id, item, label, count)
+          VALUES (@id, @op, @item, @label, @qty)
+          ON DUPLICATE KEY UPDATE count = count + @qty]],
+        { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty },
+        function()
+            TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', true)
+            refreshStash(src, xPlayer)
+            loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
+                TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
+                stashLocks[xPlayer.identifier] = nil
+            end)
         end
-        local addWeight = getItemWeight(itemName) * qty
-        if currentWeight + addWeight > OUTPOST_STASH_MAX_WEIGHT then
-            stashLocks[xPlayer.identifier] = nil
-            TriggerClientEvent('pvp_market:notify', src, 'Coffre avant-poste trop lourd ! ('..OUTPOST_STASH_MAX_WEIGHT..' kg max)', false)
-            return
-        end
-
-        xPlayer.removeInventoryItem(itemName, qty)
-        -- Déséquiper l'arme si elle était en main
-        if WEAPONS[itemName] then
-            TriggerClientEvent('pvp_inventory:unequipWeapon', src, itemName)
-        end
-        MySQL.Async.execute(
-            [[INSERT INTO pvp_outpost_stash (identifier, outpost_id, item, label, count)
-              VALUES (@id, @op, @item, @label, @qty)
-              ON DUPLICATE KEY UPDATE count = count + @qty]],
-            { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty },
-            function()
-                TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', true)
-                refreshStash(src, xPlayer)
-                loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
-                    TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
-                    stashLocks[xPlayer.identifier] = nil
-                end)
-            end
-        )
-    end)
+    )
 end)
 
 -- Retirer un item du coffre avant-poste (coffre unifié)
@@ -1718,7 +1795,7 @@ end)
 -- Donné une seule fois par personnage via /kitstart (items normaux, vendables)
 local KIT_START_ITEMS = {
     { name = 'weapon_specialcarbine', label = 'Carabine Spéciale', count = 5 },
-    { name = 'revolter',              label = 'Revolter',          count = 5 },
+    { name = 'vehicle_revolter',      label = 'Revolter',          count = 5 },
     { name = 'shot_attract',          label = 'Shot Attracteur',   count = 5 },
 }
 
@@ -1881,6 +1958,7 @@ AddEventHandler('playerDropped', function()
         playerStreaks[xPlayer.identifier] = nil
         pedChangeLocks[xPlayer.identifier] = nil
     end
+    knownBags[src] = nil
 end)
 
 -- ── Sauvegarde du ped model choisi ──────────────────────────────────────

@@ -164,12 +164,8 @@ function updateInfoPanel(op) {
         return;
     }
 
-    let typeLabel = 'Base complète';
-    if (op.specialty === 'weapons')  typeLabel = 'Armurerie';
-    if (op.specialty === 'vehicles') typeLabel = 'Garage';
-    if (op.specialty === 'medical')  typeLabel = 'Infirmerie';
-
-    let services = '<span>Armes</span><span>Objets</span><span>Véhicules</span><span>Custom</span>';
+    const typeLabel = 'Avant-poste';
+    const services = '<span>Armes</span><span>Objets</span><span>Véhicules</span><span>Custom</span>';
 
     panel.innerHTML = `
         <div class="info-content">

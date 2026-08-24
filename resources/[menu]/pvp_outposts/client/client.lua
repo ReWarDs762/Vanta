@@ -51,10 +51,6 @@ local WEAPON_DISPLAY_NAMES = {
     weapon_stungun           = 'Pistolet Électrique',
     weapon_musket            = 'Mousquet',
 }
-local jumpCooldown   = false
-local boostCooldown  = false
-local shuntCooldown  = false
-local lastXPress     = 0       -- timestamp du dernier appui X (pour double tap)
 
 -- ── Commande /coords — copie position + heading dans le presse-papier ───
 RegisterCommand('coords', function()
@@ -515,13 +511,7 @@ Citizen.CreateThread(function()
         elseif nearNpc == 'weapon_custom' then
             ESX.ShowHelpNotification('[E] Armurerie (achat/vente/custom)')
         elseif nearNpc == 'vehicle_custom' then
-            local hasDiamond = false
-            pcall(function() hasDiamond = exports['pvp_vcoins']:HasDiamond() end)
-            if hasDiamond then
-                ESX.ShowHelpNotification('[E] Garage (achat/vente/custom)')
-            else
-                ESX.ShowHelpNotification('[E] Garage ~r~(Diamond requis)')
-            end
+            ESX.ShowHelpNotification('[E] Garage (achat/vente/custom)')
         end
 
         if inSafeZone and nearNpc == nil then
@@ -546,16 +536,7 @@ Citizen.CreateThread(function()
             elseif nearNpc == 'weapon_custom' then
                 openWeaponCustomMenu()
             elseif nearNpc == 'vehicle_custom' then
-                -- Customisation véhicule : réservé aux abonnés Diamond
-                local hasDiamond = false
-                local ok = pcall(function()
-                    hasDiamond = exports['pvp_vcoins']:HasDiamond()
-                end)
-                if ok and hasDiamond then
-                    openVehicleCustomMenu()
-                else
-                    ESX.ShowNotification('~r~Accès réservé aux abonnés ~y~DIAMOND')
-                end
+                openVehicleCustomMenu()
             end
 
         end
@@ -569,7 +550,6 @@ function openTeleportMenu()
         table.insert(outpostList, {
             id        = op.id,
             label     = op.label,
-            specialty = op.specialty or 'all',
             x         = op.coords.x,
             y         = op.coords.y,
         })
@@ -605,16 +585,14 @@ end)
 function openShopMenu(forceSpecialty)
     if nearOutpost == nil then return end
 
-    local specialty = forceSpecialty or nearOutpost.specialty or 'all'
+    local specialty = forceSpecialty or 'all'
 
-    -- Sélection des items vendables selon la spécialité
+    -- Sélection des items vendables selon le NPC (boutique générale = tous les
+    -- consommables ; armurerie = armes ; les véhicules ne passent plus par
+    -- ce shop, uniquement par pvp_garage)
     local shopList = Config.ShopItems
     if specialty == 'weapons' then
         shopList = Config.WeaponShopItems
-    elseif specialty == 'vehicles' then
-        shopList = Config.VehicleShopItems
-    elseif specialty == 'medical' then
-        shopList = Config.MedicalShopItems
     end
 
     -- Récupérer les items vendables du joueur (callback serveur)
@@ -704,31 +682,6 @@ AddEventHandler('pvp_outposts:doTeleport', function(coords, heading)
 
     Citizen.Wait(500)
     DoScreenFadeIn(300)
-end)
-
--- ── Notification achat/vente ─────────────────────────────────────────────
-RegisterNetEvent('pvp_outposts:buyResult')
-AddEventHandler('pvp_outposts:buyResult', function(success, message)
-    if success then
-        ESX.ShowNotification('~g~' .. message)
-    else
-        ESX.ShowNotification('~r~' .. message)
-    end
-end)
-
-RegisterNetEvent('pvp_outposts:sellResult')
-AddEventHandler('pvp_outposts:sellResult', function(success, message)
-    if success then
-        ESX.ShowNotification('~g~' .. message)
-    else
-        ESX.ShowNotification('~r~' .. message)
-    end
-end)
-
--- Mise à jour du solde dans le NUI après vente
-RegisterNetEvent('pvp_outposts:nuiBalanceUpdate')
-AddEventHandler('pvp_outposts:nuiBalanceUpdate', function(newBalance)
-    SendNUIMessage({ action = 'updateBalance', balance = newBalance })
 end)
 
 -- ══════════════════════════════════════════════════════════════════════════
@@ -1006,13 +959,15 @@ RegisterNUICallback('wc_save', function(_, cb)
 end)
 
 -- ══════════════════════════════════════════════════════════════════════════
---   VÉHICULES — Menu principal (acheter/vendre + personnaliser)
---   Redirige vers pvp_garage NUI pour customisation et concessionnaire
+--   VÉHICULES — Menu principal (concessionnaire + personnaliser)
+--   Un seul point de vente véhicule sur tout le serveur : pvp_garage. Achat/
+--   revente d'objets-véhicule (argent ↔ item) ET personnalisation passent
+--   tous les deux par ce NPC, qui redirige entièrement vers pvp_garage.
 -- ══════════════════════════════════════════════════════════════════════════
 function openVehicleCustomMenu()
     local elements = {
-        { label = 'Acheter un véhicule',        value = 'dealer'  },
-        { label = 'Personnaliser le véhicule',   value = 'custom'  },
+        { label = 'Concessionnaire (achat / vente)', value = 'dealer' },
+        { label = 'Personnaliser le véhicule',        value = 'custom' },
     }
 
     ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_main_menu',
@@ -1032,34 +987,8 @@ function openVehicleCustomMenu()
 end
 
 -- ══════════════════════════════════════════════════════════════════════════
---   UTILITAIRES CUSTOM VÉHICULE — Sérialisation / Application des mods
+--   UTILITAIRES CUSTOM VÉHICULE — Application des mods sauvegardés
 -- ══════════════════════════════════════════════════════════════════════════
-
--- Extraire toutes les customs d'un véhicule (pour sauvegarde)
-function getVehicleCustomData(veh)
-    SetVehicleModKit(veh, 0)
-    local primary, secondary = GetVehicleColours(veh)
-    local data = {
-        mods       = {},
-        primary    = primary,
-        secondary  = secondary,
-        windowTint = GetVehicleWindowTint(veh),
-        xenon      = IsToggleModOn(veh, 22),
-        turbo      = IsToggleModOn(veh, 18),
-        arenaBoost = Entity(veh).state.arena_boost or false,
-        arenaJump  = Entity(veh).state.arena_jump  or false,
-    }
-    for modType = 0, 49 do
-        local numMods = GetNumVehicleMods(veh, modType)
-        if numMods > 0 then
-            local mod = GetVehicleMod(veh, modType)
-            if mod ~= -1 then
-                data.mods[tostring(modType)] = mod
-            end
-        end
-    end
-    return data
-end
 
 -- Appliquer des customs sauvegardées sur un véhicule
 function applyVehicleCustomData(veh, data)
@@ -1083,13 +1012,6 @@ function applyVehicleCustomData(veh, data)
             SetVehicleMod(veh, tonumber(modTypeStr), modIndex, false)
         end
     end
-    -- Restaurer les capacités Apocalypse
-    if data.arenaBoost then
-        Entity(veh).state:set('arena_boost', true, true)
-    end
-    if data.arenaJump then
-        Entity(veh).state:set('arena_jump', true, true)
-    end
 end
 
 -- Event : appliquer une custom reçue du serveur (après spawn véhicule)
@@ -1108,454 +1030,6 @@ AddEventHandler('pvp_vehiclecustom:apply', function(customData)
     if veh ~= 0 then
         SetVehicleModKit(veh, 0)
         applyVehicleCustomData(veh, customData)
-    end
-end)
-
--- ══════════════════════════════════════════════════════════════════════════
---   VÉHICULES — Menu customisation principal
--- ══════════════════════════════════════════════════════════════════════════
-
-function openVehicleCustomSubMenu()
-    local ped = PlayerPedId()
-    local veh = GetVehiclePedIsIn(ped, false)
-
-    if veh == 0 then
-        ESX.ShowNotification('~r~Montez dans un vehicule d\'abord.')
-        return
-    end
-
-    -- IMPORTANT : initialiser le kit de mods avant toute modification
-    SetVehicleModKit(veh, 0)
-
-    -- Détecter si c'est un véhicule apocalypse (Arena War)
-    local vehModel = GetEntityModel(veh)
-    local isApocalypse = false
-    for _, model in ipairs(Config.ApocalypseVehicles) do
-        if GetHashKey(model) == vehModel then
-            isApocalypse = true
-            break
-        end
-    end
-
-    local elements = {
-        { label = 'Modifications (performances & carrosserie)', value = 'mods'   },
-        { label = 'Apparence (couleurs, Xenon, vitres)',        value = 'extras'  },
-    }
-    if isApocalypse then
-        table.insert(elements, { label = '~o~Mods Apocalypse (boost, shunt, saut)', value = 'apocalypse' })
-    end
-    table.insert(elements, { label = '~y~Enregistrer cette custom', value = 'save' })
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_custom_menu',
-        { title = 'Atelier Mecanique — Gratuit', align = 'top-left', elements = elements },
-        function(data, menu)
-            menu.close()
-            if data.current.value == 'mods' then
-                openVehicleModsMenu(veh)
-            elseif data.current.value == 'extras' then
-                openVehicleExtrasMenu(veh)
-            elseif data.current.value == 'apocalypse' then
-                openApocalypseModsMenu(veh)
-            elseif data.current.value == 'save' then
-                -- Sauvegarder la custom du véhicule
-                local customData = getVehicleCustomData(veh)
-                local itemName = Entity(veh).state.pvp_itemName
-                if itemName then
-                    TriggerServerEvent('pvp_vehiclecustom:save', itemName, customData)
-                    ESX.ShowNotification('~g~Custom enregistree ! Tous vos futurs ' .. (Entity(veh).state.pvp_itemLabel or itemName) .. ' auront cette apparence.')
-                else
-                    ESX.ShowNotification('~r~Ce vehicule ne peut pas etre customise (pas un vehicule PVP).')
-                end
-                openVehicleCustomSubMenu()
-            end
-        end,
-        function(data, menu)
-            menu.close()
-        end
-    )
-end
-
--- ── Sous-menu : catégories de mods (performances & carrosserie) ─────────
-function openVehicleModsMenu(veh)
-    SetVehicleModKit(veh, 0)
-
-    local elements = {
-        {
-            label   = '~g~[BOOST] Tout maximiser (performances)',
-            value   = 'maxall',
-            isMax   = true,
-            isTurbo = false,
-            numMods = 0,
-        }
-    }
-
-    for _, mod in ipairs(Config.VehicleMods) do
-        local numMods = GetNumVehicleMods(veh, mod.modType)
-        if numMods > 0 or mod.isTurbo then
-            local current = ''
-            if mod.isTurbo then
-                current = IsToggleModOn(veh, 18) and ' ~g~[ON]' or ' ~r~[OFF]'
-            else
-                local idx = GetVehicleMod(veh, mod.modType)
-                local lbl = (idx == -1) and 'Stock' or ('Niv.' .. (idx + 1) .. '/' .. numMods)
-                current = ' [' .. lbl .. ']'
-            end
-            table.insert(elements, {
-                label   = mod.label .. current,
-                value   = mod.modType,
-                isTurbo = mod.isTurbo or false,
-                isMax   = false,
-                numMods = numMods,
-            })
-        end
-    end
-
-    if #elements == 1 then
-        ESX.ShowNotification('~r~Aucune modification disponible pour ce vehicule.')
-        openVehicleCustomSubMenu()
-        return
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_mods_cat',
-        { title = 'Modifications', align = 'top-left', elements = elements },
-        function(data, menu)
-            if data.current.isMax then
-                local perfMods = {11, 12, 13, 15, 16}
-                for _, modType in ipairs(perfMods) do
-                    local n = GetNumVehicleMods(veh, modType)
-                    if n > 0 then SetVehicleMod(veh, modType, n - 1, false) end
-                end
-                ToggleVehicleMod(veh, 18, true)
-                ESX.ShowNotification('~g~Performances maximisees !')
-                menu.close()
-                openVehicleModsMenu(veh)
-            elseif data.current.isTurbo then
-                ToggleVehicleMod(veh, 18, not IsToggleModOn(veh, 18))
-                menu.close()
-                openVehicleModsMenu(veh)
-            else
-                menu.close()
-                openVehicleModLevelMenu(veh, data.current.value, data.current.numMods)
-            end
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleCustomSubMenu()  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ── Sous-menu : niveaux d'un mod ────────────────────────────────────────
-function openVehicleModLevelMenu(veh, modType, numMods)
-    local currentMod = GetVehicleMod(veh, modType)
-    local elements = {
-        { label = (currentMod == -1 and '~g~> ' or '') .. 'Stock (origine)', value = -1 }
-    }
-    for i = 0, numMods - 1 do
-        local prefix = (currentMod == i) and '~g~> ' or ''
-        local suffix = (i == numMods - 1) and ' ~y~[MAX]' or ''
-        table.insert(elements, { label = prefix .. 'Niveau ' .. (i + 1) .. suffix, value = i })
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_mod_level',
-        { title = 'Choisir le niveau', align = 'top-left', elements = elements },
-        function(data, menu)
-            if data.current.value == -1 then
-                RemoveVehicleMod(veh, modType)
-            else
-                SetVehicleMod(veh, modType, data.current.value, false)
-            end
-            menu.close()
-            openVehicleModsMenu(veh)  -- Retour à la liste des mods (rafraîchie)
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleModsMenu(veh)  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ── Sous-menu : apparence (couleurs, Xenon, vitres) ─────────────────────
-function openVehicleExtrasMenu(veh)
-    SetVehicleModKit(veh, 0)
-    local primary, secondary = GetVehicleColours(veh)
-    local xenonOn = IsToggleModOn(veh, 22)
-    local tint    = GetVehicleWindowTint(veh)
-
-    local tintLabels = { [0]='Aucune', [1]='Noir total', [2]='Fume fonce', [3]='Fume clair', [4]='Stock', [5]='Limousine', [6]='Verte' }
-    local tintLabel = tintLabels[tint] or 'Inconnue'
-
-    local elements = {
-        { label = 'Couleur principale  ~s~> changer',       value = 'primary'   },
-        { label = 'Couleur secondaire  ~s~> changer',       value = 'secondary' },
-        { label = (xenonOn and '~g~[ON]~s~' or '~r~[OFF]~s~') .. ' Phares Xenon', value = 'xenon' },
-        { label = 'Teinte des vitres  [' .. tintLabel .. ']', value = 'tint'     },
-    }
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_extras_menu',
-        { title = 'Apparence', align = 'top-left', elements = elements },
-        function(data, menu)
-            if data.current.value == 'primary' then
-                menu.close()
-                openVehicleColorsMenu(veh, false)
-            elseif data.current.value == 'secondary' then
-                menu.close()
-                openVehicleColorsMenu(veh, true)
-            elseif data.current.value == 'xenon' then
-                ToggleVehicleMod(veh, 22, not IsToggleModOn(veh, 22))
-                menu.close()
-                openVehicleExtrasMenu(veh)  -- Refresh pour mettre à jour le label
-            elseif data.current.value == 'tint' then
-                menu.close()
-                openVehicleTintMenu(veh)
-            end
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleCustomSubMenu()  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ── Sous-menu : choix de couleur (principale ou secondaire) ─────────────
-function openVehicleColorsMenu(veh, isSecondary)
-    local primary, secondary = GetVehicleColours(veh)
-    local currentColor = isSecondary and secondary or primary
-    local title = isSecondary and 'Couleur secondaire' or 'Couleur principale'
-
-    local elements = {}
-    for _, c in ipairs(Config.VehicleColors) do
-        local prefix = (c.color == currentColor) and '~g~> ' or ''
-        table.insert(elements, { label = prefix .. c.label, value = c.color })
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_colors',
-        { title = title, align = 'top-left', elements = elements },
-        function(data, menu)
-            local col = data.current.value
-            if isSecondary then
-                SetVehicleColours(veh, primary, col)
-            else
-                SetVehicleColours(veh, col, secondary)
-            end
-            menu.close()
-            openVehicleExtrasMenu(veh)  -- Retour au menu apparence
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleExtrasMenu(veh)  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ── Sous-menu : teinte des vitres ───────────────────────────────────────
-function openVehicleTintMenu(veh)
-    local currentTint = GetVehicleWindowTint(veh)
-    local tints = {
-        { label = 'Aucune (transparente)',  value = 0 },
-        { label = 'Noir total',             value = 1 },
-        { label = 'Fume fonce',            value = 2 },
-        { label = 'Fume clair',            value = 3 },
-        { label = 'Stock',                  value = 4 },
-        { label = 'Limousine',              value = 5 },
-        { label = 'Verte',                  value = 6 },
-    }
-    local elements = {}
-    for _, t in ipairs(tints) do
-        local prefix = (t.value == currentTint) and '~g~> ' or ''
-        table.insert(elements, { label = prefix .. t.label, value = t.value })
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_tint',
-        { title = 'Teinte des vitres', align = 'top-left', elements = elements },
-        function(data, menu)
-            SetVehicleWindowTint(veh, data.current.value)
-            menu.close()
-            openVehicleExtrasMenu(veh)  -- Retour au menu apparence
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleExtrasMenu(veh)  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ══════════════════════════════════════════════════════════════════════════
---   MODS APOCALYPSE — Boost Nitro & Saut Hydraulique (custom FiveM)
---   Ces capacités ne sont PAS des mods GTA natifs pour Arena War.
---   On les implémente manuellement via ApplyForceToEntity / SetVehicleForwardSpeed.
--- ══════════════════════════════════════════════════════════════════════════
-
-function openApocalypseModsMenu(veh)
-    SetVehicleModKit(veh, 0)
-
-    local boostOn = Entity(veh).state.arena_boost or false
-    local jumpOn  = Entity(veh).state.arena_jump  or false
-
-    local elements = {
-        {
-            label = (boostOn and '~g~[ACTIF]' or '~r~[INACTIF]') .. '~s~  Boost / Shunt  ~c~(X×2 = boost, X+clic = lateral)',
-            value = 'boost',
-            isAbility = true,
-        },
-        {
-            label = (jumpOn and '~g~[ACTIF]' or '~r~[INACTIF]') .. '~s~  Saut Hydraulique  ~c~(E en roulant)',
-            value = 'jump',
-            isAbility = true,
-        },
-    }
-
-    -- Ajouter les mods Arena War natifs disponibles sur ce véhicule
-    for _, mod in ipairs(Config.ApocalypseMods) do
-        local numMods = GetNumVehicleMods(veh, mod.modType)
-        if numMods > 0 then
-            local idx = GetVehicleMod(veh, mod.modType)
-            local lbl = (idx == -1) and 'Stock' or ('Niv.' .. (idx + 1) .. '/' .. numMods)
-            table.insert(elements, {
-                label   = '~o~' .. mod.label .. '~s~  [' .. lbl .. ']',
-                value   = mod.modType,
-                isAbility = false,
-                numMods = numMods,
-            })
-        end
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_apocalypse',
-        { title = 'Mods Apocalypse', align = 'top-left', elements = elements },
-        function(data, menu)
-            if data.current.isAbility then
-                if data.current.value == 'boost' then
-                    Entity(veh).state:set('arena_boost', not boostOn, true)
-                    ESX.ShowNotification(not boostOn and '~g~Boost/Shunt active ! (X×2 = boost, X+clic = lateral)' or '~r~Boost/Shunt desactive.')
-                elseif data.current.value == 'jump' then
-                    Entity(veh).state:set('arena_jump', not jumpOn, true)
-                    ESX.ShowNotification(not jumpOn and '~g~Saut Hydraulique active ! (E)' or '~r~Saut Hydraulique desactive.')
-                end
-                menu.close()
-                openApocalypseModsMenu(veh)
-            else
-                -- Ouvrir le sous-menu des niveaux pour ce mod Arena
-                menu.close()
-                openApocalypseModLevelMenu(veh, data.current.value, data.current.numMods)
-            end
-        end,
-        function(data, menu)
-            menu.close()
-            openVehicleCustomSubMenu()  -- ← Retour au menu parent
-        end
-    )
-end
-
--- ── Sous-menu : niveaux d'un mod Arena War ────────────────────────────
-function openApocalypseModLevelMenu(veh, modType, numMods)
-    local currentMod = GetVehicleMod(veh, modType)
-    local elements = {
-        { label = (currentMod == -1 and '~g~> ' or '') .. 'Stock (aucun)', value = -1 }
-    }
-    for i = 0, numMods - 1 do
-        local prefix = (currentMod == i) and '~g~> ' or ''
-        table.insert(elements, { label = prefix .. 'Variante ' .. (i + 1), value = i })
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_arena_mod_level',
-        { title = 'Choisir la variante', align = 'top-left', elements = elements },
-        function(data, menu)
-            if data.current.value == -1 then
-                RemoveVehicleMod(veh, modType)
-            else
-                SetVehicleMod(veh, modType, data.current.value, false)
-            end
-            menu.close()
-            openApocalypseModsMenu(veh)
-        end,
-        function(data, menu)
-            menu.close()
-            openApocalypseModsMenu(veh)
-        end
-    )
-end
-
--- ══════════════════════════════════════════════════════════════════════════
---   THREAD — Boost, Shunt & Saut (Arena War custom)
---   X double tap     = boost avant (rocket natif GTA)
---   X maintenu + clic gauche = shunt gauche
---   X maintenu + clic droit  = shunt droite
---   E = saut hydraulique
--- ══════════════════════════════════════════════════════════════════════════
-local DOUBLE_TAP_MS = 300  -- fenêtre pour le double tap X (ms)
-local xHeld = false        -- X est maintenu
-
-Citizen.CreateThread(function()
-    while true do
-        local ped = PlayerPedId()
-        if IsPedInAnyVehicle(ped, false) then
-            Citizen.Wait(0)
-            local veh = GetVehiclePedIsIn(ped, false)
-
-            if GetPedInVehicleSeat(veh, -1) == ped then
-                local hasBoost = Entity(veh).state.arena_boost
-
-                if hasBoost then
-                    -- Tracker l'état de la touche X (INPUT_VEH_DUCK = 73)
-                    if IsControlPressed(0, 73) then
-                        xHeld = true
-                    end
-
-                    -- ── X appuyé : double tap = boost, maintenu + clic = shunt ──
-                    if IsControlJustPressed(0, 73) then
-                        local now = GetGameTimer()
-                        if (now - lastXPress) < DOUBLE_TAP_MS and not boostCooldown then
-                            -- DOUBLE TAP X → Boost avant (rocket natif)
-                            boostCooldown = true
-                            SetVehicleRocketBoostActive(veh, true)
-                            SetVehicleRocketBoostPercentage(veh, 100.0)
-                            StartScreenEffect('RaceTurbo', 1500, false)
-                            Citizen.SetTimeout(1500, function()
-                                SetVehicleRocketBoostActive(veh, false)
-                            end)
-                            Citizen.SetTimeout(3000, function()
-                                boostCooldown = false
-                                SetVehicleRocketBoostPercentage(veh, 100.0)
-                            end)
-                            lastXPress = 0  -- reset pour pas re-trigger
-                        else
-                            lastXPress = now
-                        end
-                    end
-
-                    -- ── X maintenu + clic = shunt latéral ──
-                    if xHeld and not shuntCooldown then
-                        local dir = nil
-                        if IsControlJustPressed(0, 24) then dir = -15.0 end  -- clic gauche → shunt gauche
-                        if IsControlJustPressed(0, 25) then dir = 15.0  end  -- clic droit  → shunt droite
-                        if dir then
-                            shuntCooldown = true
-                            ApplyForceToEntity(veh, 1, dir, 0.0, 0.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
-                            StartScreenEffect('FocusOut', 300, false)
-                            Citizen.SetTimeout(2000, function()
-                                shuntCooldown = false
-                            end)
-                        end
-                    end
-
-                    -- Reset xHeld quand relâché
-                    if IsControlJustReleased(0, 73) then
-                        xHeld = false
-                    end
-                end
-
-                -- ── Saut Hydraulique (E = INPUT_PICKUP = 38) ─────────────
-                if Entity(veh).state.arena_jump and IsControlJustPressed(0, 38) and not jumpCooldown then
-                    jumpCooldown = true
-                    ApplyForceToEntity(veh, 1, 0.0, 0.0, 18.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
-                    Citizen.SetTimeout(2500, function()
-                        jumpCooldown = false
-                    end)
-                end
-            end
-        else
-            Citizen.Wait(500)
-        end
     end
 end)
 
