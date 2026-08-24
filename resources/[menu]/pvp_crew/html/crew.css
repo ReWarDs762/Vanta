@@ -1,147 +1,288 @@
-/* ═══════════════════════════════════════════════
-   PVP SQUAD — Thème post-apocalyptique
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   VANTA — ESCOUADE (pvp_crew)
+   Design System : vanta.css v2.1 (nui://vanta_ui/html/vanta.css)
+   Signal de domaine : --v-crew (bleu acier)
+   ═══════════════════════════════════════════════════════════════ */
 
-:root {
-    --accent   : #e53935;
-    --accent-h : #c62828;
-    --green    : #27ae60;
-    --gold     : #f39c12;
-    --text     : #d0cdc4;
-    --text-dim : #8a8680;
-    --muted    : #4a4640;
-    --border   : rgba(255,255,255,0.07);
-    --card-bg  : rgba(255,255,255,0.035);
-    --card-hov : rgba(255,255,255,0.07);
-    --surface  : rgba(14,14,18,0.98);
-    --fh : 'Bebas Neue', sans-serif;
-    --fb : 'Rajdhani', sans-serif;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--v-font);
+    color: var(--v-text-secondary);
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:var(--fb); color:var(--text); overflow:hidden; }
-.hidden { display:none !important; }
+.hidden { display: none !important; }
 
+/* ── Overlay ─────────────────────────────────────────────────── */
 #squad-overlay {
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.5);
-    z-index:9999;
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.66);
+    z-index: 9999;
 }
 
+/* ── Conteneur (panneau VANTA : plat, angulaire, équerres) ───── */
 #squad-container {
-    width:420px;
-    max-height:70vh;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:8px;
-    display:flex; flex-direction:column;
-    position:relative;
+    width: 420px;
+    max-height: 72vh;
+    background: var(--v-bg);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg);
+    display: flex; flex-direction: column;
+    position: relative;
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
+    /* trame hairline : matière du noir VANTA */
+    background-image:
+      linear-gradient(var(--v-grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--v-grid-color) 1px, transparent 1px);
+    background-size: var(--v-grid-pitch) var(--v-grid-pitch);
 }
 
+/* Filet supérieur : .v-sweep (élément autonome, cf. vanta.css) —
+   ::before / ::after du conteneur sont pris par les équerres. */
+
+/* Les équerres portent le signal crew */
+#squad-container { --v-bracket-color: rgba(111, 159, 196, 0.42); }
+
+/* ── Header : chevron + surtitre + titre tracké ──────────────── */
 #squad-header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 18px;
-    border-bottom:1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--v-separator);
+    background: var(--v-surface);
+    flex-shrink: 0;
 }
+
+.squad-head-text { display: flex; flex-direction: column; }
 
 .squad-title {
-    font-family:var(--fh); font-size:22px; letter-spacing:3px; color:var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: var(--v-size-sm);
+    font-weight: 600;
+    letter-spacing: var(--v-track-title);
+    text-transform: uppercase;
+    color: var(--v-text);
+    line-height: 1;
+}
+
+/* Le chevron V en tête de titre — marque de VANTA */
+.squad-title::before {
+    content: '';
+    width: 13px; height: 11px;
+    flex-shrink: 0;
+    background-color: var(--v-crew);
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
 }
 
 #btn-close {
-    background:none; border:none; color:var(--text-dim);
-    font-size:26px; cursor:pointer; line-height:1;
+    background: none;
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-xs);
+    color: var(--v-text-tertiary);
+    width: 26px; height: 26px;
+    font-size: 15px; line-height: 1; cursor: pointer;
+    transition: color var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease);
 }
-#btn-close:hover { color:var(--accent); }
+#btn-close:hover { color: var(--v-text); border-color: var(--v-border-hover); }
 
-#squad-body { padding:16px; overflow-y:auto; flex:1; }
+/* ── Corps ───────────────────────────────────────────────────── */
+#squad-body { padding: 16px 18px 18px; overflow-y: auto; flex: 1; }
 
-.sq-h3 { font-family:var(--fh); font-size:14px; letter-spacing:1px; color:var(--text-dim); margin-bottom:6px; }
+.sq-h3 { margin-bottom: 10px; }
 
+/* ── Boutons ─────────────────────────────────────────────────── */
 .sq-btn-primary {
-    font-family:var(--fh); font-size:14px; letter-spacing:2px;
-    background:var(--accent); color:#fff; border:none; border-radius:4px;
-    padding:8px 20px; cursor:pointer; width:100%;
+    font-family: var(--v-font);
+    font-size: var(--v-size-xs); font-weight: 600;
+    letter-spacing: var(--v-track-label); text-transform: uppercase;
+    background: var(--v-text); color: var(--v-black);
+    border: 1px solid var(--v-text);
+    border-radius: var(--v-radius-sm);
+    padding: 9px 20px; cursor: pointer; width: 100%; line-height: 1;
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease);
 }
-.sq-btn-primary:hover { background:var(--accent-h); }
+.sq-btn-primary:hover { background: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.85); }
+.sq-btn-primary:active { transform: translateY(1px); }
 
 .sq-btn-action {
-    font-family:var(--fh); font-size:13px; letter-spacing:1px;
-    background:var(--card-bg); color:var(--text); border:1px solid var(--border);
-    border-radius:4px; padding:6px 14px; cursor:pointer;
+    font-family: var(--v-font);
+    font-size: var(--v-size-xs); font-weight: 600;
+    letter-spacing: var(--v-track-label); text-transform: uppercase;
+    background: var(--v-surface-2); color: var(--v-text);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-sm);
+    padding: 8px 16px; cursor: pointer; line-height: 1;
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease),
+                color var(--v-duration) var(--v-ease);
 }
-.sq-btn-action:hover { background:var(--card-hov); }
-.sq-btn-danger { color:var(--accent); border-color:rgba(229,57,53,0.3); }
-.sq-btn-danger:hover { background:rgba(229,57,53,0.1); }
+.sq-btn-action:hover { background: var(--v-surface-3); border-color: var(--v-border-hover); }
+.sq-btn-action:active { transform: translateY(1px); }
 
-.empty-squad { text-align:center; padding:30px 16px; }
-.sq-empty { color:var(--muted); font-size:14px; margin-bottom:14px; line-height:1.5; }
-.empty-squad .sq-btn-primary { width:auto; display:inline-block; }
-
-.squad-count-bar {
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:10px; font-family:var(--fh); font-size:14px;
-    letter-spacing:1px; color:var(--text-dim);
-}
-#squad-count { color:var(--accent); font-size:16px; }
-
-.sq-member-list { display:flex; flex-direction:column; gap:3px; max-height:200px; overflow-y:auto; margin-bottom:10px; }
-
-.sq-member-row {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:8px 12px; background:var(--card-bg); border:1px solid var(--border); border-radius:4px;
-}
-.sq-member-row:hover { background:var(--card-hov); }
-.sq-member-info { display:flex; align-items:center; gap:8px; }
-.sq-member-name { font-weight:600; font-size:14px; }
-
-.sq-leader-badge {
-    font-family:var(--fh); font-size:10px; letter-spacing:1px;
-    padding:1px 6px; border-radius:3px; text-transform:uppercase;
-    background:rgba(243,156,18,0.15); color:var(--gold); border:1px solid rgba(243,156,18,0.3);
-}
+.sq-btn-danger { color: var(--v-pvp); background: transparent; border-color: rgba(232,86,75,0.28); }
+.sq-btn-danger:hover { background: var(--v-pvp-dim); border-color: rgba(232,86,75,0.55); color: var(--v-pvp); }
 
 .sq-btn-sm {
-    font-family:var(--fb); font-size:11px; font-weight:600;
-    background:var(--card-bg); color:var(--accent); border:1px solid var(--border);
-    border-radius:3px; padding:3px 8px; cursor:pointer;
+    font-family: var(--v-font);
+    font-size: 9px; font-weight: 600;
+    letter-spacing: var(--v-track-label); text-transform: uppercase;
+    background: transparent; color: var(--v-text-tertiary);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-xs);
+    padding: 4px 9px; cursor: pointer; line-height: 1;
+    transition: color var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease),
+                background var(--v-duration) var(--v-ease);
 }
-.sq-btn-sm:hover { background:rgba(229,57,53,0.1); }
+.sq-btn-sm:hover { color: var(--v-pvp); border-color: rgba(232,86,75,0.45); background: var(--v-pvp-dim); }
 
-.squad-actions { display:flex; gap:6px; margin-top:8px; }
+/* ── État vide ───────────────────────────────────────────────── */
+.empty-squad { text-align: center; padding: 22px 12px 26px; }
+.empty-squad .v-empty { padding: 6px 0 18px; }
+.sq-empty {
+    font-size: var(--v-size-xs);
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text-tertiary);
+    padding: 16px 0;
+    text-align: center;
+    line-height: 1.6;
+}
+.empty-squad .sq-btn-primary { width: auto; display: inline-block; }
 
+/* ── Barre de comptage (titre à filet) ───────────────────────── */
+.squad-count-bar { margin-bottom: 12px; }
+#squad-count { color: var(--v-crew); font-weight: 600; }
+
+/* ── Liste de membres ────────────────────────────────────────── */
+.sq-member-list {
+    display: flex; flex-direction: column; gap: 3px;
+    max-height: 220px; overflow-y: auto; margin-bottom: 12px;
+}
+
+.sq-member-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    border-left: 2px solid var(--v-separator-bold);
+    border-radius: var(--v-radius-sm);
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease);
+}
+.sq-member-row:hover { background: var(--v-surface-2); border-left-color: var(--v-crew); }
+
+.sq-member-info { display: flex; align-items: center; gap: 8px; }
+.sq-member-name {
+    font-size: var(--v-size-sm); font-weight: 500;
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text);
+}
+
+.sq-leader-badge {
+    font-family: var(--v-font);
+    font-size: 9px; font-weight: 600;
+    letter-spacing: var(--v-track-label); text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: var(--v-radius-xs);
+    line-height: 1;
+    background: var(--v-reward-dim);
+    color: var(--v-reward);
+    border: 1px solid rgba(217, 164, 65, 0.30);
+}
+
+.squad-actions { display: flex; gap: 6px; margin-top: 10px; }
+.squad-actions .sq-btn-action { flex: 1; }
+
+/* ── Bannière d'invitation ───────────────────────────────────── */
 #squad-invite-banner {
-    background:rgba(39,174,96,0.1); border:1px solid rgba(39,174,96,0.3);
-    border-radius:6px; padding:14px; margin-bottom:14px; text-align:center;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    border-left: 2px solid var(--v-crew);
+    border-radius: var(--v-radius-sm);
+    padding: 13px 14px; margin-bottom: 14px;
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
 }
-#squad-invite-banner p { font-size:14px; margin-bottom:8px; }
-#squad-invite-from { font-weight:700; color:var(--green); }
-.squad-invite-btns { display:flex; gap:6px; justify-content:center; }
-.squad-invite-btns .sq-btn-primary { width:auto; }
+.sq-invite-label {
+    font-size: 9px; font-weight: 500;
+    letter-spacing: var(--v-track-label); text-transform: uppercase;
+    color: var(--v-text-tertiary);
+    margin-bottom: 6px;
+}
+#squad-invite-banner p {
+    font-size: var(--v-size-xs);
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text-secondary);
+    margin-bottom: 11px;
+}
+#squad-invite-from { font-weight: 600; color: var(--v-crew); }
+.squad-invite-btns { display: flex; gap: 6px; }
+.squad-invite-btns .sq-btn-primary { width: auto; flex: 1; }
+.squad-invite-btns .sq-btn-action { flex: 1; }
 
+/* ── Liste joueurs en ligne ──────────────────────────────────── */
 .sq-player-row {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:6px 12px; background:var(--card-bg); border:1px solid var(--border);
-    border-radius:4px; cursor:pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    border-left: 2px solid var(--v-separator-bold);
+    border-radius: var(--v-radius-sm);
+    cursor: pointer;
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease);
 }
-.sq-player-row:hover { background:var(--card-hov); border-color:var(--accent); }
-.sq-player-name { font-weight:600; font-size:14px; }
-.sq-player-id { font-size:11px; color:var(--text-dim); }
+.sq-player-row:hover { background: var(--v-surface-2); border-left-color: var(--v-crew); }
+.sq-player-name {
+    font-size: var(--v-size-sm); font-weight: 500;
+    letter-spacing: var(--v-track-meta); color: var(--v-text);
+}
+.sq-player-id {
+    font-size: 10px; font-weight: 500;
+    letter-spacing: var(--v-track-label);
+    color: var(--v-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
 
+/* ── Toast (modèle VANTA : liseré + chevron) ─────────────────── */
 #sq-toast {
-    position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-    padding:8px 20px; border-radius:4px; font-size:13px; font-weight:600;
-    z-index:100; pointer-events:none; animation:sqToastIn 0.3s ease;
+    position: absolute; bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 14px;
+    background: rgba(10, 10, 10, 0.96);
+    border: 1px solid var(--v-border);
+    border-left: 2px solid var(--v-silver-dim);
+    border-radius: var(--v-radius-sm);
+    font-size: var(--v-size-xs); font-weight: 500;
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text);
+    box-shadow: var(--v-shadow-float);
+    z-index: 100; pointer-events: none;
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
+    max-width: 88%;
 }
-#sq-toast.success { background:rgba(39,174,96,0.9); color:#fff; }
-#sq-toast.error   { background:rgba(229,57,53,0.9); color:#fff; }
-
-@keyframes sqToastIn {
-    from { opacity:0; transform:translateX(-50%) translateY(8px); }
-    to   { opacity:1; transform:translateX(-50%) translateY(0); }
+#sq-toast::before {
+    content: '';
+    width: 9px; height: 8px; flex-shrink: 0;
+    background-color: currentColor; opacity: 0.6;
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
 }
+#sq-toast.success { border-left-color: var(--v-success); color: var(--v-success); }
+#sq-toast.error   { border-left-color: var(--v-pvp);     color: var(--v-pvp); }
+/* showToast() écrase className : .hidden doit rester prioritaire */
+#sq-toast.hidden  { display: none !important; }
 
-::-webkit-scrollbar { width:3px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--muted); border-radius:2px; }
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--v-separator-bold); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--v-border-hover); }

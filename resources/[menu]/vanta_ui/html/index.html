@@ -2,363 +2,315 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>VANTA — Design System v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VANTA — Design System v2.1</title>
+<!-- Référence consultable HORS JEU (double-clic sur le fichier).
+     En jeu, les resources importent nui://vanta_ui/html/vanta.css -->
 <link rel="stylesheet" href="vanta.css">
 <style>
   body {
-    margin: 0;
     background: var(--v-black);
+    color: var(--v-text-secondary);
     font-family: var(--v-font);
-    color: var(--v-text);
-    min-height: 100vh;
-    padding: 64px 48px;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      linear-gradient(var(--v-grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--v-grid-color) 1px, transparent 1px);
+    background-size: var(--v-grid-pitch) var(--v-grid-pitch);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 64px 40px 120px; }
+
+  .hero { display: flex; flex-direction: column; gap: 26px; padding-bottom: 48px; border-bottom: 1px solid var(--v-separator); }
+  .hero-meta { display: flex; gap: 28px; flex-wrap: wrap; }
+
+  section { padding: 56px 0 0; }
+  .sec-head { margin-bottom: 26px; }
+  .note {
+    font-size: var(--v-size-xs); line-height: 1.7; color: var(--v-text-secondary);
+    max-width: 62ch; margin-bottom: 22px; letter-spacing: var(--v-track-meta);
+  }
+  .note b { color: var(--v-text); font-weight: 600; }
+  .note code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--v-silver);
+    background: var(--v-surface); border: 1px solid var(--v-border);
+    padding: 1px 5px; border-radius: var(--v-radius-xs);
   }
 
-  .showcase-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.4em;
-    color: var(--v-text-secondary);
-    text-transform: uppercase;
-    margin: 0 0 6px;
-  }
-  .showcase-subtitle {
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    margin: 0 0 56px;
-  }
+  .grid { display: grid; gap: 12px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g6 { grid-template-columns: repeat(6, 1fr); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-  .showcase-section {
-    margin-bottom: 72px;
-  }
-  .showcase-section-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    color: var(--v-text-tertiary);
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--v-separator);
-  }
+  /* Nuancier */
+  .sw { border: 1px solid var(--v-border); border-radius: var(--v-radius-sm); overflow: hidden; background: var(--v-surface); }
+  .sw-chip { height: 56px; }
+  .sw-meta { padding: 9px 11px; }
+  .sw-name { font-size: 10px; font-weight: 600; letter-spacing: var(--v-track-label); text-transform: uppercase; color: var(--v-text); }
+  .sw-val  { font-size: 10px; color: var(--v-text-tertiary); font-family: ui-monospace, Menlo, monospace; margin-top: 3px; }
+  .sw-use  { font-size: 10px; color: var(--v-text-tertiary); margin-top: 5px; line-height: 1.5; }
 
-  .badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 32px;
-    align-items: flex-start;
+  .demo {
+    background: var(--v-bg); border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg); padding: 26px; position: relative;
   }
-
-  .badge-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    min-width: 140px;
-  }
-  .badge-cell .cell-name {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--v-text-secondary);
-    text-align: center;
-  }
-  .badge-cell .cell-desc {
-    font-size: 10px;
-    color: var(--v-text-tertiary);
-    text-align: center;
-    max-width: 140px;
-    line-height: 1.4;
-  }
+  .type-row { display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--v-separator); }
+  .type-tag { font-size: 10px; color: var(--v-text-tertiary); width: 190px; flex-shrink: 0; font-family: ui-monospace, Menlo, monospace; }
 </style>
 </head>
-<body class="v-reset v-scroll">
+<body>
+<div class="wrap">
 
-  <p class="showcase-title">VANTA Design System</p>
-  <h1 class="showcase-subtitle">Badges — Subscriptions &amp; Prestige</h1>
+  <!-- ══ HERO ══════════════════════════════════════════════════ -->
+  <header class="hero">
+    <div class="v-lockup">
+      <span class="v-mark v-mark-lg"></span>
+      <div>
+        <div class="v-wordmark">VANTA</div>
+        <div class="v-tagline">Zombie Survival · PVP</div>
+      </div>
+    </div>
 
-  <!-- ════════════ SUBSCRIPTION BADGES ════════════ -->
-  <section class="showcase-section">
-    <div class="showcase-section-label">Subscription Badges</div>
-    <div class="badge-row">
+    <div class="hero-meta">
+      <div class="v-figure v-figure-sm"><span class="v-figure-label">Système</span><span class="v-figure-value">v2.1</span></div>
+      <div class="v-figure v-figure-sm"><span class="v-figure-label">Nom de code</span><span class="v-figure-value">MONOLITHE</span></div>
+      <div class="v-figure v-figure-sm"><span class="v-figure-label">Police</span><span class="v-figure-value">Inter</span></div>
+      <div class="v-figure v-figure-sm"><span class="v-figure-label">Rayon max</span><span class="v-figure-value">4<span class="v-figure-unit">px</span></span></div>
+    </div>
 
-      <!-- GOLD -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-gold">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <clipPath id="clip-gold">
-                <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"/>
-              </clipPath>
-            </defs>
-            <!-- Frame -->
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#e8c860" stroke-width="1.5"/>
-            <!-- Inner separator -->
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#e8c860" stroke-opacity="0.25" stroke-width="1"/>
-            <!-- Crown emblem -->
-            <g transform="translate(60, 58)" fill="none" stroke="#e8c860" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
-              <!-- Crown base -->
-              <path d="M -26 10 L 26 10 L 26 16 L -26 16 Z" fill="#e8c860" fill-opacity="0.15"/>
-              <!-- Crown peaks -->
-              <path d="M -26 10 L -26 -10 L -14 2 L 0 -16 L 14 2 L 26 -10 L 26 10 Z"
-                    fill="#e8c860" fill-opacity="0.08"/>
-              <!-- Gem dots -->
-              <circle cx="-26" cy="-10" r="2" fill="#e8c860"/>
-              <circle cx="0" cy="-16" r="2.5" fill="#e8c860"/>
-              <circle cx="26" cy="-10" r="2" fill="#e8c860"/>
-            </g>
-            <!-- Label -->
-            <text x="60" y="115" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
-                  letter-spacing="2" fill="#e8c860">GOLD</text>
-            <!-- Corner ticks -->
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#e8c860" stroke-opacity="0.6" stroke-width="1"/>
-          </svg>
+    <p class="note" style="margin:0">
+      Feuille unique partagée par toutes les NUI du serveur, importée via
+      <code>nui://vanta_ui/html/vanta.css</code>. Toute valeur graphique vit ici :
+      une resource ne redéclare jamais une couleur, un rayon ou un interlettrage —
+      elle crée au besoin des <b>alias</b> vers les tokens <code>--v-*</code>.
+      La charte rédigée se trouve dans <code>VANTA_BRAND.md</code>.
+    </p>
+  </header>
+
+  <!-- ══ SIGNATURES ════════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title"><span class="v-title-text">Les trois signatures</span><span class="v-title-value">reconnaissables sans le nom</span></div>
+    <p class="note">
+      Trois constructions suffisent à rendre une capture d'écran identifiable.
+      Elles se combinent, ne coûtent aucun asset, et restent lisibles par-dessus
+      le rendu 3D du jeu.
+    </p>
+
+    <div class="grid g3">
+      <div class="demo v-brackets">
+        <div class="v-eyebrow">Signature 01</div>
+        <div class="v-title" style="margin-bottom:18px"><span class="v-title-text">Le chevron V</span></div>
+        <div class="row" style="gap:18px; margin-bottom:14px">
+          <span class="v-mark v-mark-lg"></span>
+          <span class="v-mark"></span>
+          <span class="v-mark v-mark-sm"></span>
+          <span class="v-mark v-mark-boxed"></span>
         </div>
-        <div class="cell-name">Gold</div>
-        <div class="cell-desc">Abonnement 800 VC / mois</div>
+        <p class="note" style="margin:0">
+          Marque unique : icône serveur, bannières, chargement, filigranes,
+          puces, connecteur du killfeed, état vide. <b>Une seule forme</b>,
+          jamais arrondie, jamais pleine.
+        </p>
       </div>
 
-      <!-- DIAMOND -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-diamond">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <!-- Frame -->
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#64d2ff" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#64d2ff" stroke-opacity="0.25" stroke-width="1"/>
-            <!-- Diamond emblem -->
-            <g transform="translate(60, 54)">
-              <!-- Outer diamond -->
-              <path d="M 0 -26 L 24 -6 L 0 26 L -24 -6 Z"
-                    fill="#64d2ff" fill-opacity="0.1" stroke="#64d2ff" stroke-width="2" stroke-linejoin="miter"/>
-              <!-- Top facet line -->
-              <path d="M -24 -6 L 24 -6" stroke="#64d2ff" stroke-width="1.5"/>
-              <!-- Inner facets -->
-              <path d="M -12 -6 L 0 -26 L 12 -6 L 0 26 Z"
-                    fill="none" stroke="#64d2ff" stroke-opacity="0.5" stroke-width="1"/>
-              <!-- Center highlight -->
-              <circle cx="0" cy="-6" r="1.5" fill="#64d2ff"/>
-            </g>
-            <!-- Label -->
-            <text x="60" y="115" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
-                  letter-spacing="2" fill="#64d2ff">DIAMOND</text>
-            <!-- Corner ticks -->
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#64d2ff" stroke-opacity="0.6" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="cell-name">Diamond</div>
-        <div class="cell-desc">Abonnement 1500 VC / mois</div>
+      <div class="demo v-brackets">
+        <i class="v-brackets-alt"></i>
+        <div class="v-eyebrow">Signature 02</div>
+        <div class="v-title" style="margin-bottom:18px"><span class="v-title-text">Les équerres</span></div>
+        <p class="note" style="margin:0">
+          Quatre équerres 1px aux angles des surfaces majeures — reprises de
+          l'écran de chargement, qui était déjà la seule interface vraiment VANTA,
+          et étendues à tout le serveur. Ce bloc en porte quatre.
+        </p>
       </div>
 
+      <div class="demo">
+        <i class="v-sweep"></i>
+        <div class="v-eyebrow">Signature 03</div>
+        <div class="v-title" style="margin-bottom:14px"><span class="v-title-text">Le titre à filet</span><span class="v-title-value">42</span></div>
+        <div class="v-title v-title-pvp" style="margin-bottom:10px"><span class="v-title-text">PVP</span></div>
+        <div class="v-title v-title-crew" style="margin-bottom:10px"><span class="v-title-text">Crew</span></div>
+        <div class="v-title v-title-reward" style="margin-bottom:14px"><span class="v-title-text">Récompense</span></div>
+        <p class="note" style="margin:0">
+          Barre verticale + titre tracké + filet jusqu'au bord. Seule la couleur
+          de la barre change selon le domaine. Le filet du haut de ce bloc
+          (<code>.v-sweep</code>) se déploie à l'ouverture.
+        </p>
+      </div>
     </div>
   </section>
 
-  <!-- ════════════ PRESTIGE BADGES ════════════ -->
-  <section class="showcase-section">
-    <div class="showcase-section-label">Prestige Ranks</div>
-    <div class="badge-row">
+  <!-- ══ SIGNAUX ═══════════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title"><span class="v-title-text">Les quatre signaux</span><span class="v-title-value">un système de jeu = une teinte</span></div>
+    <p class="note">
+      La base reste monochrome. La couleur ne décore pas : elle nomme un système.
+      Les quatre teintes sont désaturées vers l'argent pour ne jamais virer au néon,
+      et toute la sémantique d'interface est mappée dessus
+      (<code>--v-danger</code> = <code>--v-pvp</code>, <code>--v-info</code> = <code>--v-crew</code>,
+      <code>--v-warning</code> = <code>--v-reward</code>).
+    </p>
+    <div class="grid g4">
+      <div class="sw"><div class="sw-chip" style="background:var(--v-pvp)"></div><div class="sw-meta">
+        <div class="sw-name">PVP</div><div class="sw-val">--v-pvp · #e8564b</div>
+        <div class="sw-use">Redzone, mort, danger, actions destructrices, admin.</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-infected)"></div><div class="sw-meta">
+        <div class="sw-name">Infecté</div><div class="sw-val">--v-infected · #8a9e5b</div>
+        <div class="sw-use">Zombies, infection, rareté « peu commun ».</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-crew)"></div><div class="sw-meta">
+        <div class="sw-name">Crew</div><div class="sw-val">--v-crew · #6f9fc4</div>
+        <div class="sw-use">Escouade, alliés, information, rareté « rare », Diamond.</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-reward)"></div><div class="sw-meta">
+        <div class="sw-name">Récompense</div><div class="sw-val">--v-reward · #d9a441</div>
+        <div class="sw-use">Loot, légendaire, VCoins, prestige, Gold.</div></div></div>
+    </div>
 
-      <!-- PRESTIGE I -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-p1">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#c8cdd4" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#c8cdd4" stroke-opacity="0.22" stroke-width="1"/>
-            <!-- Single chevron -->
-            <g transform="translate(60, 58)" fill="none" stroke="#c8cdd4" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
-              <path d="M -22 6 L 0 -14 L 22 6"/>
-              <path d="M -22 18 L 0 -2 L 22 18" stroke-opacity="0.35" stroke-width="2"/>
-            </g>
-            <!-- Label -->
-            <text x="60" y="110" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
-                  letter-spacing="2" fill="#c8cdd4">PRESTIGE</text>
-            <text x="60" y="126" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
-                  letter-spacing="3" fill="#ffffff">I</text>
-            <!-- Corner ticks -->
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#c8cdd4" stroke-opacity="0.5" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#c8cdd4" stroke-opacity="0.5" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="cell-name">Prestige I</div>
-        <div class="cell-desc">Silver</div>
-      </div>
+    <div class="v-divider"></div>
 
-      <!-- PRESTIGE II -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-p2">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#d4a017" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#d4a017" stroke-opacity="0.22" stroke-width="1"/>
-            <!-- Double chevron -->
-            <g transform="translate(60, 56)" fill="none" stroke="#d4a017" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
-              <path d="M -22 -2 L 0 -22 L 22 -2"/>
-              <path d="M -22 14 L 0 -6 L 22 14"/>
-            </g>
-            <text x="60" y="110" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
-                  letter-spacing="2" fill="#d4a017">PRESTIGE</text>
-            <text x="60" y="126" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
-                  letter-spacing="3" fill="#ffffff">II</text>
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#d4a017" stroke-opacity="0.5" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#d4a017" stroke-opacity="0.5" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="cell-name">Prestige II</div>
-        <div class="cell-desc">Bronze</div>
-      </div>
-
-      <!-- PRESTIGE III -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-p3">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#22aacc" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#22aacc" stroke-opacity="0.22" stroke-width="1"/>
-            <!-- Triple chevron -->
-            <g transform="translate(60, 54)" fill="none" stroke="#22aacc" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
-              <path d="M -22 -8 L 0 -26 L 22 -8"/>
-              <path d="M -22 6 L 0 -12 L 22 6"/>
-              <path d="M -22 20 L 0 2 L 22 20"/>
-            </g>
-            <text x="60" y="110" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
-                  letter-spacing="2" fill="#22aacc">PRESTIGE</text>
-            <text x="60" y="126" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
-                  letter-spacing="3" fill="#ffffff">III</text>
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#22aacc" stroke-opacity="0.5" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#22aacc" stroke-opacity="0.5" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="cell-name">Prestige III</div>
-        <div class="cell-desc">Cyan</div>
-      </div>
-
-      <!-- PRESTIGE IV -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-p4">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#cc22aa" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#cc22aa" stroke-opacity="0.25" stroke-width="1"/>
-            <!-- 4-point star emblem -->
-            <g transform="translate(60, 56)">
-              <!-- Outer frame ring (diamond) -->
-              <path d="M 0 -30 L 30 0 L 0 30 L -30 0 Z"
-                    fill="none" stroke="#cc22aa" stroke-opacity="0.3" stroke-width="1"/>
-              <!-- 4-point star -->
-              <path d="M 0 -24 L 6 -6 L 24 0 L 6 6 L 0 24 L -6 6 L -24 0 L -6 -6 Z"
-                    fill="#cc22aa" fill-opacity="0.15" stroke="#cc22aa" stroke-width="2" stroke-linejoin="miter"/>
-              <!-- Inner accent -->
-              <circle cx="0" cy="0" r="3" fill="#cc22aa"/>
-            </g>
-            <text x="60" y="110" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="10" font-weight="700"
-                  letter-spacing="2" fill="#cc22aa">PRESTIGE</text>
-            <text x="60" y="126" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="13" font-weight="700"
-                  letter-spacing="3" fill="#ffffff">IV</text>
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
-            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#cc22aa" stroke-opacity="0.6" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="cell-name">Prestige IV</div>
-        <div class="cell-desc">Magenta</div>
-      </div>
-
-      <!-- PRESTIGE V — MAÎTRE -->
-      <div class="badge-cell">
-        <div class="v-rank-badge v-rank-p5">
-          <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z"
-                  fill="#0a0a0a" stroke="#ff4400" stroke-width="1.5"/>
-            <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z"
-                  fill="none" stroke="#ff4400" stroke-opacity="0.3" stroke-width="1"/>
-            <!-- 8-point star (sunburst) emblem -->
-            <g transform="translate(60, 54)">
-              <!-- Radial lines -->
-              <g stroke="#ff4400" stroke-opacity="0.4" stroke-width="1">
-                <line x1="0" y1="-30" x2="0" y2="-22"/>
-                <line x1="0" y1="22" x2="0" y2="30"/>
-                <line x1="-30" y1="0" x2="-22" y2="0"/>
-                <line x1="22" y1="0" x2="30" y2="0"/>
-                <line x1="-21" y1="-21" x2="-15" y2="-15"/>
-                <line x1="21" y1="-21" x2="15" y2="-15"/>
-                <line x1="-21" y1="21" x2="-15" y2="15"/>
-                <line x1="21" y1="21" x2="15" y2="15"/>
-              </g>
-              <!-- 8-point star -->
-              <path d="M 0 -20 L 5 -5 L 20 0 L 5 5 L 0 20 L -5 5 L -20 0 L -5 -5 Z"
-                    fill="#ff4400" fill-opacity="0.2" stroke="#ff4400" stroke-width="2" stroke-linejoin="miter"/>
-              <path d="M 0 -14 L 3.5 -3.5 L 14 0 L 3.5 3.5 L 0 14 L -3.5 3.5 L -14 0 L -3.5 -3.5 Z"
-                    fill="none" stroke="#ff4400" stroke-opacity="0.6" stroke-width="1"/>
-              <!-- Core -->
-              <circle cx="0" cy="0" r="2.5" fill="#ffffff"/>
-            </g>
-            <!-- Label -->
-            <text x="60" y="106" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="9" font-weight="700"
-                  letter-spacing="2" fill="#ff4400">PRESTIGE V</text>
-            <text x="60" y="124" text-anchor="middle"
-                  font-family="Inter, sans-serif" font-size="11" font-weight="700"
-                  letter-spacing="4" fill="#ffffff">MAÎTRE</text>
-            <!-- Corner ticks (all 4 — max rank) -->
-            <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
-            <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
-            <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
-            <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="#ff4400" stroke-opacity="0.8" stroke-width="1.2"/>
-          </svg>
-        </div>
-        <div class="cell-name">Prestige V</div>
-        <div class="cell-desc">Maître — Rang ultime</div>
-      </div>
-
+    <div class="grid g6">
+      <div class="sw"><div class="sw-chip" style="background:var(--v-black)"></div><div class="sw-meta"><div class="sw-name">Black</div><div class="sw-val">#000000</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-bg)"></div><div class="sw-meta"><div class="sw-name">BG</div><div class="sw-val">#0a0a0a</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-surface)"></div><div class="sw-meta"><div class="sw-name">Surface</div><div class="sw-val">#141414</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-surface-2)"></div><div class="sw-meta"><div class="sw-name">Surface 2</div><div class="sw-val">#1c1c1e</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-surface-3)"></div><div class="sw-meta"><div class="sw-name">Surface 3</div><div class="sw-val">#242426</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--v-silver)"></div><div class="sw-meta"><div class="sw-name">Silver</div><div class="sw-val">#c8cdd4</div></div></div>
     </div>
   </section>
 
-  <!-- ════════════ INLINE (compact format) ════════════ -->
-  <section class="showcase-section">
-    <div class="showcase-section-label">Inline Pills — Compact Format (profil / killfeed)</div>
-    <div class="badge-row" style="gap: 12px;">
-      <span class="v-rank-pill v-rank-pill-gold">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M 1 7 L 1 2 L 3 5 L 5 1 L 7 5 L 9 2 L 9 7 Z" fill="currentColor"/></svg>
-        GOLD
-      </span>
-      <span class="v-rank-pill v-rank-pill-diamond">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M 5 0 L 9 4 L 5 10 L 1 4 Z" fill="currentColor"/></svg>
-        DIAMOND
-      </span>
-      <span class="v-rank-pill v-rank-pill-p1">✦ PRESTIGE I</span>
-      <span class="v-rank-pill v-rank-pill-p2">✦✦ PRESTIGE II</span>
-      <span class="v-rank-pill v-rank-pill-p3">✦✦✦ PRESTIGE III</span>
-      <span class="v-rank-pill v-rank-pill-p4">★ PRESTIGE IV</span>
-      <span class="v-rank-pill v-rank-pill-p5">★★ MAÎTRE</span>
+  <!-- ══ TYPOGRAPHIE ═══════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title"><span class="v-title-text">Typographie</span><span class="v-title-value">Inter, une seule famille</span></div>
+    <p class="note">
+      La hiérarchie se joue au <b>tracking et à la graisse</b>, pas au changement de
+      police. Bebas Neue et Rajdhani ont été retirées de toutes les resources :
+      elles fabriquaient un « militaire » générique et faisaient charger deux
+      familles supplémentaires dans le CEF.
+    </p>
+    <div class="demo">
+      <div class="type-row"><span class="type-tag">display · 200 · .30em</span><span style="font-size:34px;font-weight:200;letter-spacing:var(--v-track-display);text-transform:uppercase;color:var(--v-text)">VANTA</span></div>
+      <div class="type-row"><span class="type-tag">titre · 600 · .14em</span><span style="font-size:13px;font-weight:600;letter-spacing:var(--v-track-title);text-transform:uppercase;color:var(--v-text)">CONTENEUR PROTÉGÉ</span></div>
+      <div class="type-row"><span class="type-tag">label · 500 · .10em</span><span style="font-size:11px;font-weight:500;letter-spacing:var(--v-track-label);text-transform:uppercase;color:var(--v-text-secondary)">MUNITIONS</span></div>
+      <div class="type-row"><span class="type-tag">chiffre · 300 · tabulaire</span><span style="font-size:28px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--v-text)">1 284</span></div>
+      <div class="type-row" style="border:none"><span class="type-tag">métadonnée · 400 · .04em</span><span style="font-size:13px;color:var(--v-text-secondary)">Mort en zone safe — inventaire préservé.</span></div>
     </div>
   </section>
 
+  <!-- ══ COMPOSANTS ════════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title"><span class="v-title-text">Composants</span></div>
+
+    <div class="grid g2">
+      <div class="demo">
+        <div class="v-eyebrow">Boutons &amp; états</div>
+        <div class="row" style="margin-bottom:12px">
+          <button class="v-btn v-btn-primary v-btn-mark">Valider</button>
+          <button class="v-btn v-btn-secondary">Secondaire</button>
+          <button class="v-btn v-btn-ghost">Ghost</button>
+        </div>
+        <div class="row">
+          <button class="v-btn v-btn-danger v-btn-sm">Quitter</button>
+          <button class="v-btn v-btn-success v-btn-sm">Acheter</button>
+          <button class="v-btn v-btn-secondary v-btn-sm" disabled>Désactivé</button>
+          <span class="v-key">F7</span><span class="v-key">1</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="v-eyebrow">Badges &amp; rangs</div>
+        <div class="row" style="margin-bottom:12px">
+          <span class="v-badge v-badge-pvp">Redzone</span>
+          <span class="v-badge v-badge-crew">Crew</span>
+          <span class="v-badge v-badge-reward">Légendaire</span>
+          <span class="v-badge v-badge-infected">Infecté</span>
+          <span class="v-badge v-badge-default">Neutre</span>
+        </div>
+        <div class="row">
+          <span class="v-rank-pill v-rank-pill-gold">Gold</span>
+          <span class="v-rank-pill v-rank-pill-diamond">Diamond</span>
+          <span class="v-rank-pill v-rank-pill-p3">Prestige III</span>
+          <span class="v-rank-pill v-rank-pill-p5">VANTA</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="v-eyebrow">Rangées &amp; états de sélection</div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div class="v-row"><span style="font-size:13px;color:var(--v-text)">NOX</span><span class="v-badge v-badge-reward">Leader</span></div>
+          <div class="v-row is-selected"><span style="font-size:13px;color:var(--v-text)">WRAITH</span><span style="font-size:10px;color:var(--v-text-tertiary)">ID 12</span></div>
+          <div class="v-row is-disabled"><span style="font-size:13px;color:var(--v-text)">ASH</span><span style="font-size:10px;color:var(--v-text-tertiary)">hors ligne</span></div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="v-eyebrow">Jauges</div>
+        <div style="margin-bottom:14px"><div class="v-progress v-progress-lg v-progress-ticks"><div class="bar xp" style="width:64%"></div></div></div>
+        <div style="margin-bottom:14px"><div class="v-progress"><div class="bar hp" style="width:82%"></div></div></div>
+        <div><div class="v-progress"><div class="bar danger" style="width:22%"></div></div></div>
+      </div>
+
+      <div class="demo">
+        <div class="v-eyebrow">Notifications</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="v-toast v-toast-success">Carabine spéciale équipée.</div>
+          <div class="v-toast v-toast-danger">Inventaire perdu ! (14 items)</div>
+          <div class="v-toast">Sac trop lourd — 50 kg max.</div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="v-eyebrow">Blocs chiffres &amp; état vide</div>
+        <div class="v-figure-row" style="margin-bottom:18px">
+          <div class="v-figure"><span class="v-figure-label">Kills</span><span class="v-figure-value">248</span></div>
+          <div class="v-figure v-figure-pvp"><span class="v-figure-label">Morts</span><span class="v-figure-value">91</span></div>
+          <div class="v-figure"><span class="v-figure-label">K/D</span><span class="v-figure-value">2.72</span></div>
+        </div>
+        <div class="v-empty" style="padding:20px 0"><span class="v-empty-text">Aucune annonce sur le marché.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ RARETÉS ═══════════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title"><span class="v-title-text">Raretés</span><span class="v-title-value">alignées sur les signaux</span></div>
+    <p class="note">
+      La rareté se lit au <b>liseré gauche</b>, pas à un fond coloré : la grille
+      d'inventaire reste monochrome et lisible même pleine.
+    </p>
+    <div class="v-item-grid" style="grid-template-columns:repeat(4,140px)">
+      <div class="v-item-slot rarity-common"><span class="item-name">Commun</span></div>
+      <div class="v-item-slot rarity-uncommon"><span class="item-name">Peu commun</span></div>
+      <div class="v-item-slot rarity-rare"><span class="item-name">Rare</span></div>
+      <div class="v-item-slot rarity-legendary"><span class="item-name">Légendaire</span></div>
+    </div>
+  </section>
+
+  <!-- ══ INTERDITS ═════════════════════════════════════════════ -->
+  <section>
+    <div class="sec-head v-title v-title-pvp"><span class="v-title-text">Interdits</span></div>
+    <div class="grid g2">
+      <div class="demo">
+        <p class="note" style="margin:0">
+          <b>Jamais</b> : rayon &gt; 4px · dégradé de fond · ombre portée sur une
+          surface posée (seules les couches flottantes en ont une) · glow, pulse,
+          bounce, scale · néon, RGB gaming · seconde famille de police ·
+          <code>backdrop-filter: blur()</code> (opaque dans le CEF FiveM) ·
+          <code>confirm()</code> / <code>prompt()</code> (gèlent le jeu).
+        </p>
+      </div>
+      <div class="demo">
+        <p class="note" style="margin:0">
+          <b>Toujours</b> : bordures 1px · chiffres en <code>tabular-nums</code> ·
+          capitales + tracking pour les titres · transitions 0.15–0.18 s en
+          opacité/translation · une couleur = un système de jeu ·
+          les valeurs viennent de <code>vanta.css</code>, jamais du fichier local.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</div>
 </body>
 </html>

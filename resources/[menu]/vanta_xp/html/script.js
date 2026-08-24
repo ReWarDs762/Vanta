@@ -4,21 +4,24 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ── Badges prestige (HTML pur, reproduit depuis config) ──────────────────
+// Iconographie VANTA : chiffres romains seuls, pas de dingbats.
+// Les symboles ◆ / ✦ / ⬡ / ⬟ mélangeaient quatre grammaires graphiques
+// étrangères à la charte — le rang se lit au chiffre et à la couleur.
 const PRESTIGE_BADGES = {
-    0: { symbol: 'RECRUIT',   cssClass: 'p0', label: 'RECRUIT' },
-    1: { symbol: '◆ I',       cssClass: 'p1', label: 'PRESTIGE I' },
-    2: { symbol: '◆◆ II',     cssClass: 'p2', label: 'PRESTIGE II' },
-    3: { symbol: '✦✦✦ III',   cssClass: 'p3', label: 'PRESTIGE III' },
-    4: { symbol: '⬡ IV',      cssClass: 'p4', label: 'PRESTIGE IV' },
-    5: { symbol: '⬟ VANTA',   cssClass: 'p5', label: 'VANTA' },
+    0: { symbol: 'RECRUE',      cssClass: 'p0', label: 'RECRUE' },
+    1: { symbol: 'PRESTIGE I',  cssClass: 'p1', label: 'PRESTIGE I' },
+    2: { symbol: 'PRESTIGE II', cssClass: 'p2', label: 'PRESTIGE II' },
+    3: { symbol: 'PRESTIGE III',cssClass: 'p3', label: 'PRESTIGE III' },
+    4: { symbol: 'PRESTIGE IV', cssClass: 'p4', label: 'PRESTIGE IV' },
+    5: { symbol: 'VANTA',       cssClass: 'p5', label: 'VANTA' },
 };
 
 const MINI_SYMBOLS = {
-    1: '◆',
-    2: '◆◆',
-    3: '✦✦✦',
-    4: '⬡',
-    5: '⬟',
+    1: 'I',
+    2: 'II',
+    3: 'III',
+    4: 'IV',
+    5: 'V',
 };
 
 // ── Éléments DOM ─────────────────────────────────────────────────────────
@@ -107,7 +110,7 @@ function renderPrestigeRow(currentPrestige, maxPrestige) {
             </div>`;
         } else {
             html += `<div class="${slotClass}">
-                <span class="mini-badge" style="color:#444">${symbol}</span>
+                <span class="mini-badge">${symbol}</span>
             </div>`;
         }
     }
@@ -158,7 +161,7 @@ function doPrestige() {
 function showLevelUpToast(level) {
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = `<span class="toast-icon">▲</span> LEVEL UP → <strong>${level}</strong>`;
+    toast.innerHTML = `<span class="toast-icon"></span> NIVEAU <strong>${level}</strong>`;
     toastContainer.appendChild(toast);
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3200);
 }
@@ -180,7 +183,7 @@ function showXPToast(amount, source) {
 function showPrestigeNotif(prestige) {
     const pData = PRESTIGE_BADGES[prestige] || PRESTIGE_BADGES[0];
     prestigeNotif.innerHTML = `
-        <div class="notif-title">✦ PRESTIGE ATTEINT</div>
+        <div class="notif-title">PRESTIGE ATTEINT</div>
         <div class="notif-level">${pData.label}</div>
         <div class="notif-badge">
             <span class="badge-prestige ${pData.cssClass}">${pData.symbol}</span>

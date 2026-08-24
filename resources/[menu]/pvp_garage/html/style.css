@@ -5,19 +5,20 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Alias vers les tokens VANTA v2.1 (vanta.css). */
 :root {
-  --bg:       #0a0a0a;
-  --surface:  #111111;
-  --surface2: #181818;
-  --border:   #242424;
-  --border2:  #3a3a3a;
-  --accent:   #c8cdd4;
-  --accent2:  #f0f2f4;
-  --red:      #8b2020;
-  --green:    #1a6b3a;
-  --text:     #c8cdd4;
-  --text-dim: #5a5f66;
-  --font:     'Inter', sans-serif;
+  --bg:       var(--v-bg);
+  --surface:  var(--v-surface);
+  --surface2: var(--v-surface-2);
+  --border:   var(--v-border);
+  --border2:  var(--v-border-hover);
+  --accent:   var(--v-silver);
+  --accent2:  var(--v-text);
+  --red:      var(--v-pvp);
+  --green:    var(--v-success);
+  --text:     var(--v-text-secondary);
+  --text-dim: var(--v-text-tertiary);
+  --font:     var(--v-font);
 }
 
 body {
@@ -93,7 +94,7 @@ body {
     color: var(--text-dim);
 }
 .btn-cancel:hover {
-    background: rgba(139, 32, 32, 0.1);
+    background: rgba(232, 86, 75, 0.1);
     border-color: var(--red);
     color: var(--red);
 }

@@ -29,22 +29,33 @@ body {
 }
 
 .leader-box {
-  background: #141414;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 2px solid #c8cdd4;
-  border-radius: 2px;
+  position: relative;
+  background: rgba(10, 10, 10, 0.86);
+  border: 1px solid var(--v-border);
+  border-left: 2px solid var(--v-silver);
+  border-radius: var(--v-radius-xs);
   padding: 8px 12px 8px 14px;
   min-width: 180px;
   animation: v-fadeSlideIn 0.25s ease;
 }
-
-.leader-box.crew {
-  border-left-color: rgba(200, 205, 212, 0.40);
+/* Équerre bas-droite — cadre VANTA */
+.leader-box::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 9px; height: 9px;
+  border-bottom: 1px solid var(--v-bracket-color);
+  border-right: 1px solid var(--v-bracket-color);
+  pointer-events: none;
 }
+/* Le crew leader porte le signal crew */
+.leader-box.crew { border-left-color: var(--v-crew); }
+
+
 
 .leader-label {
   font-size: 8px;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--v-track-title);
   color: rgba(255, 255, 255, 0.28);
   font-weight: 600;
   text-transform: uppercase;
@@ -66,16 +77,14 @@ body {
 
 .leader-count {
   font-size: 9px;
-  color: #c8cdd4;
+  color: var(--v-silver);
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--v-track-title);
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
 
-.leader-box.crew .leader-count {
-  color: rgba(200, 205, 212, 0.55);
-}
+.leader-box.crew .leader-count { color: var(--v-crew); }
 
 /* ══ KILLFEED (coin supérieur droit) ══════════════════════════ */
 #killfeed {
@@ -93,10 +102,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #141414;
+  background: rgba(10, 10, 10, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-right: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
+  border-radius: var(--v-radius-xs);
   padding: 6px 10px;
   animation: v-fadeSlideInRight 0.2s ease;
   transition: opacity 0.4s ease;
@@ -105,32 +114,32 @@ body {
 
 /* État : je suis impliqué (neutre) */
 .kill-entry.is-me {
-  border-right-color: #c8cdd4;
+  border-right-color: var(--v-silver);
 }
 
 /* État : j'ai kill */
 .kill-entry.i-killed {
-  border-right-color: #30d158;
-  background: rgba(48, 209, 88, 0.08);
+  border-right-color: var(--v-success);
+  background: rgba(95, 158, 99, 0.08);
 }
 
 /* État : je suis mort */
 .kill-entry.i-died {
-  border-right-color: #ff453a;
-  background: rgba(255, 69, 58, 0.08);
+  border-right-color: var(--v-pvp);
+  background: rgba(232, 86, 75, 0.08);
 }
 
 /* État : kill en redzone (priorité visuelle la plus forte) */
 .kill-entry.in-redzone {
-  border-right-color: #ff453a;
-  background: rgba(255, 69, 58, 0.12);
+  border-right-color: var(--v-pvp);
+  background: rgba(232, 86, 75, 0.12);
 }
 
 .kf-name {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #ffffff;
+  letter-spacing: var(--v-track-label);
+  color: var(--v-text);
   text-transform: uppercase;
   max-width: 140px;
   overflow: hidden;
@@ -138,28 +147,36 @@ body {
   white-space: nowrap;
 }
 
-.kf-name.killer { color: #ffffff; }
-.kf-name.victim { color: rgba(255, 255, 255, 0.55); }
+.kf-name.killer { color: var(--v-text); }
+.kf-name.victim { color: var(--v-text-secondary); }
 
-.kill-entry.i-killed .kf-name.killer { color: #30d158; }
-.kill-entry.i-died   .kf-name.victim { color: #ff453a; }
-.kill-entry.in-redzone .kf-name.victim { color: #ff453a; }
+.kill-entry.i-killed .kf-name.killer { color: var(--v-success); }
+.kill-entry.i-died   .kf-name.victim { color: var(--v-pvp); }
+.kill-entry.in-redzone .kf-name.victim { color: var(--v-pvp); }
 
 .kf-arrow {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.28);
+  /* Le glyphe → du JS est masqué : la forme vient du chevron de marque,
+     couché à 90° pour porter la direction killer → victime. */
+  font-size: 0;
+  color: var(--v-text-tertiary);
   flex-shrink: 0;
   letter-spacing: 0;
+  width: 7px;
+  height: 9px;
+  background-color: currentColor;
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+  transform: rotate(-90deg);
 }
 
-.kill-entry.i-killed .kf-arrow { color: #30d158; }
-.kill-entry.i-died   .kf-arrow { color: #ff453a; }
-.kill-entry.in-redzone .kf-arrow { color: #ff453a; }
+.kill-entry.i-killed .kf-arrow { color: var(--v-success); }
+.kill-entry.i-died   .kf-arrow { color: var(--v-pvp); }
+.kill-entry.in-redzone .kf-arrow { color: var(--v-pvp); }
 
 .kf-weapon {
   font-size: 9px;
   color: rgba(255, 255, 255, 0.28);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--v-track-label);
   font-weight: 500;
   text-transform: uppercase;
   flex-shrink: 0;
@@ -170,11 +187,11 @@ body {
 .kf-rz {
   font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  color: #ff453a;
-  background: rgba(255, 69, 58, 0.15);
-  border: 1px solid rgba(255, 69, 58, 0.25);
-  border-radius: 2px;
+  letter-spacing: var(--v-track-title);
+  color: var(--v-pvp);
+  background: rgba(232, 86, 75, 0.15);
+  border: 1px solid rgba(232, 86, 75, 0.25);
+  border-radius: var(--v-radius-xs);
   padding: 2px 5px;
   flex-shrink: 0;
 }

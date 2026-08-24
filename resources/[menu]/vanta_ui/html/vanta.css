@@ -1,13 +1,20 @@
 /* ============================================================
-   VANTA DESIGN SYSTEM v2.0
-   Direction: Apple Monochrome × Tactical Premium
+   VANTA DESIGN SYSTEM v2.1 — « MONOLITHE »
+   Direction : Dark premium · Flat · Angular · Monochrome
+   Base v2 conservée — v2.1 ajoute l'identité de marque VANTA :
+     · Le Chevron V        (marque unique, filigranes, puces)
+     · Les Équerres        (cadre d'angle sur panneaux majeurs)
+     · Le Titre à filet    (surtitre + barre + tracking + filet)
+     + trame hairline, bloc chiffre, 4 signaux de domaine.
 
    Usage dans une NUI FiveM :
    <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
+
+   Compatibilité : toutes les classes .v-* de la v2 sont conservées.
    ============================================================ */
 
 /* --- Google Fonts (Inter) --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
 
 /* ============================================================
    DESIGN TOKENS
@@ -26,45 +33,62 @@
   --v-separator-bold:  rgba(255, 255, 255, 0.10);
   --v-border:          rgba(255, 255, 255, 0.08);
   --v-border-hover:    rgba(255, 255, 255, 0.15);
+  --v-border-active:   rgba(255, 255, 255, 0.28);
 
   /* === Text === */
-  --v-text:          #ffffff;
+  --v-text:           #ffffff;
   --v-text-secondary: rgba(255, 255, 255, 0.55);
   --v-text-tertiary:  rgba(255, 255, 255, 0.28);
   --v-text-disabled:  rgba(255, 255, 255, 0.15);
 
   /* === Brand === */
   --v-silver:        #c8cdd4;
+  --v-silver-2:      #9aa0a8;   /* v2.1 — argent médian (métadonnées de marque) */
   --v-silver-dim:    rgba(200, 205, 212, 0.40);
   --v-silver-glow:   rgba(200, 205, 212, 0.06);
 
-  /* === Semantic === */
-  --v-danger:        #ff453a;
-  --v-danger-dim:    rgba(255, 69, 58, 0.15);
-  --v-success:       #30d158;
-  --v-success-dim:   rgba(48, 209, 88, 0.15);
-  --v-warning:       #ffd60a;
-  --v-warning-dim:   rgba(255, 214, 10, 0.15);
-  --v-info:          #64d2ff;
-  --v-info-dim:      rgba(100, 210, 255, 0.15);
+  /* === Les 4 signaux VANTA (v2.1) ===========================
+     Un signal = un système de jeu. Désaturés vers la base
+     argentée : la couleur ne sert qu'à porter du sens, jamais
+     à décorer. Toute la sémantique UI est mappée dessus.
+     ---------------------------------------------------------- */
+  --v-pvp:           #e8564b;   /* PVP · redzone · mort · danger  */
+  --v-pvp-dim:       rgba(232, 86, 75, 0.14);
+  --v-infected:      #8a9e5b;   /* zombies · infection · peu commun */
+  --v-infected-dim:  rgba(138, 158, 91, 0.14);
+  --v-reward:        #d9a441;   /* loot · légendaire · VCoins · prestige */
+  --v-reward-dim:    rgba(217, 164, 65, 0.14);
+  --v-crew:          #6f9fc4;   /* crew · allié · information · rare */
+  --v-crew-dim:      rgba(111, 159, 196, 0.14);
 
-  /* === Rarity === */
+  /* === Semantic (mappé sur les signaux) === */
+  --v-danger:        var(--v-pvp);
+  --v-danger-dim:    var(--v-pvp-dim);
+  --v-success:       #5f9e63;
+  --v-success-dim:   rgba(95, 158, 99, 0.14);
+  --v-warning:       var(--v-reward);
+  --v-warning-dim:   var(--v-reward-dim);
+  --v-info:          var(--v-crew);
+  --v-info-dim:      var(--v-crew-dim);
+
+  /* === Rarity (alignée sur les signaux) === */
   --v-rarity-common:          rgba(255, 255, 255, 0.10);
   --v-rarity-common-solid:    #3a3a3e;
-  --v-rarity-uncommon:        rgba(48, 209, 88, 0.25);
-  --v-rarity-uncommon-solid:  #1a5c32;
-  --v-rarity-rare:            rgba(100, 210, 255, 0.25);
-  --v-rarity-rare-solid:      #1a4a6e;
-  --v-rarity-legendary:       rgba(255, 214, 10, 0.25);
-  --v-rarity-legendary-solid: #6e5a10;
+  --v-rarity-uncommon:        rgba(138, 158, 91, 0.30);
+  --v-rarity-uncommon-solid:  #48542e;
+  --v-rarity-rare:            rgba(111, 159, 196, 0.30);
+  --v-rarity-rare-solid:      #2f4f66;
+  --v-rarity-legendary:       rgba(217, 164, 65, 0.30);
+  --v-rarity-legendary-solid: #6b5220;
 
-  /* === Radius === */
-  --v-radius-xs:   4px;
-  --v-radius-sm:   6px;
-  --v-radius-md:   10px;
-  --v-radius-lg:   14px;
-  --v-radius-xl:   20px;
-  --v-radius-full: 9999px;
+  /* === Radius — échelle angulaire (max 4px, cf. charte) === */
+  --v-radius-none: 0;
+  --v-radius-xs:   2px;
+  --v-radius-sm:   2px;
+  --v-radius-md:   3px;
+  --v-radius-lg:   4px;
+  --v-radius-xl:   4px;
+  --v-radius-full: 9999px;   /* réservé : toggles, pastilles rondes */
 
   /* === Spacing === */
   --v-space-1:  4px;
@@ -90,11 +114,33 @@
   --v-size-3xl:  28px;
   --v-size-4xl:  34px;
 
+  /* Interlettrage — la hiérarchie VANTA se joue au tracking,
+     pas au changement de police. Une seule famille : Inter. */
+  --v-track-display: 0.30em;   /* VANTA, écrans héros            */
+  --v-track-title:   0.14em;   /* titres de panneau              */
+  --v-track-label:   0.10em;   /* labels, onglets, boutons       */
+  --v-track-meta:    0.04em;   /* métadonnées                    */
+
   /* === Transitions === */
   --v-ease:        cubic-bezier(0.23, 1, 0.32, 1);     /* strong ease-out — starts fast, feels responsive */
   --v-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* strong ease-in-out — for on-screen movement */
   --v-duration: 0.18s;
+  --v-duration-slow: 0.32s;
   --v-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* === Élévation ===
+     Pas d'ombre sur les surfaces posées (bordures uniquement).
+     Une seule ombre, réservée aux couches flottantes au-dessus
+     du rendu 3D du jeu (tooltips, toasts, menus contextuels). */
+  --v-shadow-float: 0 8px 28px rgba(0, 0, 0, 0.55);
+
+  /* === Signature : trame hairline === */
+  --v-grid-pitch: 32px;
+  --v-grid-color: rgba(255, 255, 255, 0.022);
+
+  /* === Signature : équerres d'angle === */
+  --v-bracket-size:  14px;
+  --v-bracket-color: rgba(200, 205, 212, 0.30);
 }
 
 /* ============================================================
@@ -115,6 +161,9 @@
 
 /* ============================================================
    ANIMATIONS
+   ------------------------------------------------------------
+   Discrètes par principe : opacité + translation courte.
+   Pas de bounce, pas de scale, pas de pulse lumineux.
    ============================================================ */
 @keyframes v-fadeIn {
   from { opacity: 0; transform: translateY(4px); }
@@ -136,14 +185,477 @@
   50%      { opacity: 0.5; }
 }
 
+/* v2.1 — Signature d'ouverture : le filet supérieur se déploie
+   de gauche à droite pendant que le panneau apparaît. */
+@keyframes v-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* v2.1 — Entrée des équerres : elles se posent depuis l'angle. */
+@keyframes v-bracketIn {
+  from { opacity: 0; transform: scale(0.55); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================================
+   ██ SIGNATURE 1 — LE CHEVRON V
+   ------------------------------------------------------------
+   Marque unique de VANTA. Chevron descendant, jonctions
+   d'onglet, extrémités carrées — jamais arrondi, jamais plein.
+   Décliné : marque (.v-mark), verrou typographique (.v-lockup),
+   filigrane (.v-watermark), puce de liste (.v-bullet).
+   Une seule forme partout : icône serveur, bannière, NUI.
+   ============================================================ */
+
+/* --- Marque seule --- */
+.v-mark {
+  display: inline-block;
+  width: 22px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--v-silver);
+  /* Volontairement transparent par défaut : l'aplat n'est peint QUE si le moteur
+     sait masquer (bloc @supports ci-dessous). Sans ce garde-fou, un CEF sans
+     support du masque afficherait un rectangle plein à la place du chevron. */
+  background-color: transparent;
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+}
+
+@supports (-webkit-mask-image: none) or (mask-image: none) {
+  .v-mark,
+  .v-btn-mark::before,
+  .v-toast::before   { background-color: currentColor; }
+  .v-bullet::before  { background-color: var(--v-silver-dim); }
+  .v-empty::before   { background-color: var(--v-text-disabled); }
+}
+
+:root {
+  /* Chevron V : trait unique, 2 segments, jonction en pointe basse. */
+  --v-mark-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 36'%3E%3Cpath d='M2 2 L22 34 L42 2' fill='none' stroke='%23000' stroke-width='6' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E");
+  /* Variante encadrée (icône applicative / avatar de serveur). */
+  --v-mark-boxed-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect x='4' y='4' width='88' height='88' fill='none' stroke='%23000' stroke-width='1.6' opacity='0.5'/%3E%3Cpath d='M16 20 L48 74 L80 20' fill='none' stroke='%23000' stroke-width='5.5' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E");
+}
+
+.v-mark-sm { width: 14px; height: 12px; }
+.v-mark-lg { width: 40px; height: 33px; }
+.v-mark-xl { width: 64px; height: 52px; }
+
+.v-mark-boxed {
+  width: 48px;
+  height: 48px;
+  -webkit-mask-image: var(--v-mark-boxed-svg);
+          mask-image: var(--v-mark-boxed-svg);
+}
+
+.v-mark-dim  { color: var(--v-silver-dim); }
+.v-mark-text { color: var(--v-text); }
+
+/* --- Verrou marque + mot (lockup) ---
+   Le nom VANTA ne s'écrit jamais autrement : capitales, Inter,
+   tracking display, jamais d'italique, jamais de dégradé. */
+.v-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  font-family: var(--v-font);
+}
+
+.v-lockup .v-wordmark {
+  font-size: var(--v-size-lg);
+  font-weight: 600;
+  letter-spacing: var(--v-track-display);
+  text-transform: uppercase;
+  color: var(--v-text);
+  line-height: 1;
+  /* le tracking ajoute un blanc final : on le reprend */
+  margin-right: calc(var(--v-track-display) * -1);
+}
+
+.v-lockup .v-tagline {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
+  color: var(--v-text-tertiary);
+  line-height: 1;
+  margin-top: 5px;
+}
+
+.v-lockup-stacked {
+  flex-direction: column;
+  gap: var(--v-space-4);
+  text-align: center;
+}
+.v-lockup-stacked .v-wordmark {
+  font-size: var(--v-size-4xl);
+  font-weight: 500;
+}
+
+/* --- Filigrane d'angle (toutes les NUI plein écran) --- */
+.v-watermark {
+  position: fixed;
+  top: var(--v-space-5);
+  left: var(--v-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.v-watermark svg { width: 24px; height: 24px; }
+
+.v-watermark span {
+  font-family: var(--v-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--v-text);
+}
+
+/* --- Puce de liste : mini-chevron au lieu d'un rond --- */
+.v-bullet::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 7px;
+  margin-right: var(--v-space-2);
+  vertical-align: baseline;
+  background-color: transparent;   /* peint dans le bloc @supports */
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+}
+
+/* ============================================================
+   ██ SIGNATURE 2 — LES ÉQUERRES D'ANGLE
+   ------------------------------------------------------------
+   Quatre équerres 1px posées aux angles d'une surface majeure.
+   Reprises de l'écran de chargement (déjà VANTA) et étendues à
+   tout le serveur : panneaux, modales, cartes mises en avant.
+   Coût : 2 pseudo-éléments, aucun asset, aucun repaint coûteux.
+   ============================================================ */
+.v-brackets { position: relative; }
+
+.v-brackets::before,
+.v-brackets::after {
+  content: '';
+  position: absolute;
+  width: var(--v-bracket-size);
+  height: var(--v-bracket-size);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* haut-gauche + bas-droite */
+.v-brackets::before {
+  top: -1px; left: -1px;
+  border-top: 1px solid var(--v-bracket-color);
+  border-left: 1px solid var(--v-bracket-color);
+}
+.v-brackets::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 1px solid var(--v-bracket-color);
+  border-right: 1px solid var(--v-bracket-color);
+}
+
+/* Jeu complet aux 4 angles : ajouter .v-brackets-4 + un <i class="v-brackets-alt"></i> */
+.v-brackets-alt {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  z-index: 2;
+}
+.v-brackets-alt::before,
+.v-brackets-alt::after {
+  content: '';
+  position: absolute;
+  width: var(--v-bracket-size);
+  height: var(--v-bracket-size);
+}
+.v-brackets-alt::before {
+  top: 0; right: 0;
+  border-top: 1px solid var(--v-bracket-color);
+  border-right: 1px solid var(--v-bracket-color);
+}
+.v-brackets-alt::after {
+  bottom: 0; left: 0;
+  border-bottom: 1px solid var(--v-bracket-color);
+  border-left: 1px solid var(--v-bracket-color);
+}
+
+/* --- Le filet de déploiement (élément autonome) ---
+   À placer en premier enfant d'un panneau positionné. Autonome
+   (et non pseudo-élément) pour ne jamais entrer en conflit avec
+   les équerres, qui occupent déjà ::before / ::after. --- */
+.v-sweep {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    var(--v-sweep-color, var(--v-silver)) 0%,
+    var(--v-silver-dim) 45%,
+    transparent 100%);
+  transform-origin: left center;
+  animation: v-sweep var(--v-duration-slow) var(--v-ease-in-out);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 3;
+}
+.v-sweep-pvp      { --v-sweep-color: var(--v-pvp); }
+.v-sweep-crew     { --v-sweep-color: var(--v-crew); }
+.v-sweep-reward   { --v-sweep-color: var(--v-reward); }
+.v-sweep-infected { --v-sweep-color: var(--v-infected); }
+
+/* Équerres accentuées quand l'élément est sélectionné/actif */
+.v-brackets.is-active { --v-bracket-color: var(--v-silver); }
+.v-brackets.is-pvp      { --v-bracket-color: var(--v-pvp); }
+.v-brackets.is-crew     { --v-bracket-color: var(--v-crew); }
+.v-brackets.is-reward   { --v-bracket-color: var(--v-reward); }
+.v-brackets.is-infected { --v-bracket-color: var(--v-infected); }
+
+/* ============================================================
+   ██ SIGNATURE 3 — LE TITRE À FILET
+   ------------------------------------------------------------
+   Construction unique de tous les titres de section VANTA :
+     [surtitre minuscule]
+     ▌ TITRE TRACKÉ ───────────────────────────── [valeur]
+   La barre verticale argentée + le filet qui court jusqu'au
+   bord du conteneur donnent la même attaque visuelle partout.
+   ============================================================ */
+.v-title {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  font-family: var(--v-font);
+  width: 100%;
+}
+
+.v-title::before {
+  content: '';
+  width: 2px;
+  height: 12px;
+  background: var(--v-silver);
+  flex-shrink: 0;
+}
+
+.v-title .v-title-text {
+  font-size: var(--v-size-xs);
+  font-weight: 600;
+  letter-spacing: var(--v-track-title);
+  text-transform: uppercase;
+  color: var(--v-text);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Le filet : remplit tout l'espace restant.
+   Pas de :has() ici — le CEF de FiveM n'est pas garanti à jour. */
+.v-title::after {
+  content: '';
+  order: 90;
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--v-separator);
+  min-width: 12px;
+}
+/* La valeur de droite se place APRÈS le filet grâce à l'ordre flex. */
+.v-title .v-title-value { order: 91; }
+
+.v-title .v-title-value {
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  letter-spacing: var(--v-track-meta);
+  color: var(--v-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Surtitre (eyebrow) — se place au-dessus du .v-title */
+.v-eyebrow {
+  font-family: var(--v-font);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
+  color: var(--v-text-tertiary);
+  line-height: 1;
+  margin-bottom: var(--v-space-2);
+}
+
+/* Déclinaisons par domaine : seule la barre change de couleur */
+.v-title-pvp::before      { background: var(--v-pvp); }
+.v-title-crew::before     { background: var(--v-crew); }
+.v-title-reward::before   { background: var(--v-reward); }
+.v-title-infected::before { background: var(--v-infected); }
+
+/* Rétro-compat v2 */
+.v-section-header {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 600;
+  letter-spacing: var(--v-track-title);
+  text-transform: uppercase;
+  color: var(--v-text-secondary);
+  margin-bottom: var(--v-space-4);
+}
+
+/* ============================================================
+   DÉTAIL RÉCURRENT — LA TRAME HAIRLINE
+   ------------------------------------------------------------
+   Fond de panneau : quadrillage 1px à 2% d'opacité. Invisible
+   consciemment, mais donne au noir une matière reconnaissable.
+   ============================================================ */
+.v-grid-bg {
+  background-image:
+    linear-gradient(var(--v-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--v-grid-color) 1px, transparent 1px);
+  background-size: var(--v-grid-pitch) var(--v-grid-pitch);
+}
+
+/* Variante « ligne d'horizon » : un seul filet argenté horizontal */
+.v-hairline {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--v-separator-bold) 20%,
+    var(--v-separator-bold) 80%,
+    transparent 100%);
+}
+
+/* ============================================================
+   DÉTAIL RÉCURRENT — LE BLOC CHIFFRE
+   ------------------------------------------------------------
+   Toute statistique VANTA s'affiche pareil : label minuscule
+   tracké au-dessus, valeur en Inter Light tabulaire au-dessous.
+   Le contraste de graisse (500 → 300) fait la lecture.
+   ============================================================ */
+.v-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-1);
+}
+
+.v-figure .v-figure-label {
+  font-family: var(--v-font);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
+  color: var(--v-text-tertiary);
+  line-height: 1;
+}
+
+.v-figure .v-figure-value {
+  font-family: var(--v-font);
+  font-size: var(--v-size-2xl);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--v-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.v-figure .v-figure-unit {
+  font-size: var(--v-size-xs);
+  font-weight: 400;
+  color: var(--v-text-tertiary);
+  margin-left: 2px;
+}
+
+.v-figure-sm .v-figure-value { font-size: var(--v-size-lg); }
+.v-figure-lg .v-figure-value { font-size: var(--v-size-4xl); }
+
+.v-figure-pvp    .v-figure-value { color: var(--v-pvp); }
+.v-figure-crew   .v-figure-value { color: var(--v-crew); }
+.v-figure-reward .v-figure-value { color: var(--v-reward); }
+
+/* Rangée de blocs chiffres séparés par des filets verticaux */
+.v-figure-row {
+  display: flex;
+  align-items: stretch;
+}
+.v-figure-row > .v-figure {
+  flex: 1;
+  padding: 0 var(--v-space-4);
+  border-left: 1px solid var(--v-separator);
+}
+.v-figure-row > .v-figure:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+/* ============================================================
+   PANNEAUX
+   ------------------------------------------------------------
+   Surface majeure d'une NUI. Fond plat + bordure 1px + trame,
+   filet supérieur qui se déploie à l'ouverture (signature).
+   ============================================================ */
+.v-panel {
+  position: relative;
+  background: var(--v-bg);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: v-fadeIn var(--v-duration) var(--v-ease);
+}
+
+/* Filet argenté supérieur : ajouter <i class="v-sweep"></i> comme
+   premier enfant. Volontairement PAS un pseudo-élément de .v-panel,
+   pour rester combinable avec .v-brackets (qui utilise ::before). */
+
+.v-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-4);
+  padding: 0 var(--v-space-5);
+  height: 48px;
+  background: var(--v-surface);
+  border-bottom: 1px solid var(--v-separator);
+  flex-shrink: 0;
+}
+
+.v-panel-body {
+  padding: var(--v-space-5);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.v-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  padding: var(--v-space-3) var(--v-space-5);
+  border-top: 1px solid var(--v-separator);
+  flex-shrink: 0;
+}
+
+/* Panneau latéral (garage, custom armes, création perso) :
+   le jeu 3D reste visible à gauche. */
+.v-panel-side {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100vh;
+  width: 420px;
+  background: rgba(10, 10, 10, 0.92);
+  border-left: 1px solid var(--v-border);
+  border-radius: 0;
+}
+
 /* ============================================================
    BUTTONS
    ============================================================ */
 .v-btn {
   font-family: var(--v-font);
-  font-size: var(--v-size-sm);
+  font-size: var(--v-size-xs);
   font-weight: 600;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -151,25 +663,38 @@
   gap: var(--v-space-2);
   padding: 10px 20px;
   border-radius: var(--v-radius-sm);
-  transition: all var(--v-duration) var(--v-ease);
-  letter-spacing: 0.02em;
+  transition: background var(--v-duration) var(--v-ease),
+              border-color var(--v-duration) var(--v-ease),
+              color var(--v-duration) var(--v-ease);
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
   line-height: 1;
   position: relative;
   overflow: hidden;
 }
 
-.v-btn:active { transform: scale(0.97); }
+.v-btn:active { transform: translateY(1px); }
+
+.v-btn:disabled,
+.v-btn.is-disabled {
+  color: var(--v-text-disabled);
+  background: var(--v-surface);
+  border-color: var(--v-separator);
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .v-btn-primary {
   background: var(--v-text);
   color: var(--v-black);
+  border-color: var(--v-text);
 }
-.v-btn-primary:hover { background: rgba(255, 255, 255, 0.85); }
+.v-btn-primary:hover { background: rgba(255, 255, 255, 0.85); border-color: rgba(255, 255, 255, 0.85); }
 
 .v-btn-secondary {
   background: var(--v-surface-2);
   color: var(--v-text);
-  border: 1px solid var(--v-border);
+  border-color: var(--v-border);
 }
 .v-btn-secondary:hover {
   background: var(--v-surface-3);
@@ -179,40 +704,56 @@
 .v-btn-ghost {
   background: transparent;
   color: var(--v-text-secondary);
+  border-color: var(--v-border);
 }
 .v-btn-ghost:hover {
   background: var(--v-separator);
   color: var(--v-text);
+  border-color: var(--v-border-hover);
 }
 
 .v-btn-danger {
   background: var(--v-danger-dim);
   color: var(--v-danger);
+  border-color: rgba(232, 86, 75, 0.35);
 }
-.v-btn-danger:hover { background: rgba(255, 69, 58, 0.25); }
+.v-btn-danger:hover { background: rgba(232, 86, 75, 0.22); border-color: var(--v-danger); }
 
 .v-btn-success {
   background: var(--v-success-dim);
   color: var(--v-success);
+  border-color: rgba(95, 158, 99, 0.35);
 }
-.v-btn-success:hover { background: rgba(48, 209, 88, 0.25); }
+.v-btn-success:hover { background: rgba(95, 158, 99, 0.22); border-color: var(--v-success); }
 
 .v-btn-sm {
-  font-size: var(--v-size-xs);
+  font-size: 10px;
   padding: 6px 12px;
 }
 
 .v-btn-lg {
-  font-size: var(--v-size-base);
+  font-size: var(--v-size-sm);
   padding: 14px 28px;
-  border-radius: var(--v-radius-md);
+  border-radius: var(--v-radius-lg);
 }
 
 .v-btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border-radius: var(--v-radius-sm);
+  letter-spacing: 0;
+}
+
+/* Bouton porteur d'un chevron : marqueur de l'action principale */
+.v-btn-mark::before {
+  content: '';
+  width: 9px;
+  height: 8px;
+  background-color: transparent;   /* peint dans le bloc @supports */
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+  flex-shrink: 0;
 }
 
 /* ============================================================
@@ -223,7 +764,8 @@
   border: 1px solid var(--v-border);
   border-radius: var(--v-radius-lg);
   padding: var(--v-space-5);
-  transition: all var(--v-duration) var(--v-ease);
+  transition: background var(--v-duration) var(--v-ease),
+              border-color var(--v-duration) var(--v-ease);
 }
 
 .v-card:hover {
@@ -238,6 +780,45 @@
   padding: var(--v-space-4);
 }
 
+/* Rangée sélectionnable (membre de crew, joueur, offre de marché…) */
+.v-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  padding: 10px var(--v-space-3);
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-left: 2px solid var(--v-separator-bold);
+  border-radius: var(--v-radius-sm);
+  transition: background var(--v-duration) var(--v-ease),
+              border-color var(--v-duration) var(--v-ease);
+}
+.v-row:hover {
+  background: var(--v-surface-2);
+  border-left-color: var(--v-silver-dim);
+}
+.v-row.is-selected {
+  background: var(--v-surface-2);
+  border-color: var(--v-border-hover);
+  border-left-color: var(--v-silver);
+}
+.v-row.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ============================================================
+   ÉTATS PARTAGÉS
+   ------------------------------------------------------------
+   Un seul vocabulaire d'états pour toutes les resources.
+   ============================================================ */
+.v-hoverable { transition: background var(--v-duration) var(--v-ease), border-color var(--v-duration) var(--v-ease); }
+.v-hoverable:hover     { border-color: var(--v-border-hover); }
+.is-active             { border-color: var(--v-border-active); }
+.is-muted              { color: var(--v-text-tertiary); }
+.is-disabled           { opacity: 0.4; pointer-events: none; }
+
 /* ============================================================
    INPUTS
    ============================================================ */
@@ -251,12 +832,13 @@
   padding: 10px 14px;
   outline: none;
   width: 100%;
-  transition: all var(--v-duration) var(--v-ease);
+  transition: border-color var(--v-duration) var(--v-ease),
+              background var(--v-duration) var(--v-ease);
 }
 
 .v-input::placeholder { color: var(--v-text-tertiary); }
 .v-input:focus {
-  border-color: var(--v-text-secondary);
+  border-color: var(--v-silver-dim);
   background: var(--v-surface-3);
 }
 
@@ -271,34 +853,61 @@
   appearance: none;
   cursor: pointer;
   outline: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  transition: all var(--v-duration) var(--v-ease);
+  transition: border-color var(--v-duration) var(--v-ease);
 }
 
-.v-select:focus { border-color: var(--v-text-secondary); }
+.v-select:focus { border-color: var(--v-silver-dim); }
+
+/* Touche clavier (hotbar, raccourcis, aides contextuelles) */
+.v-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-family: var(--v-font);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: var(--v-track-meta);
+  color: var(--v-text-secondary);
+  background: var(--v-surface-2);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xs);
+  line-height: 1;
+}
 
 /* ============================================================
-   BADGES
+   BADGES & CHIPS
    ============================================================ */
 .v-badge {
   display: inline-flex;
   align-items: center;
   font-family: var(--v-font);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: var(--v-radius-full);
+  border-radius: var(--v-radius-xs);
   line-height: 1;
+  border: 1px solid transparent;
 }
 
-.v-badge-default { background: var(--v-separator-bold); color: var(--v-text-secondary); }
-.v-badge-danger  { background: var(--v-danger-dim);      color: var(--v-danger); }
-.v-badge-success { background: var(--v-success-dim);     color: var(--v-success); }
-.v-badge-warning { background: var(--v-warning-dim);     color: var(--v-warning); }
-.v-badge-info    { background: var(--v-info-dim);        color: var(--v-info); }
+.v-badge-default { background: var(--v-separator-bold); color: var(--v-text-secondary); border-color: var(--v-border); }
+.v-badge-danger  { background: var(--v-danger-dim);   color: var(--v-danger);   border-color: rgba(232, 86, 75, 0.30); }
+.v-badge-success { background: var(--v-success-dim);  color: var(--v-success);  border-color: rgba(95, 158, 99, 0.30); }
+.v-badge-warning { background: var(--v-warning-dim);  color: var(--v-warning);  border-color: rgba(217, 164, 65, 0.30); }
+.v-badge-info    { background: var(--v-info-dim);     color: var(--v-info);     border-color: rgba(111, 159, 196, 0.30); }
+
+/* Badges de domaine */
+.v-badge-pvp      { background: var(--v-pvp-dim);      color: var(--v-pvp);      border-color: rgba(232, 86, 75, 0.30); }
+.v-badge-crew     { background: var(--v-crew-dim);     color: var(--v-crew);     border-color: rgba(111, 159, 196, 0.30); }
+.v-badge-reward   { background: var(--v-reward-dim);   color: var(--v-reward);   border-color: rgba(217, 164, 65, 0.30); }
+.v-badge-infected { background: var(--v-infected-dim); color: var(--v-infected); border-color: rgba(138, 158, 91, 0.30); }
 
 /* Quantity badge (sur un item slot) */
 .v-qty {
@@ -313,7 +922,7 @@
   padding: 2px 6px;
   border-radius: var(--v-radius-xs);
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--v-track-meta);
 }
 
 /* ============================================================
@@ -331,15 +940,17 @@
 
 .v-tab {
   font-family: var(--v-font);
-  font-size: var(--v-size-sm);
+  font-size: var(--v-size-xs);
   font-weight: 500;
+  letter-spacing: var(--v-track-label);
+  text-transform: uppercase;
   color: var(--v-text-tertiary);
   background: transparent;
   border: none;
   padding: 8px 18px;
-  border-radius: var(--v-radius-sm);
+  border-radius: var(--v-radius-xs);
   cursor: pointer;
-  transition: all var(--v-duration) var(--v-ease);
+  transition: color var(--v-duration) var(--v-ease), background var(--v-duration) var(--v-ease);
   display: flex;
   align-items: center;
   gap: var(--v-space-2);
@@ -378,8 +989,8 @@
   align-items: center;
   gap: var(--v-space-2);
   cursor: pointer;
-  transition: all var(--v-duration) var(--v-ease);
-  letter-spacing: 0.06em;
+  transition: color var(--v-duration) var(--v-ease);
+  letter-spacing: var(--v-track-label);
   text-transform: uppercase;
   position: relative;
   text-decoration: none;
@@ -396,24 +1007,11 @@
   right: var(--v-space-5);
   height: 2px;
   background: var(--v-text);
-  border-radius: 1px;
+  border-radius: 0;
 }
 
 .v-nav-item svg { width: 14px; height: 14px; opacity: 0.7; }
 .v-nav-item.active svg { opacity: 1; }
-
-/* ============================================================
-   SECTION HEADER
-   ============================================================ */
-.v-section-header {
-  font-family: var(--v-font);
-  font-size: var(--v-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--v-text-secondary);
-  margin-bottom: var(--v-space-4);
-}
 
 /* ============================================================
    ITEM SLOTS (Inventory)
@@ -435,7 +1033,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--v-duration) var(--v-ease);
+  transition: background var(--v-duration) var(--v-ease),
+              border-color var(--v-duration) var(--v-ease);
   overflow: hidden;
 }
 
@@ -471,15 +1070,24 @@
   white-space: nowrap;
 }
 
-/* Rarity borders */
+/* Rareté — le liseré gauche porte le signal, la bordure reste neutre.
+   Lecture immédiate en grille, sans colorer toute l'interface. */
 .v-item-slot.rarity-common    { border-color: var(--v-rarity-common); }
 .v-item-slot.rarity-uncommon  { border-color: var(--v-rarity-uncommon); }
 .v-item-slot.rarity-rare      { border-color: var(--v-rarity-rare); }
 .v-item-slot.rarity-legendary { border-color: var(--v-rarity-legendary); }
 
-.v-item-slot.rarity-uncommon:hover  { box-shadow: 0 0 20px rgba(48, 209, 88, 0.08); }
-.v-item-slot.rarity-rare:hover      { box-shadow: 0 0 20px rgba(100, 210, 255, 0.08); }
-.v-item-slot.rarity-legendary:hover { box-shadow: 0 0 20px rgba(255, 214, 10, 0.08); }
+.v-item-slot.rarity-uncommon::before,
+.v-item-slot.rarity-rare::before,
+.v-item-slot.rarity-legendary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 2px;
+}
+.v-item-slot.rarity-uncommon::before  { background: var(--v-infected); }
+.v-item-slot.rarity-rare::before      { background: var(--v-crew); }
+.v-item-slot.rarity-legendary::before { background: var(--v-reward); }
 
 /* ============================================================
    HOTBAR
@@ -500,7 +1108,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: all var(--v-duration) var(--v-ease);
+  transition: border-color var(--v-duration) var(--v-ease);
 }
 
 .v-hotbar-slot:hover { border-color: var(--v-border-hover); }
@@ -523,18 +1131,20 @@
 
 /* ============================================================
    PROGRESS BARS
+   ------------------------------------------------------------
+   Barres fines, à angles vifs. Une jauge VANTA ne s'arrondit pas.
    ============================================================ */
 .v-progress {
-  height: 4px;
+  height: 3px;
   background: var(--v-separator-bold);
-  border-radius: var(--v-radius-full);
+  border-radius: 0;
   overflow: hidden;
   width: 100%;
 }
 
 .v-progress .bar {
   height: 100%;
-  border-radius: var(--v-radius-full);
+  border-radius: 0;
   transition: width 0.4s var(--v-ease);
 }
 
@@ -543,31 +1153,66 @@
 .v-progress .bar.xp      { background: var(--v-silver); }
 .v-progress .bar.danger  { background: var(--v-danger); }
 .v-progress .bar.success { background: var(--v-success); }
+.v-progress .bar.reward  { background: var(--v-reward); }
+.v-progress .bar.crew    { background: var(--v-crew); }
 
-.v-progress-lg { height: 6px; }
+.v-progress-lg { height: 5px; }
+
+/* Jauge graduée : repères 1px tous les 10% (signature discrète) */
+.v-progress-ticks {
+  position: relative;
+}
+.v-progress-ticks::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0, transparent calc(10% - 1px),
+    rgba(0, 0, 0, 0.55) calc(10% - 1px), rgba(0, 0, 0, 0.55) 10%);
+}
 
 /* ============================================================
    TOASTS / NOTIFICATIONS
+   ------------------------------------------------------------
+   Un seul modèle pour tout le serveur : liseré de domaine à
+   gauche, chevron discret, texte tracké. Flotte au-dessus du
+   rendu 3D → seule couche autorisée à porter une ombre.
    ============================================================ */
 .v-toast {
   display: flex;
   align-items: center;
   gap: var(--v-space-3);
-  background: var(--v-surface-2);
+  background: rgba(10, 10, 10, 0.94);
   border: 1px solid var(--v-border);
-  border-radius: var(--v-radius-md);
-  padding: var(--v-space-3) var(--v-space-5);
+  border-left: 2px solid var(--v-silver-dim);
+  border-radius: var(--v-radius-sm);
+  padding: var(--v-space-3) var(--v-space-4);
   font-family: var(--v-font);
-  font-size: var(--v-size-sm);
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  letter-spacing: var(--v-track-meta);
   color: var(--v-text);
   max-width: 360px;
-  animation: v-fadeIn 0.3s var(--v-ease);
+  box-shadow: var(--v-shadow-float);
+  animation: v-fadeIn var(--v-duration) var(--v-ease);
 }
 
-.v-toast-danger  { border-left: 3px solid var(--v-danger); }
-.v-toast-success { border-left: 3px solid var(--v-success); }
-.v-toast-warning { border-left: 3px solid var(--v-warning); }
-.v-toast-info    { border-left: 3px solid var(--v-info); }
+.v-toast::before {
+  content: '';
+  width: 9px;
+  height: 8px;
+  flex-shrink: 0;
+  background-color: transparent;   /* peint dans le bloc @supports */
+  opacity: 0.55;
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+}
+
+.v-toast-danger  { border-left-color: var(--v-danger);  color: var(--v-danger); }
+.v-toast-success { border-left-color: var(--v-success); color: var(--v-success); }
+.v-toast-warning { border-left-color: var(--v-warning); color: var(--v-warning); }
+.v-toast-info    { border-left-color: var(--v-info);    color: var(--v-info); }
 
 /* ============================================================
    MODAL
@@ -583,18 +1228,21 @@
 }
 
 .v-modal {
-  background: var(--v-surface);
+  position: relative;
+  background: var(--v-bg);
   border: 1px solid var(--v-border);
-  border-radius: var(--v-radius-xl);
+  border-radius: var(--v-radius-lg);
   padding: var(--v-space-8);
   max-width: 480px;
   width: 100%;
-  animation: v-scaleIn 0.25s var(--v-ease);
+  animation: v-fadeIn var(--v-duration) var(--v-ease);
 }
 
 .v-modal-title {
-  font-size: var(--v-size-lg);
+  font-size: var(--v-size-base);
   font-weight: 600;
+  letter-spacing: var(--v-track-title);
+  text-transform: uppercase;
   color: var(--v-text);
   margin-bottom: var(--v-space-2);
 }
@@ -616,24 +1264,24 @@
    TOOLTIP
    ============================================================ */
 .v-tooltip {
-  background: var(--v-surface-3);
+  background: rgba(10, 10, 10, 0.96);
   border: 1px solid var(--v-border-hover);
   border-radius: var(--v-radius-sm);
   padding: var(--v-space-2) var(--v-space-3);
   font-family: var(--v-font);
   font-size: var(--v-size-xs);
   color: var(--v-text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--v-shadow-float);
   max-width: 220px;
-  animation: v-fadeIn 0.15s var(--v-ease);
+  animation: v-fadeIn 0.12s var(--v-ease);
 }
 
-.v-tooltip .tt-title { font-weight: 600; margin-bottom: 2px; }
+.v-tooltip .tt-title { font-weight: 600; letter-spacing: var(--v-track-meta); margin-bottom: 2px; }
 .v-tooltip .tt-desc  { color: var(--v-text-secondary); line-height: 1.4; }
 .v-tooltip .tt-rarity {
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--v-track-label);
   text-transform: uppercase;
   margin-top: var(--v-space-1);
 }
@@ -642,13 +1290,13 @@
    TOGGLE
    ============================================================ */
 .v-toggle {
-  width: 44px;
-  height: 26px;
+  width: 40px;
+  height: 22px;
   background: var(--v-surface-3);
   border-radius: var(--v-radius-full);
   position: relative;
   cursor: pointer;
-  transition: background var(--v-duration) var(--v-ease);
+  transition: background var(--v-duration) var(--v-ease), border-color var(--v-duration) var(--v-ease);
   border: 1px solid var(--v-border);
 }
 
@@ -658,15 +1306,14 @@
 }
 
 .v-toggle .knob {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background: var(--v-text);
   border-radius: 50%;
   position: absolute;
   top: 2px;
   left: 2px;
-  transition: transform var(--v-duration) var(--v-spring);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--v-duration) var(--v-ease);
 }
 
 .v-toggle.on .knob { transform: translateX(18px); }
@@ -683,7 +1330,9 @@
 }
 
 .v-stat-row .stat-label {
-  font-size: var(--v-size-sm);
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  letter-spacing: var(--v-track-meta);
   color: var(--v-text-secondary);
 }
 
@@ -692,6 +1341,39 @@
   font-weight: 600;
   color: var(--v-text);
   font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   ÉTAT VIDE
+   ------------------------------------------------------------
+   Même traitement partout : chevron estompé + phrase courte.
+   ============================================================ */
+.v-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v-space-3);
+  padding: var(--v-space-10) var(--v-space-5);
+  text-align: center;
+}
+
+.v-empty::before {
+  content: '';
+  width: 26px;
+  height: 22px;
+  background-color: transparent;   /* peint dans le bloc @supports */
+  -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+          mask: var(--v-mark-svg) center / contain no-repeat;
+}
+
+.v-empty .v-empty-text {
+  font-family: var(--v-font);
+  font-size: var(--v-size-xs);
+  font-weight: 500;
+  letter-spacing: var(--v-track-meta);
+  color: var(--v-text-tertiary);
+  line-height: 1.6;
 }
 
 /* ============================================================
@@ -711,11 +1393,11 @@
 /* ============================================================
    SCROLLBAR
    ============================================================ */
-.v-scroll::-webkit-scrollbar { width: 4px; }
+.v-scroll::-webkit-scrollbar { width: 3px; }
 .v-scroll::-webkit-scrollbar-track { background: transparent; }
 .v-scroll::-webkit-scrollbar-thumb {
   background: var(--v-separator-bold);
-  border-radius: var(--v-radius-full);
+  border-radius: 0;
 }
 .v-scroll::-webkit-scrollbar-thumb:hover { background: var(--v-border-hover); }
 
@@ -749,9 +1431,9 @@
   align-items: center;
   gap: 6px;
   font-family: var(--v-font);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--v-track-label);
   text-transform: uppercase;
   padding: 4px 10px;
   border-radius: var(--v-radius-xs);
@@ -760,35 +1442,18 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-.v-rank-pill-gold    { color: #e8c860; background: rgba(232, 200, 96, 0.08);  border-color: rgba(232, 200, 96, 0.5);  }
-.v-rank-pill-diamond { color: #64d2ff; background: rgba(100, 210, 255, 0.08); border-color: rgba(100, 210, 255, 0.5); }
+.v-rank-pill-gold    { color: var(--v-reward); background: rgba(217, 164, 65, 0.08);  border-color: rgba(217, 164, 65, 0.5);  }
+.v-rank-pill-diamond { color: var(--v-crew);   background: rgba(111, 159, 196, 0.08); border-color: rgba(111, 159, 196, 0.5); }
 .v-rank-pill-p1      { color: #c8cdd4; background: rgba(200, 205, 212, 0.06); border-color: rgba(200, 205, 212, 0.4); }
-.v-rank-pill-p2      { color: #d4a017; background: rgba(212, 160, 23, 0.08);  border-color: rgba(212, 160, 23, 0.45); }
-.v-rank-pill-p3      { color: #22aacc; background: rgba(34, 170, 204, 0.08);  border-color: rgba(34, 170, 204, 0.5);  }
-.v-rank-pill-p4      { color: #cc22aa; background: rgba(204, 34, 170, 0.08);  border-color: rgba(204, 34, 170, 0.5);  }
-.v-rank-pill-p5      { color: #ff4400; background: rgba(255, 68, 0, 0.10);    border-color: rgba(255, 68, 0, 0.6);    }
+.v-rank-pill-p2      { color: #b8913a; background: rgba(184, 145, 58, 0.08);  border-color: rgba(184, 145, 58, 0.45); }
+.v-rank-pill-p3      { color: #5b93b8; background: rgba(91, 147, 184, 0.08);  border-color: rgba(91, 147, 184, 0.5);  }
+.v-rank-pill-p4      { color: #a45f96; background: rgba(164, 95, 150, 0.08);  border-color: rgba(164, 95, 150, 0.5);  }
+.v-rank-pill-p5      { color: #d4553a; background: rgba(212, 85, 58, 0.10);   border-color: rgba(212, 85, 58, 0.6);   }
 
 /* ============================================================
-   WATERMARK
+   UTILITAIRES
    ============================================================ */
-.v-watermark {
-  position: fixed;
-  top: var(--v-space-5);
-  left: var(--v-space-5);
-  display: flex;
-  align-items: center;
-  gap: var(--v-space-2);
-  opacity: 0.15;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.v-watermark svg { width: 24px; height: 24px; }
-
-.v-watermark span {
-  font-family: var(--v-font);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  color: var(--v-text);
-}
+.v-num      { font-variant-numeric: tabular-nums; }
+.v-upper    { text-transform: uppercase; letter-spacing: var(--v-track-label); }
+.v-display  { font-weight: 300; letter-spacing: var(--v-track-display); text-transform: uppercase; }
+.v-hidden   { display: none !important; }

@@ -2,22 +2,28 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
     <link rel="stylesheet" href="crew.css">
-    <title>PVP Squad</title>
+    <title>VANTA — Escouade</title>
 </head>
 <body>
     <div id="squad-overlay" class="hidden">
-        <div id="squad-container">
+        <div id="squad-container" class="v-brackets">
+            <i class="v-sweep v-sweep-crew"></i>
+            <i class="v-brackets-alt"></i>
+
             <div id="squad-header">
-                <h1 class="squad-title">ESCOUADE</h1>
-                <button id="btn-close">&times;</button>
+                <div class="squad-head-text">
+                    <div class="v-eyebrow">VANTA · CREW</div>
+                    <h1 class="squad-title">ESCOUADE</h1>
+                </div>
+                <button id="btn-close" aria-label="Fermer">&times;</button>
             </div>
 
-            <div id="squad-body">
+            <div id="squad-body" class="v-scroll">
                 <!-- Invitation reçue -->
                 <div id="squad-invite-banner" class="hidden">
+                    <div class="sq-invite-label">INVITATION REÇUE</div>
                     <p><span id="squad-invite-from"></span> vous invite dans son escouade</p>
                     <div class="squad-invite-btns">
                         <button id="btn-squad-accept" class="sq-btn-primary">ACCEPTER</button>
@@ -28,18 +34,20 @@
                 <!-- Pas de squad -->
                 <div id="no-squad">
                     <div class="empty-squad">
-                        <p class="sq-empty">Pas d'escouade active.<br>Invitez un joueur pour en créer une.</p>
+                        <div class="v-empty">
+                            <span class="v-empty-text">Pas d'escouade active.<br>Invitez un joueur pour en créer une.</span>
+                        </div>
                         <button id="btn-squad-invite" class="sq-btn-primary">INVITER UN JOUEUR</button>
                     </div>
                 </div>
 
                 <!-- Dans un squad -->
                 <div id="in-squad" class="hidden">
-                    <div class="squad-count-bar">
-                        <span>MEMBRES</span>
-                        <span id="squad-count">0/4</span>
+                    <div class="squad-count-bar v-title v-title-crew">
+                        <span class="v-title-text">MEMBRES</span>
+                        <span id="squad-count" class="v-title-value">0/4</span>
                     </div>
-                    <div id="squad-members-list" class="sq-member-list"></div>
+                    <div id="squad-members-list" class="sq-member-list v-scroll"></div>
                     <div class="squad-actions">
                         <button id="btn-squad-invite-more" class="sq-btn-action">INVITER</button>
                         <button id="btn-squad-leave" class="sq-btn-action sq-btn-danger">QUITTER</button>
@@ -48,8 +56,10 @@
 
                 <!-- Panel invite -->
                 <div id="squad-invite-panel" class="hidden">
-                    <h3 class="sq-h3">Joueurs en ligne</h3>
-                    <div id="squad-online-list" class="sq-member-list"></div>
+                    <div class="sq-h3 v-title">
+                        <span class="v-title-text">JOUEURS EN LIGNE</span>
+                    </div>
+                    <div id="squad-online-list" class="sq-member-list v-scroll"></div>
                     <button id="btn-squad-cancel-invite" class="sq-btn-action">RETOUR</button>
                 </div>
             </div>

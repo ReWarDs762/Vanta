@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VANTA XP</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>VANTA — Progression</title>
+    <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,10 +12,16 @@
     <div id="overlay" class="overlay hidden" onclick="closePanel()"></div>
 
     <!-- Panel principal -->
-    <div id="xpPanel" class="xp-panel hidden">
+    <div id="xpPanel" class="xp-panel hidden v-brackets">
+        <i class="v-sweep"></i>
+        <i class="v-brackets-alt"></i>
 
-        <!-- Section haute : Badge + Niveau -->
+        <!-- Section haute : identité + niveau -->
         <div class="section-top">
+            <div class="panel-eyebrow">
+                <span class="v-mark v-mark-sm v-mark-dim"></span>
+                <span>VANTA · PROGRESSION</span>
+            </div>
             <div id="prestigeBadge" class="prestige-badge"></div>
             <div id="levelDisplay" class="level-display">LVL 1</div>
             <div id="totalXP" class="total-xp">0 XP total</div>
@@ -25,20 +29,23 @@
 
         <!-- Section milieu : Barre XP -->
         <div class="section-mid">
+            <div class="xp-head">
+                <span class="xp-head-label">EXPÉRIENCE</span>
+                <span id="xpPercent" class="xp-percent">0%</span>
+            </div>
             <div class="xp-bar-container">
                 <div id="xpBar" class="xp-bar" style="width: 0%"></div>
-                <div id="xpPercent" class="xp-percent">0%</div>
             </div>
             <div class="xp-labels">
                 <span id="xpCurrent">0</span>
                 <span id="xpNext">/ 0 XP</span>
             </div>
             <button id="prestigeBtn" class="prestige-btn hidden" onclick="doPrestige()">
-                ✦ PASSER AU PRESTIGE ✦
+                PASSER AU PRESTIGE
             </button>
         </div>
 
-        <!-- Section bas : Capacités -->
+        <!-- Section bas : Capacités (blocs chiffres VANTA) -->
         <div class="section-bottom">
             <div class="capacity-block">
                 <div class="capacity-label">SAC</div>
@@ -50,8 +57,11 @@
             </div>
         </div>
 
-        <!-- Section prestiges : badges en ligne -->
+        <!-- Section prestiges : paliers en ligne -->
         <div class="section-prestiges">
+            <div class="prestiges-head v-title">
+                <span class="v-title-text">PRESTIGE</span>
+            </div>
             <div class="prestiges-row" id="prestigesRow"></div>
         </div>
 

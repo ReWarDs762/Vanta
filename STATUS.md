@@ -4,7 +4,7 @@ Ce fichier contient tout ce qui change souvent : avancement par resource, bugs a
 roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — bien plus vite que
 `CLAUDE.md`, qui ne décrit que l'architecture stable.
 
-**Dernière mise à jour :** 22 août 2026 (refonte `pvp_character` — apparence détaillée + fix sécurité `pvp_inventory`)
+**Dernière mise à jour :** 24 août 2026 (identité visuelle VANTA v2.1 « Monolithe » — voir `VANTA_BRAND.md`)
 
 ---
 
@@ -24,6 +24,69 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 
 Tout ce qui n'apparaît pas dans ce tableau est considéré stable — voir `CLAUDE.md` pour son
 architecture.
+
+---
+
+## Identité visuelle — refonte v2.1 « Monolithe » (24/08/2026), **non testée en jeu**
+
+Charte : `VANTA_BRAND.md` · Socle : `resources/[menu]/vanta_ui/html/vanta.css` (v2.1)
+Référence visuelle : `vanta_ui/html/index.html` (à ouvrir hors jeu).
+
+La base v2 (noir profond, argent, Inter, bordures 1px, plat/angulaire) a été **conservée**.
+Ce qui a changé : une marque unique, trois signatures partagées, une palette de 4 signaux,
+et la suppression des incohérences entre resources.
+
+### Ce qui a été corrigé
+| Problème trouvé | Correction |
+|---|---|
+| **3 marques concurrentes** : chevron `∨` (icône/bannières), triangle `∧` (topbar inventaire), crâne (chargement) | Une seule forme : le chevron V, partout |
+| **`pvp_crew` et `vanta_xp` jamais passés en v2** (Bebas Neue/Rajdhani, rouge `#e53935`, or dégradé, rayons 8-12px, glows) malgré ce qu'affirmait `CLAUDE.md` | Refonte complète sur v2.1 |
+| **5 rouges, 2 ors, 2 verts** en circulation | 4 signaux de domaine, sémantique UI mappée dessus |
+| **`#8b2020`** (HUD + admin) échouait le contraste WCAG à **2.19:1** | `--v-pvp` `#e8564b`, 5.53:1 — les 8 couleurs passent AA sur les 4 fonds |
+| **`vanta.css` contredisait sa propre charte** : `--v-radius-lg: 14px` / `-xl: 20px` alors que `CLAUDE.md` documente « max 4px » | Échelle angulaire 2/2/3/4px |
+| **Ombres portées** sur des surfaces posées, alors que la charte les interdit | Bordures 1px seules ; `--v-shadow-float` réservé aux couches flottantes |
+| 3 déclarations de texte à **7px** (illisible en jeu) | Plancher de charte à 9px |
+| 3 fichiers morts en DA v1 pouvant réintroduire l'ancien style | Bandeau d'avertissement en tête (voir ci-dessous) |
+
+### Resources modifiées
+- **Refonte complète** : `pvp_crew`, `vanta_xp`, `pvp_outposts` (téléportation)
+- **Socle** : `vanta_ui` (v2.1 + assets `brand/`) — **0 classe et 0 token v2 perdus**
+- **Signatures appliquées** : `pvp_hud`, `pvp_inventory` (topbar, titres, toasts),
+  `pvp_killfeed`, `pvp_character`, `vanta_loading`
+- **Token-isation** (alias vers `--v-*`, aucune valeur en dur) : `pvp_admin`, `pvp_garage`,
+  `pvp_outposts` (boutique + custom armes)
+- **Assets** : `generate_logos.js` réécrit (Playwright au lieu de `sharp`, **absent du
+  projet** — l'ancien script ne pouvait pas s'exécuter) ; les 3 PNG régénérés
+
+### Fichiers morts identifiés (chargés par rien — vérifié)
+- `pvp_hud/html/index_classic.html` — aucun `ui_page`, aucun import
+- `pvp_inventory/html/style_glass.css` — aucun import
+- `pvp_garage/html/dealer.css` — listé dans `fxmanifest` mais **jamais importé** :
+  le CSS du concessionnaire est inliné dans `pvp_garage/html/index.html`
+
+Les trois portent désormais un bandeau « FICHIER MORT ». À supprimer si confirmé.
+
+### Vérifications faites (hors jeu, Chromium/Playwright)
+- ✅ Contraste WCAG AA des 8 couleurs de texte sur les 4 fonds VANTA
+- ✅ Aucun débordement horizontal en 720p / 900p / 1080p / 1440p / 4K sur 6 écrans
+- ✅ Aucun texte sous 8px · syntaxe JS de toutes les NUI · équilibre des accolades CSS
+- ✅ Rétro-compatibilité : aucune classe `.v-*` ni token `--v-*` de la v2 supprimé
+- ✅ Captures avant/après des 9 écrans principaux
+
+### ⚠️ Reste à valider **en jeu**
+Rien de ce qui précède n'a été vu dans FiveM. À vérifier en priorité :
+- [ ] Les masques CSS (`-webkit-mask`) du chevron s'affichent bien dans le CEF FiveM
+      (utilisés dans HUD, killfeed, toasts, états vides, boutons). Risque faible
+      (`-webkit-mask` existe dans Chromium depuis 2008), et les usages **partagés** de
+      `vanta.css` sont protégés par un `@supports` : sans support du masque le chevron
+      disparaît proprement au lieu d'afficher un rectangle plein. Les usages locaux aux
+      resources (en-têtes de crew/téléport, HUD, killfeed) n'ont pas ce garde-fou —
+      c'est là qu'il faut regarder en premier
+- [ ] `vanta_loading` : réactiver `ensure vanta_loading` dans `server.cfg` pour voir
+      le nouveau logo (la resource est désactivée depuis avant cette refonte)
+- [ ] Lisibilité réelle du HUD et du killfeed par-dessus le jeu en plein jour
+- [ ] Performances : aucun coût attendu (pas d'asset ajouté, pas de blur, animations
+      en opacité/transform), mais à confirmer manette en main
 
 ---
 

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="VANTA">
+  <title>VANTA — chevron encadré</title>
+  <rect width="96" height="96" fill="#000000"/>
+  <rect x="4" y="4" width="88" height="88" fill="none" stroke="#c8cdd4" stroke-width="1.6" opacity="0.5"/>
+  <path d="M16 20 L48 74 L80 20" fill="none" stroke="#c8cdd4" stroke-width="5.5"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

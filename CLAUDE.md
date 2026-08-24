@@ -1,6 +1,7 @@
 # VANTA — Serveur FiveM Zombie Survival PVP
 
 > **Statut actuel du projet** (bugs connus, roadmap, resources testées en jeu) : voir `STATUS.md`.
+> **Charte d'identité visuelle** (DA, signatures, palette, typo) : voir `VANTA_BRAND.md`.
 
 ## Infos Projet
 - **Nom** : VANTA
@@ -21,7 +22,8 @@ resources/
 ├── [base]        — Resources FiveM de base (mapmanager, spawnmanager, chat, etc.)
 ├── [essential]   — ESX core (es_extended, mysql-async, essentialmode, esx_addonaccount)
 └── [menu]        — Resources custom PVP :
-    ├── vanta_ui       — Design system partagé v2 (CSS tokens, variables --v-*, font Inter)
+    ├── vanta_ui       — Design system partagé v2.1 « Monolithe » (tokens --v-*, signatures
+    │                     de marque, assets brand/, font Inter) — voir VANTA_BRAND.md
     ├── vanta_loading  — Écran de chargement
     ├── vanta_xp       — XP, niveaux 1-100, prestige 0-5 — source unique de progression
     ├── pvp_character  — Création de personnage (pseudo + genre), remplace esx_identity
@@ -47,42 +49,99 @@ resources/
 
 ---
 
-## Identité Visuelle — VANTA Design System v2
+## Identité Visuelle — VANTA Design System v2.1 « Monolithe »
+
+> **Charte complète** : [`VANTA_BRAND.md`](VANTA_BRAND.md) — positionnement, signatures,
+> palette, typographie, règles d'écriture d'une nouvelle NUI, fichiers morts à ignorer.
+> **Référence visuelle** : `resources/[menu]/vanta_ui/html/index.html` (ouvrir hors jeu).
+> Ce qui suit n'est qu'un résumé opérationnel.
 
 ### Direction artistique
 - **Esthétique** : Dark premium, minimaliste, angular — Apple Monochrome × Tactical Premium
 - **PAS de** : grunge, rouille, poussière, neon, glassmorphism, rounded pills, RGB gaming
 - **Mots-clés** : Flat. Angular. Monochrome. Black on black. Military precision.
 
+### Les 3 signatures VANTA
+Ce qui rend une capture d'écran reconnaissable sans lire le nom du serveur :
+
+1. **Le chevron V** (`.v-mark`, token `--v-mark-svg`) — marque **unique** du serveur :
+   icône, bannières, chargement, filigranes, en-têtes de panneau, puce des toasts,
+   connecteur du killfeed (couché à 90°), icône des états vides.
+2. **Les équerres** (`.v-brackets` + `.v-brackets-alt`) — quatre équerres 1px aux angles
+   des surfaces majeures.
+3. **Le titre à filet** (`.v-title` / `.v-eyebrow`) — surtitre + barre 2px + titre tracké
+   + filet jusqu'au bord + valeur à droite. **Tous** les titres de section du serveur.
+
+Détails de support : trame hairline (`.v-grid-bg`), filet de déploiement (`.v-sweep`),
+bloc chiffre (`.v-figure`, Inter Light tabulaire).
+
 ### Design system partagé — `vanta_ui`
 Toutes les resources importent la feuille de style via :
 ```html
 <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css">
 ```
-**Toutes les resources sont sur v2.** Ne jamais utiliser les anciennes variables v1 (`--bg-primary`, `--accent-silver`, etc.).
+**Toutes les resources en jeu sont sur v2.1.** Une resource ne redéclare jamais une
+couleur, un rayon ou un interlettrage : elle crée au besoin des **alias** vers les
+tokens `--v-*` (voir `pvp_inventory/html/style.css`, `pvp_admin`, `pvp_garage`,
+`pvp_outposts/html/shop.css`).
 
-### Palette de couleurs (variables v2)
+⚠️ **Exception documentée** : `vanta_loading` est un `loadscreen`, il démarre **avant**
+les autres resources — `nui://vanta_ui/` n'y est pas résoluble. Sa feuille contient une
+copie locale du bloc de tokens, signalée en commentaire, **à resynchroniser** si la
+charte évolue.
+
+⚠️ **Fichiers morts** (chargés par rien, restés en DA v1, bandeau d'avertissement en
+tête) : `pvp_hud/html/index_classic.html`, `pvp_inventory/html/style_glass.css`,
+`pvp_garage/html/dealer.css`. Ne pas s'en inspirer.
+
+### Palette — les 4 signaux
 Valeurs complètes : [resources/[menu]/vanta_ui/html/vanta.css](resources/[menu]/vanta_ui/html/vanta.css).
-Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `bg`,
-`surface`/`surface-2`/`surface-3`, `elevated`), Borders (`separator`, `separator-bold`,
-`border`, `border-hover`), Text (`text`, `text-secondary`, `text-tertiary`,
-`text-disabled`), Brand (`silver`, `silver-dim`, `silver-glow`), Semantic (`danger`,
-`success`, `warning`, `info`, chacune avec une variante `-dim`), Rarités (`common`,
-`uncommon`, `rare`, `legendary`, chacune avec une variante `-solid`).
+
+La base reste monochrome. **Une couleur = un système de jeu** :
+
+| Signal | Token | Valeur | Porte |
+|---|---|---|---|
+| PVP | `--v-pvp` | `#e8564b` | Redzone, mort, danger, admin |
+| Infecté | `--v-infected` | `#8a9e5b` | Zombies, rareté « peu commun » |
+| Crew | `--v-crew` | `#6f9fc4` | Escouade, info, rareté « rare », Diamond |
+| Récompense | `--v-reward` | `#d9a441` | Loot, légendaire, VCoins, prestige, Gold |
+
+La sémantique UI est **mappée dessus** : `--v-danger` = `--v-pvp`, `--v-info` = `--v-crew`,
+`--v-warning` = `--v-reward`. Les raretés d'objets suivent les mêmes signaux.
+Les 8 couleurs de texte passent WCAG AA sur les 4 fonds VANTA.
+
+Autres catégories de variables `--v-*` : Backgrounds (`black`, `bg`, `surface`/`-2`/`-3`,
+`elevated`), Borders (`separator`, `separator-bold`, `border`, `border-hover`,
+`border-active`), Text (`text`, `text-secondary`, `text-tertiary`, `text-disabled`),
+Brand (`silver`, `silver-2`, `silver-dim`, `silver-glow`), Rarités.
 
 ### Typographie
-- **Font** : `Inter` (Google Fonts) — toutes les UIs
-- **Titres** : weight 600, letter-spacing 0.08em, uppercase
-- **Labels** : weight 500, 11-12px
-- **Metadata** : weight 400, color `--v-text-secondary`
+- **Font** : `Inter` **uniquement** (importée par `vanta.css`, graisses 200→700).
+  Bebas Neue et Rajdhani ont été retirées de toutes les resources en jeu.
+- La hiérarchie se joue au **tracking et à la graisse**, pas au changement de police :
+  - Display (VANTA) : 200-500, `--v-track-display` (0.30em)
+  - Titres : 600, `--v-track-title` (0.14em), uppercase
+  - Labels : 500-600, 9-11px, `--v-track-label` (0.10em)
+  - Chiffres : **300**, `tabular-nums` obligatoire
+  - Metadata : 400, `--v-track-meta` (0.04em)
+- **Plancher de lisibilité en jeu : 9px.** Pas de texte plus petit.
 
 ### Règles de forme
-- Border-radius : MAX 4px — esthétique plate et angulaire
+- Border-radius : **MAX 4px** — l'échelle `--v-radius-*` est angulaire (2/2/3/4px) ;
+  `--v-radius-full` est réservé aux toggles et pastilles rondes.
 - Pas de gradients sur les fonds
-- Pas de drop shadows (bordures uniquement)
-- Bordures 1px, variables `--v-border` / `--v-border-hover`
-- Animations CSS only : fadeSlideIn (translateY 6px, opacity), transitions 0.15s ease
+- **Pas de drop shadows sur une surface posée** (bordures 1px uniquement). Seule
+  exception : `--v-shadow-float`, pour les couches qui flottent au-dessus du rendu 3D
+  (toasts, tooltips) — sinon elles se perdent sur un fond clair.
+- Animations CSS only : opacité + translation courte, 0.15-0.18s, `--v-ease`.
+  Seul mouvement signé : `v-sweep` (filet supérieur qui se déploie, 0.32s).
 - Pas de bounce, scale, glow pulses
+
+### Assets de marque
+`vanta_ui/html/brand/` : `mark.svg`, `mark-boxed.svg`, `lockup.svg`.
+Racine : `server_icon.png` (96×96), `banner_detail.png` (900×200),
+`banner_connecting.png` (1280×720) — régénérables avec **`node generate_logos.js`**
+(rendu Playwright, aucune dépendance à installer).
 
 ---
 

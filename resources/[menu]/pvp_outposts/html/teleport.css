@@ -1,26 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&display=swap');
+/* ═══════════════════════════════════════════════════════════════
+   VANTA — TÉLÉPORTATION AVANT-POSTES (pvp_outposts)
+   Design System : vanta.css v2.1 (nui://vanta_ui/html/vanta.css)
+   ═══════════════════════════════════════════════════════════════ */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     background: transparent;
     overflow: hidden;
-    font-family: 'Rajdhani', sans-serif;
+    user-select: none;
+    font-family: var(--v-font);
+    color: var(--v-text-secondary);
+    -webkit-font-smoothing: antialiased;
 }
 
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
 /* ── Overlay ─────────────────────────────────── */
 #teleport-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(5, 5, 8, 0.92);
+    background: rgba(0, 0, 0, 0.82);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -29,47 +29,81 @@ body {
 
 /* ── Container ───────────────────────────────── */
 .teleport-container {
+    position: relative;
     width: 850px;
     max-height: 90vh;
-    background: rgba(18, 18, 22, 0.97);
-    border: 1px solid rgba(200, 50, 50, 0.3);
-    border-radius: 6px;
+    background: var(--v-bg);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
 }
 
-/* ── Header ──────────────────────────────────── */
+/* ── Header : surtitre + titre à filet ───────── */
 .teleport-header {
-    text-align: center;
-    padding: 18px 20px 12px;
-    border-bottom: 1px solid rgba(200, 50, 50, 0.2);
-    background: rgba(200, 50, 50, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 22px 13px;
+    border-bottom: 1px solid var(--v-separator);
+    background: var(--v-surface);
+    text-align: left;
 }
 
+/* Le chevron VANTA remplace l'émoji ⚡ */
 .header-icon {
-    font-size: 28px;
-    margin-bottom: 4px;
+    width: 15px;
+    height: 13px;
+    flex-shrink: 0;
+    font-size: 0;
+    color: transparent;
+    background-color: var(--v-silver);
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
 }
 
 .teleport-header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    color: #e8e5dc;
-    letter-spacing: 6px;
+    font-family: var(--v-font);
+    font-size: var(--v-size-sm);
+    font-weight: 600;
+    letter-spacing: var(--v-track-title);
+    text-transform: uppercase;
+    color: var(--v-text);
+    line-height: 1;
     margin: 0;
 }
 
+/* Le filet court jusqu'au sous-titre — signature « titre à filet » */
+.teleport-header h1::after {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    width: 0;
+}
+
 .header-sub {
-    font-size: 13px;
-    color: #8a8680;
-    letter-spacing: 2px;
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
+    color: var(--v-text-tertiary);
+    position: relative;
+    padding-left: 16px;
+}
+.header-sub::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 8px; height: 1px;
+    background: var(--v-separator-bold);
 }
 
 /* ── Map ─────────────────────────────────────── */
 .map-wrapper {
-    padding: 15px;
+    padding: 16px;
     flex: 1;
 }
 
@@ -77,122 +111,117 @@ body {
     position: relative;
     width: 100%;
     height: 450px;
-    background: rgba(10, 12, 10, 0.95);
-    border: 1px solid rgba(100, 100, 80, 0.2);
-    border-radius: 4px;
+    background: var(--v-black);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-sm);
     overflow: hidden;
 }
 
-/* Grid lines */
+/* Trame hairline VANTA (même pas et même opacité partout) */
 .map-grid {
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(rgba(80, 80, 60, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(80, 80, 60, 0.08) 1px, transparent 1px);
-    background-size: 40px 40px;
+        linear-gradient(var(--v-grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--v-grid-color) 1px, transparent 1px);
+    background-size: var(--v-grid-pitch) var(--v-grid-pitch);
     pointer-events: none;
 }
 
-/* Zone labels on map */
+/* Toponymes de la carte */
 .zone-label {
     position: absolute;
-    color: rgba(180, 170, 150, 0.15);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 4px;
+    font-family: var(--v-font);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-title);
     text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.10);
     pointer-events: none;
     transform: translate(-50%, -50%);
     user-select: none;
+    white-space: nowrap;
 }
 
 .zone-label.zone-small {
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: rgba(180, 170, 150, 0.1);
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.06);
 }
 
-/* ── Outpost Pins ────────────────────────────── */
+/* ── Repères d'avant-poste ───────────────────── */
 .outpost-pin {
     position: absolute;
     transform: translate(-50%, -50%);
     cursor: pointer;
     z-index: 10;
-    transition: transform 0.15s ease;
+    transition: transform var(--v-duration) var(--v-ease);
 }
 
-.outpost-pin:hover {
-    transform: translate(-50%, -50%) scale(1.2);
-    z-index: 20;
-}
+.outpost-pin:hover  { z-index: 20; }
+.outpost-pin.selected { z-index: 30; }
 
-.outpost-pin.selected {
-    transform: translate(-50%, -50%) scale(1.3);
-    z-index: 30;
-}
-
+/* Repère angulaire : carré 1px + noyau plein. Pas de halo lumineux. */
 .pin-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #30d158;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 8px rgba(48, 209, 88, 0.6), 0 0 20px rgba(48, 209, 88, 0.25);
     position: relative;
+    width: 10px;
+    height: 10px;
+    border-radius: 0;
+    background: transparent;
+    border: 1px solid var(--v-silver-dim);
+    transition: border-color var(--v-duration) var(--v-ease);
+}
+.pin-dot::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: var(--v-silver-dim);
+    transition: background var(--v-duration) var(--v-ease);
 }
 
-.outpost-pin.current .pin-dot {
-    background: #4a90d9;
-    box-shadow: 0 0 8px rgba(74, 144, 217, 0.5), 0 0 20px rgba(74, 144, 217, 0.2);
-}
+.outpost-pin:hover .pin-dot         { border-color: var(--v-silver); }
+.outpost-pin:hover .pin-dot::before { background: var(--v-silver); }
 
+/* Position actuelle : signal crew (acier) */
+.outpost-pin.current .pin-dot         { border-color: var(--v-crew); }
+.outpost-pin.current .pin-dot::before { background: var(--v-crew); }
+
+/* Sélection : cadre argenté plein + équerres implicites */
 .outpost-pin.selected .pin-dot {
-    background: #e8c840;
-    border-color: #fff;
-    box-shadow: 0 0 12px rgba(232, 200, 64, 0.6), 0 0 30px rgba(232, 200, 64, 0.3);
+    border-color: var(--v-text);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.6);
 }
+.outpost-pin.selected .pin-dot::before { background: var(--v-text); }
 
-/* Pulse animation for current */
+/* Cible autour du repère actuel — expansion carrée, discrète */
 .outpost-pin.current .pin-dot::after {
     content: '';
     position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 1px solid rgba(74, 144, 217, 0.4);
-    animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.5); opacity: 0; }
+    inset: -5px;
+    border: 1px solid var(--v-crew);
+    opacity: 0.35;
 }
 
 .pin-label {
     position: absolute;
-    top: -24px;
+    top: -22px;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
-    font-size: 11px;
+    font-family: var(--v-font);
+    font-size: 9px;
     font-weight: 600;
-    color: #d0cdc4;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5);
-    letter-spacing: 0.5px;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    color: var(--v-text-secondary);
     pointer-events: none;
+    transition: color var(--v-duration) var(--v-ease);
 }
 
-.outpost-pin.selected .pin-label {
-    color: #e8c840;
-    font-size: 12px;
-    font-weight: 700;
-}
+.outpost-pin:hover .pin-label   { color: var(--v-text); }
+.outpost-pin.selected .pin-label { color: var(--v-text); }
+.outpost-pin.current .pin-label  { color: var(--v-crew); }
 
-.outpost-pin.current .pin-label {
-    color: #4a90d9;
-}
-
-/* ── Connection lines ────────────────────────── */
+/* ── Lignes de liaison ───────────────────────── */
 .map-connections {
     position: absolute;
     inset: 0;
@@ -200,19 +229,20 @@ body {
     z-index: 1;
 }
 
-/* ── Info Panel ──────────────────────────────── */
+/* ── Panneau d'information ───────────────────── */
 .info-panel {
-    padding: 12px 20px;
-    min-height: 55px;
-    border-top: 1px solid rgba(100, 100, 80, 0.15);
+    padding: 12px 22px;
+    min-height: 56px;
+    border-top: 1px solid var(--v-separator);
     display: flex;
     align-items: center;
 }
 
 .info-empty {
-    color: #6a655e;
-    font-size: 14px;
-    font-style: italic;
+    font-size: var(--v-size-xs);
+    font-weight: 500;
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text-tertiary);
     width: 100%;
     text-align: center;
 }
@@ -220,88 +250,114 @@ body {
 .info-content {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 14px;
     width: 100%;
 }
 
+/* Nom de l'avant-poste : barre argentée + tracking (titre à filet) */
 .info-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    color: #e8c840;
-    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--v-font);
+    font-size: var(--v-size-sm);
+    font-weight: 600;
+    letter-spacing: var(--v-track-title);
+    text-transform: uppercase;
+    color: var(--v-text);
+    line-height: 1;
+}
+.info-name::before {
+    content: '';
+    width: 2px;
+    height: 12px;
+    background: var(--v-silver);
+    flex-shrink: 0;
 }
 
 .info-type {
-    font-size: 13px;
-    color: #a8a49a;
-    padding: 3px 10px;
-    background: rgba(200, 50, 50, 0.15);
-    border: 1px solid rgba(200, 50, 50, 0.2);
-    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    color: var(--v-text-secondary);
+    padding: 4px 9px;
+    background: var(--v-surface-2);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-xs);
+    line-height: 1;
 }
 
 .info-services {
-    font-size: 12px;
-    color: #8a8680;
+    font-size: 9px;
+    color: var(--v-text-tertiary);
     margin-left: auto;
     display: flex;
-    gap: 8px;
+    gap: 5px;
 }
 
 .info-services span {
-    padding: 2px 6px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 2px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--v-separator);
+    border-radius: var(--v-radius-xs);
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    line-height: 1;
 }
 
 /* ── Footer ──────────────────────────────────── */
 .teleport-footer {
     display: flex;
-    gap: 10px;
-    padding: 12px 20px 16px;
-    border-top: 1px solid rgba(100, 100, 80, 0.15);
-    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px 16px;
+    border-top: 1px solid var(--v-separator);
+    justify-content: flex-end;
 }
 
 .btn-teleport,
 .btn-close {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 3px;
-    border: none;
-    border-radius: 4px;
+    font-family: var(--v-font);
+    font-size: var(--v-size-xs);
+    font-weight: 600;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    border-radius: var(--v-radius-sm);
     cursor: pointer;
-    padding: 10px 40px;
-    transition: all 0.15s ease;
+    padding: 10px 26px;
+    line-height: 1;
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease),
+                color var(--v-duration) var(--v-ease);
 }
 
 .btn-teleport {
-    background: rgba(200, 50, 50, 0.8);
-    color: #e8e5dc;
-    border: 1px solid rgba(200, 50, 50, 0.5);
+    background: var(--v-text);
+    color: var(--v-black);
+    border: 1px solid var(--v-text);
 }
-
 .btn-teleport:hover:not(:disabled) {
-    background: rgba(200, 50, 50, 1);
-    box-shadow: 0 0 15px rgba(200, 50, 50, 0.3);
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.85);
 }
+.btn-teleport:active:not(:disabled) { transform: translateY(1px); }
 
 .btn-teleport:disabled {
-    background: rgba(60, 60, 60, 0.5);
-    color: #555;
-    border-color: rgba(60, 60, 60, 0.3);
+    background: var(--v-surface);
+    color: var(--v-text-disabled);
+    border-color: var(--v-separator);
     cursor: not-allowed;
 }
 
 .btn-close {
-    background: rgba(60, 60, 55, 0.6);
-    color: #a8a49a;
-    border: 1px solid rgba(100, 100, 80, 0.2);
+    background: var(--v-surface-2);
+    color: var(--v-text-secondary);
+    border: 1px solid var(--v-border);
 }
-
 .btn-close:hover {
-    background: rgba(80, 80, 70, 0.7);
-    color: #d0cdc4;
+    background: var(--v-surface-3);
+    border-color: var(--v-border-hover);
+    color: var(--v-text);
 }
+.btn-close:active { transform: translateY(1px); }

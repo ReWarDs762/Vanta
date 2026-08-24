@@ -1,21 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   VANTA XP — Styles NUI
-   Theme : Dark / Gold / Militaire / Premium
-   Police : Rajdhani
+   VANTA XP — Progression
+   Design System : vanta.css v2.1 (nui://vanta_ui/html/vanta.css)
+   Signal de domaine : --v-reward (laiton) pour le prestige
    ═══════════════════════════════════════════════════════════════════════════ */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-    font-family: 'Rajdhani', sans-serif;
+    font-family: var(--v-font);
     background: transparent;
-    color: #e0e0e0;
+    color: var(--v-text-secondary);
     overflow: hidden;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
 .hidden { display: none !important; }
@@ -24,7 +21,7 @@ body {
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.66);
     z-index: 999;
 }
 
@@ -34,392 +31,389 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 420px;
-    background: linear-gradient(145deg, #0d0d0d 0%, #1a1a1a 50%, #111111 100%);
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 28px 24px 20px;
+    width: 400px;
+    background: var(--v-bg);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg);
+    padding: 22px 22px 18px;
     z-index: 1000;
-    box-shadow:
-        0 0 40px rgba(0, 0, 0, 0.8),
-        0 0 15px rgba(201, 168, 76, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    animation: panelSlideIn 0.3s ease-out;
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
+    /* trame hairline — matière du noir VANTA */
+    background-image:
+      linear-gradient(var(--v-grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--v-grid-color) 1px, transparent 1px);
+    background-size: var(--v-grid-pitch) var(--v-grid-pitch);
+    --v-bracket-color: rgba(200, 205, 212, 0.26);
+    --v-sweep-color: var(--v-reward);
 }
 
-@keyframes panelSlideIn {
-    from { opacity: 0; transform: translate(-50%, -48%); }
+/* Le panneau est translaté : l'animation d'entrée doit préserver la position */
+@keyframes xpPanelIn {
+    from { opacity: 0; transform: translate(-50%, calc(-50% + 5px)); }
     to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+.xp-panel { animation: xpPanelIn var(--v-duration) var(--v-ease); }
+
+/* ── Surtitre de marque ──────────────────────────────────────────────── */
+.panel-eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+    margin-bottom: 16px;
+    line-height: 1;
 }
 
 /* ── Section haute : badge + niveau ──────────────────────────────────── */
 .section-top {
     text-align: center;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
 }
 
-.prestige-badge {
-    margin-bottom: 8px;
-    min-height: 28px;
-}
+.prestige-badge { margin-bottom: 12px; min-height: 20px; }
 
-.level-display {
-    font-size: 48px;
+.badge-prestige {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--v-font);
+    font-size: 9px;
     font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 3px;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: var(--v-radius-xs);
     line-height: 1;
+    border: 1px solid currentColor;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Paliers de prestige — même échelle que .v-rank-pill du design system */
+.badge-prestige.p0 { color: var(--v-text-tertiary); background: rgba(255,255,255,0.02); border-color: var(--v-border); }
+.badge-prestige.p1 { color: #c8cdd4; background: rgba(200, 205, 212, 0.06); border-color: rgba(200, 205, 212, 0.40); }
+.badge-prestige.p2 { color: #b8913a; background: rgba(184, 145, 58, 0.08);  border-color: rgba(184, 145, 58, 0.45); }
+.badge-prestige.p3 { color: #5b93b8; background: rgba(91, 147, 184, 0.08);  border-color: rgba(91, 147, 184, 0.50); }
+.badge-prestige.p4 { color: #a45f96; background: rgba(164, 95, 150, 0.08);  border-color: rgba(164, 95, 150, 0.50); }
+.badge-prestige.p5 { color: #d4553a; background: rgba(212, 85, 58, 0.10);   border-color: rgba(212, 85, 58, 0.60); }
+
+/* Le niveau : bloc chiffre VANTA (Inter Light, tabulaire, tracké) */
+.level-display {
+    font-size: 40px;
+    font-weight: 200;
+    letter-spacing: 0.10em;
+    color: var(--v-text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 7px;
 }
 
 .total-xp {
-    font-size: 13px;
-    color: #666;
-    letter-spacing: 1px;
-    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Section milieu : barre XP ───────────────────────────────────────── */
-.section-mid {
-    margin-bottom: 22px;
+.section-mid { margin-bottom: 20px; }
+
+.xp-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 7px;
 }
 
+.xp-head-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    color: var(--v-text-tertiary);
+}
+
+.xp-percent {
+    font-size: var(--v-size-xs);
+    font-weight: 600;
+    color: var(--v-text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--v-track-meta);
+}
+
+/* Jauge : fine, à angles vifs, graduée tous les 10 % */
 .xp-bar-container {
     position: relative;
     width: 100%;
-    height: 22px;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 4px;
+    height: 4px;
+    background: var(--v-separator-bold);
+    border-radius: 0;
     overflow: hidden;
 }
 
 .xp-bar {
     height: 100%;
-    background: linear-gradient(90deg, #8a6d2b 0%, #c9a84c 50%, #e8c96a 100%);
-    border-radius: 3px;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 8px rgba(201, 168, 76, 0.3);
+    background: var(--v-silver);
+    border-radius: 0;
+    transition: width 0.4s var(--v-ease);
 }
 
-.xp-percent {
+.xp-bar-container::after {
+    content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 12px;
-    font-weight: 600;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(90deg,
+      transparent 0, transparent calc(10% - 1px),
+      rgba(0, 0, 0, 0.60) calc(10% - 1px), rgba(0, 0, 0, 0.60) 10%);
 }
 
 .xp-labels {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
-    padding: 0 2px;
+    margin-top: 7px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text-tertiary);
+    font-variant-numeric: tabular-nums;
 }
 
-/* ── Bouton Prestige ─────────────────────────────────────────────────── */
+/* Bouton prestige — action majeure, plein, sans effet lumineux */
 .prestige-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     margin-top: 14px;
-    padding: 12px 0;
-    background: linear-gradient(135deg, #8a6d2b, #c9a84c, #e8c96a);
-    color: #0d0d0d;
-    border: none;
-    border-radius: 6px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    cursor: pointer;
+    padding: 10px 18px;
+    font-family: var(--v-font);
+    font-size: var(--v-size-xs);
+    font-weight: 600;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
-    animation: btnPulse 2s ease-in-out infinite;
-    transition: transform 0.15s ease;
+    color: var(--v-black);
+    background: var(--v-reward);
+    border: 1px solid var(--v-reward);
+    border-radius: var(--v-radius-sm);
+    cursor: pointer;
+    line-height: 1;
+    transition: background var(--v-duration) var(--v-ease),
+                border-color var(--v-duration) var(--v-ease);
 }
-
-.prestige-btn:hover {
-    transform: scale(1.02);
+.prestige-btn::before {
+    content: '';
+    width: 10px; height: 9px;
+    background-color: currentColor;
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
 }
+.prestige-btn:hover { background: #e6b558; border-color: #e6b558; }
+.prestige-btn:active { transform: translateY(1px); }
 
-@keyframes btnPulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(201, 168, 76, 0.3); }
-    50%      { box-shadow: 0 0 25px rgba(201, 168, 76, 0.6), 0 0 50px rgba(201, 168, 76, 0.15); }
-}
-
-/* ── Section bas : capacités ─────────────────────────────────────────── */
+/* ── Section bas : capacités (blocs chiffres) ────────────────────────── */
 .section-bottom {
     display: flex;
-    gap: 12px;
+    gap: 1px;
+    background: var(--v-separator);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-sm);
+    overflow: hidden;
     margin-bottom: 18px;
 }
 
 .capacity-block {
     flex: 1;
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 12px;
+    background: var(--v-surface);
+    padding: 12px 14px;
     text-align: center;
 }
 
 .capacity-label {
-    font-size: 11px;
-    color: #666;
-    letter-spacing: 2px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
-    margin-bottom: 4px;
+    color: var(--v-text-tertiary);
+    margin-bottom: 5px;
+    line-height: 1;
 }
 
 .capacity-value {
-    font-size: 26px;
-    font-weight: 700;
-    color: #c9a84c;
-    letter-spacing: 1px;
+    font-size: var(--v-size-xl);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: var(--v-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
-/* ── Section prestiges : badges en ligne ─────────────────────────────── */
-.section-prestiges {
-    border-top: 1px solid #222;
-    padding-top: 14px;
-}
+/* ── Section prestiges : paliers ─────────────────────────────────────── */
+.section-prestiges { padding-top: 2px; }
+
+.prestiges-head { margin-bottom: 10px; }
+.prestiges-head::before { background: var(--v-reward); }
 
 .prestiges-row {
     display: flex;
-    justify-content: center;
-    gap: 10px;
+    gap: 4px;
 }
 
 .prestige-slot {
-    width: 56px;
-    height: 56px;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    position: relative;
-    transition: all 0.3s ease;
+    height: 30px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-xs);
+    transition: border-color var(--v-duration) var(--v-ease),
+                background var(--v-duration) var(--v-ease);
 }
 
 .prestige-slot.locked {
-    opacity: 0.3;
-}
-
-.prestige-slot.locked::after {
-    content: '\01F512';
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    font-size: 10px;
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--v-separator);
 }
 
 .prestige-slot.active {
-    animation: slotPulse 2s ease-in-out infinite;
+    background: var(--v-surface-2);
+    border-color: var(--v-border-active);
 }
 
-@keyframes slotPulse {
-    0%, 100% { box-shadow: 0 0 5px rgba(201, 168, 76, 0.2); }
-    50%      { box-shadow: 0 0 15px rgba(201, 168, 76, 0.5); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   BADGES PRESTIGE — Styles individuels
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.badge-prestige {
-    display: inline-block;
-    padding: 4px 14px;
-    border-radius: 4px;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-
-/* P0 — Recruit */
-.badge-prestige.p0 {
-    color: #666666;
-    border: 1px solid #333;
-}
-
-/* P1 — Argent */
-.badge-prestige.p1 {
-    color: #c0c0c0;
-    border: 1px solid #c0c0c0;
-}
-
-/* P2 — Gold VANTA */
-.badge-prestige.p2 {
-    color: #c9a84c;
-    border: 1px solid #c9a84c;
-}
-
-/* P3 — Gold clair + text-shadow */
-.badge-prestige.p3 {
-    color: #e8c96a;
-    border: 1px solid #e8c96a;
-    text-shadow: 0 0 8px rgba(232, 201, 106, 0.5);
-}
-
-/* P4 — Orange brûlé + glow */
-.badge-prestige.p4 {
-    color: #ff6b35;
-    border: 1px solid #ff6b35;
-    box-shadow: 0 0 10px rgba(255, 107, 53, 0.3), 0 0 20px rgba(255, 107, 53, 0.1);
-}
-
-/* P5 — VANTA Premium — gradient + animation pulsante */
-.badge-prestige.p5 {
-    background: linear-gradient(135deg, #c9a84c, #ffffff, #c9a84c);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    border: 1px solid #c9a84c;
-    text-shadow: none;
-    animation: p5Border 2s ease-in-out infinite;
-    position: relative;
-}
-
-@keyframes p5Border {
-    0%, 100% {
-        border-color: #c9a84c;
-        box-shadow: 0 0 10px rgba(201, 168, 76, 0.3);
-    }
-    50% {
-        border-color: #ffffff;
-        box-shadow: 0 0 20px rgba(201, 168, 76, 0.6), 0 0 40px rgba(255, 255, 255, 0.1);
-    }
-}
-
-/* Mini badges pour la row prestige */
 .mini-badge {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 1px;
+    font-family: var(--v-font);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: var(--v-track-label);
+    line-height: 1;
+    color: var(--v-text-secondary);
 }
+.mini-badge.p1 { color: #c8cdd4; }
+.mini-badge.p2 { color: #b8913a; }
+.mini-badge.p3 { color: #5b93b8; }
+.mini-badge.p4 { color: #a45f96; }
+.mini-badge.p5 { color: #d4553a; }
+.prestige-slot.locked .mini-badge { color: var(--v-text-disabled) !important; }
 
-.mini-badge.p1 { color: #c0c0c0; }
-.mini-badge.p2 { color: #c9a84c; }
-.mini-badge.p3 { color: #e8c96a; text-shadow: 0 0 5px rgba(232, 201, 106, 0.4); }
-.mini-badge.p4 { color: #ff6b35; text-shadow: 0 0 5px rgba(255, 107, 53, 0.3); }
-.mini-badge.p5 {
-    background: linear-gradient(135deg, #c9a84c, #fff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   NOTIFICATIONS / TOASTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* ═══════════════════════════════════════════════════════════════════════
+   TOASTS — modèle unique VANTA : liseré + chevron + texte tracké
+   ═══════════════════════════════════════════════════════════════════════ */
 .toast-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
+    top: 84px;
+    right: 24px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    z-index: 1200;
     pointer-events: none;
+    align-items: flex-end;
 }
 
-/* Toast Level Up */
-.toast {
-    background: #1a1a1a;
-    border: 1px solid #c9a84c;
-    border-radius: 6px;
-    padding: 10px 18px;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    color: #e0e0e0;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-    animation: toastSlideIn 0.3s ease-out, toastSlideOut 0.3s ease-in forwards;
-    animation-delay: 0s, 2.7s;
-    min-width: 220px;
-}
-
-.toast .toast-icon {
-    color: #c9a84c;
-    margin-right: 6px;
-}
-
-@keyframes toastSlideIn {
-    from { opacity: 0; transform: translateX(60px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes toastSlideOut {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(60px); }
-}
-
-/* Toast XP discret */
+.toast,
 .toast-xp {
-    background: rgba(26, 26, 26, 0.85);
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 6px 14px;
-    font-family: 'Rajdhani', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 13px;
+    background: rgba(10, 10, 10, 0.94);
+    border: 1px solid var(--v-border);
+    border-left: 2px solid var(--v-silver-dim);
+    border-radius: var(--v-radius-sm);
+    font-family: var(--v-font);
+    font-size: var(--v-size-xs);
     font-weight: 500;
-    font-size: 13px;
-    color: #c9a84c;
-    letter-spacing: 1px;
-    animation: toastSlideIn 0.2s ease-out, toastSlideOut 0.2s ease-in forwards;
-    animation-delay: 0s, 1.8s;
+    letter-spacing: var(--v-track-label);
+    text-transform: uppercase;
+    color: var(--v-text);
+    box-shadow: var(--v-shadow-float);
+    animation: v-fadeIn var(--v-duration) var(--v-ease);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
-/* ── Notification Prestige (centré) ──────────────────────────────────── */
+/* Level up : liseré argenté, chevron plein */
+.toast { border-left-color: var(--v-silver); }
+.toast strong { font-weight: 700; color: var(--v-text); }
+
+.toast-icon {
+    display: inline-block;
+    width: 10px; height: 9px;
+    background-color: var(--v-silver);
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
+    /* le glyphe textuel est masqué : la forme vient du chevron */
+    font-size: 0;
+    color: transparent;
+    flex-shrink: 0;
+}
+
+/* Gain d'XP : plus discret */
+.toast-xp {
+    border-left-color: var(--v-silver-dim);
+    color: var(--v-text-secondary);
+    font-weight: 600;
+}
+
+/* ── Notification de prestige (centrée) ──────────────────────────────── */
 .prestige-notif {
     position: fixed;
-    top: 50%;
+    top: 22%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10000;
-    background: #0d0d0d;
-    border: 2px solid #c9a84c;
-    border-radius: 12px;
-    padding: 30px 50px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 40px;
+    background: rgba(10, 10, 10, 0.94);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg);
+    z-index: 1300;
+    pointer-events: none;
+    animation: v-fadeIn var(--v-duration-slow) var(--v-ease);
     text-align: center;
-    font-family: 'Rajdhani', sans-serif;
-    animation: prestigeIn 0.5s ease-out, p5Border 2s ease-in-out infinite 0.5s, prestigeOut 0.5s ease-in forwards 4.5s;
-    box-shadow: 0 0 60px rgba(201, 168, 76, 0.3), 0 0 120px rgba(0, 0, 0, 0.8);
 }
+/* Filets haut/bas : cadrage typographique du moment fort */
+.prestige-notif::before,
+.prestige-notif::after {
+    content: '';
+    position: absolute;
+    left: 22px; right: 22px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--v-reward), transparent);
+    opacity: 0.55;
+}
+.prestige-notif::before { top: 0; }
+.prestige-notif::after  { bottom: 0; }
 
-.prestige-notif .notif-title {
-    font-size: 14px;
-    color: #c9a84c;
-    letter-spacing: 4px;
+.notif-title {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
-    margin-bottom: 8px;
+    color: var(--v-reward);
 }
 
-.prestige-notif .notif-level {
-    font-size: 36px;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 3px;
+.notif-level {
+    font-size: var(--v-size-2xl);
+    font-weight: 300;
+    letter-spacing: var(--v-track-display);
+    text-transform: uppercase;
+    color: var(--v-text);
+    line-height: 1;
+    /* compenser le blanc de tracking final */
+    margin-right: calc(var(--v-track-display) * -1);
 }
 
-.prestige-notif .notif-badge {
-    margin-top: 12px;
-}
-
-@keyframes prestigeIn {
-    from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-@keyframes prestigeOut {
-    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    to   { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
-}
+.notif-badge { margin-top: 2px; }

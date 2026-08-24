@@ -2,17 +2,19 @@
    PVP ADMIN — VANTA v2 Design System
    ═══════════════════════════════════════════════ */
 
+/* Alias vers les tokens VANTA v2.1 (vanta.css). L'admin porte le
+   signal --v-pvp : c'est l'outil qui agit sur les joueurs. */
 :root {
-  --bg:        #0a0a0a;
-  --card:      #111111;
-  --border:    #242424;
-  --accent:    #8b2020;
-  --accent2:   #c8cdd4;
-  --green:     #1a6b3a;
-  --orange:    #8b5a1a;
-  --text:      #c8cdd4;
-  --text-dim:  #5a5f66;
-  --fh:        'Inter', sans-serif;
+  --bg:        var(--v-bg);
+  --card:      var(--v-surface);
+  --border:    var(--v-border);
+  --accent:    var(--v-pvp);
+  --accent2:   var(--v-silver);
+  --green:     var(--v-success);
+  --orange:    var(--v-reward);
+  --text:      var(--v-text-secondary);
+  --text-dim:  var(--v-text-tertiary);
+  --fh:        var(--v-font);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,8 +55,8 @@ body { font-family: var(--fh); color: var(--text); overflow: hidden; }
 .header-badge {
   font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
   padding: 2px 8px; border-radius: 2px;
-  background: rgba(139,32,32,0.12); color: #8b2020;
-  border: 1px solid rgba(139,32,32,0.25);
+  background: rgba(232, 86, 75,0.12); color: var(--v-pvp);
+  border: 1px solid rgba(232, 86, 75,0.25);
   text-transform: uppercase;
 }
 .player-count-badge {
@@ -126,20 +128,20 @@ body { font-family: var(--fh); color: var(--text); overflow: hidden; }
   overflow: hidden; text-overflow: ellipsis; cursor: pointer;
   color: var(--text);
 }
-.p-name:hover { color: #f0f2f4; }
+.p-name:hover { color: var(--v-text); }
 .p-group {
   font-size: 9px; padding: 2px 6px;
   letter-spacing: 0.08em; background: transparent; color: var(--text-dim);
   border: 1px solid var(--border); text-transform: uppercase;
 }
-.p-group.admin { color: #8b2020; border-color: rgba(139,32,32,0.3); }
-.p-group.mod { color: #8b5a1a; border-color: rgba(139,90,26,0.3); }
+.p-group.admin { color: var(--v-pvp); border-color: rgba(232, 86, 75,0.3); }
+.p-group.mod { color: var(--v-reward); border-color: rgba(217, 164, 65,0.3); }
 .p-ping { width: 40px; text-align: right; font-size: 10px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .p-hp {
   width: 40px; height: 2px;
   background: #1e1e1e; overflow: hidden;
 }
-.p-hp-fill { height: 100%; background: #1a6b3a; transition: width 0.3s; }
+.p-hp-fill { height: 100%; background: var(--v-success); transition: width 0.3s; }
 .p-actions { display: flex; gap: 3px; flex-wrap: wrap; }
 .p-btn {
   padding: 3px 7px; font-size: 9px; letter-spacing: 0.06em;
@@ -148,10 +150,10 @@ body { font-family: var(--fh); color: var(--text); overflow: hidden; }
   transition: all 0.1s; text-transform: uppercase; font-family: var(--fh); font-weight: 500;
 }
 .p-btn:hover { background: #181818; color: var(--text); border-color: #3a3a3a; }
-.p-btn.danger { border-color: rgba(139,32,32,0.3); }
-.p-btn.danger:hover { background: rgba(139,32,32,0.12); color: #8b2020; border-color: #8b2020; }
-.p-btn.warn { border-color: rgba(139,90,26,0.3); }
-.p-btn.warn:hover { background: rgba(139,90,26,0.12); color: #8b5a1a; border-color: #8b5a1a; }
+.p-btn.danger { border-color: rgba(232, 86, 75,0.3); }
+.p-btn.danger:hover { background: rgba(232, 86, 75,0.12); color: var(--v-pvp); border-color: var(--v-pvp); }
+.p-btn.warn { border-color: rgba(217, 164, 65,0.3); }
+.p-btn.warn:hover { background: rgba(217, 164, 65,0.12); color: var(--v-reward); border-color: var(--v-reward); }
 .empty { color: var(--text-dim); font-size: 11px; text-align: center; padding: 20px; letter-spacing: 0.06em; }
 
 /* ═══ Cards ═══ */
@@ -174,12 +176,12 @@ body { font-family: var(--fh); color: var(--text); overflow: hidden; }
   transition: all 0.1s; text-transform: uppercase; font-family: var(--fh);
 }
 .btn-action:hover { background: #181818; border-color: #3a3a3a; }
-.btn-green { border-color: rgba(26,107,58,0.4); color: #1a6b3a; }
-.btn-green:hover { background: rgba(26,107,58,0.12); border-color: #1a6b3a; }
-.btn-red { border-color: rgba(139,32,32,0.4); color: #8b2020; }
-.btn-red:hover { background: rgba(139,32,32,0.12); border-color: #8b2020; }
-.btn-orange { border-color: rgba(139,90,26,0.4); color: #8b5a1a; }
-.btn-orange:hover { background: rgba(139,90,26,0.12); border-color: #8b5a1a; }
+.btn-green { border-color: rgba(95, 158, 99,0.4); color: var(--v-success); }
+.btn-green:hover { background: rgba(95, 158, 99,0.12); border-color: var(--v-success); }
+.btn-red { border-color: rgba(232, 86, 75,0.4); color: var(--v-pvp); }
+.btn-red:hover { background: rgba(232, 86, 75,0.12); border-color: var(--v-pvp); }
+.btn-orange { border-color: rgba(217, 164, 65,0.4); color: var(--v-reward); }
+.btn-orange:hover { background: rgba(217, 164, 65,0.12); border-color: var(--v-reward); }
 .btn-sm {
   padding: 4px 10px; font-size: 10px; background: transparent;
   border: 1px solid var(--border); color: var(--text-dim);
@@ -209,7 +211,7 @@ body { font-family: var(--fh); color: var(--text); overflow: hidden; }
   transition: all 0.12s; min-width: 50px; font-family: var(--fh);
   text-transform: uppercase;
 }
-.btn-toggle.on { background: rgba(26,107,58,0.12); border-color: #1a6b3a; color: #1a6b3a; }
+.btn-toggle.on { background: rgba(95, 158, 99,0.12); border-color: var(--v-success); color: var(--v-success); }
 
 /* ═══ Inputs ═══ */
 input[type="text"], input[type="number"] {
@@ -234,11 +236,11 @@ select:focus { border-color: #3a3a3a; }
 /* ═══ Redzones list ═══ */
 .rz-list { width: 100%; display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
 .rz-item {
-  padding: 6px 10px; font-size: 11px; background: rgba(139,32,32,0.05);
-  border: 1px solid rgba(139,32,32,0.15);
+  padding: 6px 10px; font-size: 11px; background: rgba(232, 86, 75,0.05);
+  border: 1px solid rgba(232, 86, 75,0.15);
   color: var(--text-dim);
 }
-.rz-item strong { color: #8b2020; }
+.rz-item strong { color: var(--v-pvp); }
 
 /* ═══ Range Slider ═══ */
 input[type="range"] {
@@ -267,8 +269,8 @@ input[type="range"]::-webkit-slider-thumb {
   animation: toastIn 0.15s ease-out, toastOut 0.25s ease-in 2.75s forwards;
   max-width: 320px; border: 1px solid var(--border); background: #111111;
 }
-.toast.success { border-left: 2px solid #1a6b3a; }
-.toast.error   { border-left: 2px solid #8b2020; }
+.toast.success { border-left: 2px solid var(--v-success); }
+.toast.error   { border-left: 2px solid var(--v-pvp); }
 @keyframes toastIn {
   from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -337,26 +339,26 @@ input[type="range"]::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 .log-action.a-kick, .log-action.a-ban, .log-action.a-slay, .log-action.a-clearinv {
-  color: #8b2020; background: rgba(139,32,32,0.1);
+  color: var(--v-pvp); background: rgba(232, 86, 75,0.1);
 }
 .log-action.a-heal, .log-action.a-revive, .log-action.a-give, .log-action.a-givemoney, .log-action.a-givexp {
-  color: #1a6b3a; background: rgba(26,107,58,0.1);
+  color: var(--v-success); background: rgba(95, 158, 99,0.1);
 }
 .log-action.a-noclip, .log-action.a-god, .log-action.a-spawncar, .log-action.a-deletecar, .log-action.a-tpwp {
-  color: #c8cdd4; background: rgba(200,205,212,0.07);
+  color: var(--v-silver); background: rgba(200,205,212,0.07);
 }
 .log-action.a-goto, .log-action.a-bring, .log-action.a-spectate, .log-action.a-freeze, .log-action.a-tpc {
-  color: #8b5a1a; background: rgba(139,90,26,0.1);
+  color: var(--v-reward); background: rgba(217, 164, 65,0.1);
 }
 .log-action.a-announce, .log-action.a-forcedrop, .log-action.a-rzrotate, .log-action.a-setweather,
 .log-action.a-settime, .log-action.a-killzombies, .log-action.a-spawnzombies, .log-action.a-unban {
-  color: #5a5f66; background: rgba(90,95,102,0.12);
+  color: var(--v-text-tertiary); background: rgba(90,95,102,0.12);
 }
 .log-action.a-admin_remove_inv, .log-action.a-admin_remove_stash, .log-action.a-admin_remove_outpost {
-  color: #8b2020; background: rgba(139,32,32,0.1);
+  color: var(--v-pvp); background: rgba(232, 86, 75,0.1);
 }
 .log-action.a-admin_add_inv, .log-action.a-admin_add_stash, .log-action.a-admin_add_outpost {
-  color: #1a6b3a; background: rgba(26,107,58,0.1);
+  color: var(--v-success); background: rgba(95, 158, 99,0.1);
 }
 .log-detail { flex: 1; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
 
@@ -420,8 +422,8 @@ input[type="range"]::-webkit-slider-thumb {
   transition: all 0.1s; font-family: var(--fh);
 }
 .storage-item-actions button:hover { color: var(--text); background: #181818; border-color: #3a3a3a; }
-.storage-item-actions button.remove { border-color: rgba(139,32,32,0.3); }
-.storage-item-actions button.remove:hover { background: rgba(139,32,32,0.12); color: #8b2020; border-color: #8b2020; }
+.storage-item-actions button.remove { border-color: rgba(232, 86, 75,0.3); }
+.storage-item-actions button.remove:hover { background: rgba(232, 86, 75,0.12); color: var(--v-pvp); border-color: var(--v-pvp); }
 
 .storage-add-row {
   display: flex; gap: 6px; align-items: center; flex: 1;

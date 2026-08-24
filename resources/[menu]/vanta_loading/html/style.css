@@ -6,6 +6,12 @@
     box-sizing: border-box;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Tokens VANTA v2.1 — COPIE LOCALE VOLONTAIRE.
+   Un loadscreen se charge avant toutes les autres resources :
+   nui://vanta_ui/html/vanta.css n'est pas encore résoluble.
+   → à resynchroniser si la charte évolue (vanta_ui/html/vanta.css).
+   ───────────────────────────────────────────────────────────── */
 :root {
     --v-black:        #000000;
     --v-bg:           #0a0a0a;
@@ -20,8 +26,18 @@
     --v-text-tertiary:  rgba(255, 255, 255, 0.28);
     --v-silver:       #c8cdd4;
     --v-silver-dim:   rgba(200, 205, 212, 0.40);
-    --v-danger:       #ff453a;
-    --v-success:      #30d158;
+    --v-pvp:          #e8564b;
+    --v-crew:         #6f9fc4;
+    --v-reward:       #d9a441;
+    --v-infected:     #8a9e5b;
+    --v-danger:       var(--v-pvp);
+    --v-success:      #5f9e63;
+    --v-track-display: 0.30em;
+    --v-track-title:   0.14em;
+    --v-track-label:   0.10em;
+    --v-grid-color:   rgba(255, 255, 255, 0.022);
+    --v-grid-pitch:   32px;
+    --v-bracket-color: rgba(200, 205, 212, 0.30);
 }
 
 html, body {
@@ -113,15 +129,20 @@ html, body {
 }
 
 .logo-mark svg {
-    width: 24px;
-    height: 24px;
-    fill: var(--v-silver);
+    width: 26px;
+    height: 22px;
+    display: block;
+}
+.logo-mark svg path {
+    stroke: var(--v-silver);
 }
 
 .logo-name {
     font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 0.24em;
+    font-weight: 500;
+    letter-spacing: var(--v-track-display);
+    /* compense le blanc de tracking final pour recentrer optiquement */
+    margin-right: calc(var(--v-track-display) * -1);
     text-transform: uppercase;
     color: var(--v-text);
 }
@@ -129,7 +150,7 @@ html, body {
 .logo-sub {
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.20em;
+    letter-spacing: var(--v-track-label);
     text-transform: uppercase;
     color: var(--v-text-tertiary);
 }
@@ -244,15 +265,15 @@ html, body {
 /* ── Coin decoratifs ── */
 .corner {
     position: fixed;
-    width: 16px;
-    height: 16px;
+    width: var(--v-bracket-size, 16px);
+    height: var(--v-bracket-size, 16px);
     z-index: 20;
 }
 .corner::before,
 .corner::after {
     content: '';
     position: absolute;
-    background: var(--v-border-hover);
+    background: var(--v-bracket-color);
 }
 .corner::before { width: 100%; height: 1px; top: 0; left: 0; }
 .corner::after  { width: 1px; height: 100%; top: 0; left: 0; }

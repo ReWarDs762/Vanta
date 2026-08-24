@@ -1,20 +1,22 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Les variables locales sont des ALIAS vers les tokens VANTA v2.1
+   (vanta.css). Aucune valeur en dur : la charte reste la seule source. */
 :root {
-  --accent   : #c8cdd4;
-  --accent-h : #f0f2f4;
-  --green    : #1a6b3a;
-  --green-h  : #145530;
-  --text     : #c8cdd4;
-  --text-dim : #5a5f66;
-  --muted    : #3a3a3a;
-  --border   : #242424;
-  --border2  : #1a1a1a;
-  --card-bg  : #111111;
-  --card-hov : #181818;
-  --surface  : #0a0a0a;
-  --fh : 'Inter', sans-serif;
-  --fb : 'Inter', sans-serif;
+  --accent   : var(--v-silver);
+  --accent-h : var(--v-text);
+  --green    : var(--v-success);
+  --green-h  : #4d8451;
+  --text     : var(--v-text-secondary);
+  --text-dim : var(--v-text-tertiary);
+  --muted    : var(--v-text-disabled);
+  --border   : var(--v-border);
+  --border2  : var(--v-separator);
+  --card-bg  : var(--v-surface);
+  --card-hov : var(--v-surface-2);
+  --surface  : var(--v-bg);
+  --fh : var(--v-font);
+  --fb : var(--v-font);
 }
 
 body {
@@ -192,8 +194,8 @@ body {
   transition: color .12s;
   line-height: 1;
 }
-.card-star:hover { color: #c8cdd4; }
-.card-star.on { color: #c8cdd4; }
+.card-star:hover { color: var(--v-silver); }
+.card-star.on { color: var(--v-silver); }
 
 .card-img {
   width: 64px; height: 64px;
@@ -234,7 +236,7 @@ body {
 .card-sell-price {
   font-weight: 700;
   font-size: 13px;
-  color: #1a6b3a;
+  color: var(--v-success);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
@@ -265,12 +267,12 @@ body {
   border-color: var(--text);
   color: var(--text);
 }
-.card-btn.sell-btn { border-color: rgba(26,107,58,0.4); color: #1a6b3a; }
-.card-btn.sell-btn:hover { background: rgba(26,107,58,0.1); border-color: #1a6b3a; }
+.card-btn.sell-btn { border-color: rgba(95, 158, 99,0.4); color: var(--v-success); }
+.card-btn.sell-btn:hover { background: rgba(95, 158, 99,0.1); border-color: var(--v-success); }
 .card-btn.sell-btn.selected-btn {
-  background: rgba(26,107,58,0.1);
-  border: 1px solid #1a6b3a;
-  color: #1a6b3a;
+  background: rgba(95, 158, 99,0.1);
+  border: 1px solid var(--v-success);
+  color: var(--v-success);
 }
 
 .card-sell-selected {
@@ -419,7 +421,7 @@ body {
   transition: color .12s;
   line-height: 1;
 }
-.cart-rm:hover { color: #8b2020; }
+.cart-rm:hover { color: var(--v-pvp); }
 
 #buy-footer {
   display: flex;
@@ -492,7 +494,7 @@ body {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #1a6b3a;
+  color: var(--v-success);
   font-variant-numeric: tabular-nums;
 }
 #sell-ratio-note {
@@ -515,15 +517,15 @@ body {
 }
 
 #sell-all-row span:last-child {
-  color: #1a6b3a !important;
+  color: var(--v-success) !important;
 }
 
 .btn-sell-all {
   width: 100%;
   padding: 11px;
   background: transparent;
-  border: 1px solid rgba(26,107,58,0.4);
-  color: #1a6b3a;
+  border: 1px solid rgba(95, 158, 99,0.4);
+  color: var(--v-success);
   font-family: var(--fb);
   font-size: 11px;
   font-weight: 700;
@@ -533,8 +535,8 @@ body {
   text-transform: uppercase;
 }
 .btn-sell-all:hover:not(:disabled) {
-  background: rgba(26,107,58,0.1);
-  border-color: #1a6b3a;
+  background: rgba(95, 158, 99,0.1);
+  border-color: var(--v-success);
 }
 .btn-sell-all:disabled { opacity: 0.3; cursor: default; }
 
@@ -579,8 +581,8 @@ body {
   width: 100%;
   padding: 11px;
   background: transparent;
-  border: 1px solid rgba(26,107,58,0.5);
-  color: #1a6b3a;
+  border: 1px solid rgba(95, 158, 99,0.5);
+  color: var(--v-success);
   font-family: var(--fb);
   font-size: 11px;
   font-weight: 700;
@@ -589,7 +591,7 @@ body {
   transition: background .12s;
   text-transform: uppercase;
 }
-.btn-green:hover:not(:disabled) { background: rgba(26,107,58,0.1); border-color: #1a6b3a; }
+.btn-green:hover:not(:disabled) { background: rgba(95, 158, 99,0.1); border-color: var(--v-success); }
 .btn-green:disabled { opacity: 0.3; cursor: default; }
 
 .btn-secondary {
@@ -630,8 +632,8 @@ body {
   z-index: 9999;
 }
 #shop-toast.show { opacity: 1; }
-#shop-toast.ok   { border-left: 2px solid #1a6b3a; color: #1a6b3a; }
-#shop-toast.fail { border-left: 2px solid #8b2020; color: #8b2020; }
+#shop-toast.ok   { border-left: 2px solid var(--v-success); color: var(--v-success); }
+#shop-toast.fail { border-left: 2px solid var(--v-pvp); color: var(--v-pvp); }
 
 /* ══ SCROLLBAR ══ */
 ::-webkit-scrollbar { width: 3px; }
@@ -657,7 +659,7 @@ body {
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 11px;
-  color: #c8cdd4;
+  color: var(--v-silver);
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -703,7 +705,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 700;
-    color: #c8cdd4;
+    color: var(--v-silver);
     letter-spacing: 0.2em;
     margin: 0;
     text-transform: uppercase;
@@ -711,7 +713,7 @@ body {
 
 .header-sub {
     font-size: 10px;
-    color: #5a5f66;
+    color: var(--v-text-tertiary);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin-top: 4px;
@@ -792,17 +794,17 @@ body {
     width: 10px;
     height: 10px;
     background: #3a3a3a;
-    border: 1px solid #5a5f66;
+    border: 1px solid var(--v-text-tertiary);
     position: relative;
 }
 
 .outpost-pin.current .pin-dot {
-    background: #c8cdd4;
-    border-color: #f0f2f4;
+    background: var(--v-silver);
+    border-color: var(--v-text);
 }
 
 .outpost-pin.selected .pin-dot {
-    background: #f0f2f4;
+    background: var(--v-text);
     border-color: #ffffff;
 }
 
@@ -827,14 +829,14 @@ body {
     white-space: nowrap;
     font-size: 10px;
     font-weight: 600;
-    color: #5a5f66;
+    color: var(--v-text-tertiary);
     letter-spacing: 0.06em;
     pointer-events: none;
     text-transform: uppercase;
 }
 
-.outpost-pin.selected .pin-label { color: #c8cdd4; font-size: 10px; font-weight: 700; }
-.outpost-pin.current .pin-label { color: #c8cdd4; }
+.outpost-pin.selected .pin-label { color: var(--v-silver); font-size: 10px; font-weight: 700; }
+.outpost-pin.current .pin-label { color: var(--v-silver); }
 
 .info-panel {
     padding: 10px 20px;
@@ -864,14 +866,14 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #c8cdd4;
+    color: var(--v-silver);
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
 .info-type {
     font-size: 10px;
-    color: #5a5f66;
+    color: var(--v-text-tertiary);
     padding: 2px 8px;
     background: #111111;
     border: 1px solid #242424;
@@ -881,7 +883,7 @@ body {
 
 .info-services {
     font-size: 10px;
-    color: #5a5f66;
+    color: var(--v-text-tertiary);
     margin-left: auto;
     display: flex;
     gap: 6px;
@@ -917,13 +919,13 @@ body {
 
 .btn-teleport {
     background: transparent;
-    color: #c8cdd4;
+    color: var(--v-silver);
     border-color: #3a3a3a;
 }
 
 .btn-teleport:hover:not(:disabled) {
     background: #111111;
-    border-color: #c8cdd4;
+    border-color: var(--v-silver);
 }
 
 .btn-teleport:disabled {
@@ -935,13 +937,13 @@ body {
 
 .btn-close {
     background: transparent;
-    color: #5a5f66;
+    color: var(--v-text-tertiary);
     border-color: #242424;
 }
 
 .btn-close:hover {
     background: #111111;
-    color: #c8cdd4;
+    color: var(--v-silver);
     border-color: #3a3a3a;
 }
 
@@ -1009,7 +1011,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    color: #c8cdd4;
+    color: var(--v-silver);
     letter-spacing: 0.02em;
     white-space: nowrap;
 }

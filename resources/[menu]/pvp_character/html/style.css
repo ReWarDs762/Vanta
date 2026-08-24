@@ -6,8 +6,8 @@
 
 body {
     background: transparent;
-    font-family: 'Inter', sans-serif;
-    color: #ffffff;
+    font-family: var(--v-font);
+    color: var(--v-text);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
@@ -47,21 +47,30 @@ body {
     pointer-events: none;
 }
 
+/* Filigrane de scène — verrou de marque VANTA (chevron + mot).
+   Même construction que la topbar de l'inventaire et l'écran de
+   chargement : une seule façon d'écrire VANTA sur tout le serveur. */
 #stage-brand {
     position: absolute;
     bottom: 38px;
     left: 44px;
     z-index: 2;
-    opacity: 0.15;
+    opacity: 0.18;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
 }
+
+#stage-brand .v-mark { color: var(--v-text); }
 
 #stage-brand-word {
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.32em;
-    color: #ffffff;
+    letter-spacing: var(--v-track-display);
+    color: var(--v-text);
     text-transform: uppercase;
+    margin-right: calc(var(--v-track-display) * -1);
 }
 
 #view-ctl {
@@ -80,7 +89,7 @@ body {
     align-items: center;
     gap: 8px;
     background: rgba(10, 10, 10, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--v-border);
     padding: 6px 10px;
     border-radius: 2px;
 }
@@ -89,7 +98,7 @@ body {
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.55);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--v-font);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -98,10 +107,10 @@ body {
     transition: color 0.15s ease;
 }
 
-.view-btn:hover { color: #ffffff; }
+.view-btn:hover { color: var(--v-text); }
 
 .view-cam-btn.active {
-    color: #c8cdd4;
+    color: var(--v-silver);
 }
 
 .view-label {
@@ -112,7 +121,7 @@ body {
 
 .view-random {
     background: rgba(10, 10, 10, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--v-border);
     border-radius: 2px;
 }
 
@@ -131,35 +140,73 @@ body {
 
 /* ── Header ──────────────────────────────────────────────────────────── */
 #header {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 32px 32px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--v-separator);
+}
+/* Filet argenté qui se déploie à l'ouverture — signature VANTA */
+#header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--v-silver) 0%, var(--v-silver-dim) 45%, transparent 100%);
+    transform-origin: left center;
+    animation: v-sweep var(--v-duration-slow) var(--v-ease-in-out);
+    opacity: 0.7;
 }
 
+/* Surtitre de marque : chevron + VANTA */
 .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    color: #c8cdd4;
+    font-weight: 600;
+    letter-spacing: var(--v-track-display);
+    color: var(--v-silver);
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+.brand::before {
+    content: '';
+    width: 12px; height: 10px;
+    flex-shrink: 0;
+    background-color: var(--v-silver);
+    -webkit-mask: var(--v-mark-svg) center / contain no-repeat;
+            mask: var(--v-mark-svg) center / contain no-repeat;
 }
 
+/* Titre à filet : barre argentée + tracking de titre */
 .title {
-    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: var(--v-size-base);
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--v-track-title);
     text-transform: uppercase;
-    color: #ffffff;
+    color: var(--v-text);
+    line-height: 1.2;
+}
+.title::before {
+    content: '';
+    width: 2px;
+    align-self: stretch;
+    background: var(--v-silver);
+    flex-shrink: 0;
 }
 
 .subtitle {
-    font-size: 12px;
+    font-size: var(--v-size-xs);
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
+    letter-spacing: var(--v-track-meta);
+    color: var(--v-text-secondary);
+    margin-top: 6px;
 }
 
 /* ── Contenu scrollable ──────────────────────────────────────────────── */
@@ -187,17 +234,17 @@ body {
 .field-label {
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--v-track-title);
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.40);
+    color: var(--v-text-secondary);
 }
 
 /* ── Input pseudo / recherche ────────────────────────────────────────── */
 #pseudo-input, .pseudo-like-input {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    font-family: 'Inter', sans-serif;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    color: var(--v-text);
+    font-family: var(--v-font);
     font-size: 14px;
     font-weight: 500;
     padding: 11px 13px;
@@ -217,7 +264,7 @@ body {
 }
 
 #pseudo-input.error {
-    border-color: #ff453a;
+    border-color: var(--v-pvp);
 }
 
 .field-hint {
@@ -227,7 +274,7 @@ body {
 }
 
 .field-hint.error {
-    color: #ff453a;
+    color: var(--v-pvp);
 }
 
 /* ── Type de personnage ─────────────────────────────────────────────── */
@@ -238,8 +285,8 @@ body {
 }
 
 .type-card {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
     border-radius: 2px;
     padding: 14px;
     display: flex;
@@ -252,7 +299,7 @@ body {
 .type-card:hover { border-color: rgba(255, 255, 255, 0.16); background: #1c1c1e; }
 
 .type-card.selected {
-    border-color: #c8cdd4;
+    border-color: var(--v-silver);
     background: rgba(200, 205, 212, 0.06);
 }
 
@@ -268,7 +315,7 @@ body {
     color: rgba(255, 255, 255, 0.75);
 }
 
-.type-card.selected .type-title { color: #c8cdd4; }
+.type-card.selected .type-title { color: var(--v-silver); }
 
 .type-desc {
     font-size: 10px;
@@ -284,8 +331,8 @@ body {
 }
 
 .gender-card {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
     border-radius: 2px;
     padding: 16px 16px 12px;
     display: flex;
@@ -303,7 +350,7 @@ body {
 }
 
 .gender-card.selected {
-    border-color: #c8cdd4;
+    border-color: var(--v-silver);
     background: rgba(200, 205, 212, 0.06);
 }
 
@@ -314,7 +361,7 @@ body {
     transition: color 0.15s ease;
 }
 
-.gender-card.selected .gender-icon { color: #c8cdd4; }
+.gender-card.selected .gender-icon { color: var(--v-silver); }
 
 .gender-label {
     font-size: 10px;
@@ -325,7 +372,7 @@ body {
     transition: color 0.15s ease;
 }
 
-.gender-card.selected .gender-label { color: #c8cdd4; }
+.gender-card.selected .gender-label { color: var(--v-silver); }
 
 /* ── Swatches de peau ────────────────────────────────────────────────── */
 .swatch-grid {
@@ -335,8 +382,8 @@ body {
 }
 
 .swatch {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
     border-radius: 2px;
     padding: 8px 0;
     cursor: pointer;
@@ -349,7 +396,7 @@ body {
 .swatch:hover { border-color: rgba(255, 255, 255, 0.18); }
 
 .swatch.selected {
-    border-color: #c8cdd4;
+    border-color: var(--v-silver);
     background: rgba(200, 205, 212, 0.06);
 }
 
@@ -397,7 +444,7 @@ body {
 
 .cycler-arrow {
     background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--v-border);
     color: rgba(255, 255, 255, 0.65);
     border-radius: 2px;
     width: 24px;
@@ -409,8 +456,8 @@ body {
 }
 
 .cycler-arrow:hover {
-    border-color: #c8cdd4;
-    color: #c8cdd4;
+    border-color: var(--v-silver);
+    color: var(--v-silver);
 }
 
 .cycler-value {
@@ -449,8 +496,8 @@ body {
 .palette-dot:hover { border-color: rgba(255, 255, 255, 0.4); }
 
 .palette-dot.selected {
-    border-color: #c8cdd4;
-    box-shadow: 0 0 0 1px #c8cdd4;
+    border-color: var(--v-silver);
+    box-shadow: 0 0 0 1px var(--v-silver);
 }
 
 /* ── Catalogue de peds spéciaux ──────────────────────────────────────── */
@@ -461,11 +508,11 @@ body {
 }
 
 .chip {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
     color: rgba(255, 255, 255, 0.45);
     border-radius: 2px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--v-font);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -477,8 +524,8 @@ body {
 .chip:hover { border-color: rgba(255, 255, 255, 0.2); }
 
 .chip.active {
-    border-color: #c8cdd4;
-    color: #c8cdd4;
+    border-color: var(--v-silver);
+    color: var(--v-silver);
     background: rgba(200, 205, 212, 0.06);
 }
 
@@ -494,8 +541,8 @@ body {
 .ped-grid::-webkit-scrollbar-thumb { background: #1e1e1e; }
 
 .ped-card {
-    background: #141414;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
     border-radius: 2px;
     padding: 10px;
     cursor: pointer;
@@ -505,7 +552,7 @@ body {
 .ped-card:hover { border-color: rgba(255, 255, 255, 0.18); }
 
 .ped-card.ped-selected {
-    border-color: #c8cdd4;
+    border-color: var(--v-silver);
     background: rgba(200, 205, 212, 0.06);
 }
 
@@ -524,8 +571,8 @@ body {
 }
 
 .warning-card {
-    background: rgba(255, 69, 58, 0.08);
-    border: 1px solid rgba(255, 69, 58, 0.35);
+    background: rgba(232, 86, 75, 0.08);
+    border: 1px solid rgba(232, 86, 75, 0.35);
     border-radius: 2px;
     padding: 12px 14px;
     font-size: 11px;
@@ -533,7 +580,7 @@ body {
     color: rgba(255, 255, 255, 0.70);
 }
 
-.warning-card strong { color: #ff453a; }
+.warning-card strong { color: var(--v-pvp); }
 
 .empty-hint {
     font-size: 11px;
@@ -554,7 +601,7 @@ body {
 .error-msg {
     font-size: 11px;
     font-weight: 500;
-    color: #ff453a;
+    color: var(--v-pvp);
     min-height: 14px;
     letter-spacing: 0.02em;
     opacity: 0;
@@ -567,11 +614,11 @@ body {
 
 /* ── Bouton confirmer ────────────────────────────────────────────────── */
 #confirm-btn {
-    background: #c8cdd4;
+    background: var(--v-silver);
     color: #000000;
     border: none;
     border-radius: 2px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--v-font);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.14em;

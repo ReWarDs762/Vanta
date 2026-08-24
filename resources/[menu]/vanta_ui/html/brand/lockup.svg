@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" width="420" height="96" role="img" aria-label="VANTA — Zombie Survival PVP">
+  <title>VANTA — verrou marque + mot</title>
+  <!-- chevron -->
+  <path d="M18 30 L38 62 L58 30" fill="none" stroke="#c8cdd4" stroke-width="6"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+  <!-- filet de séparation -->
+  <line x1="78" y1="26" x2="78" y2="70" stroke="#c8cdd4" stroke-width="1" opacity="0.35"/>
+  <!-- mot-marque : Inter, capitales, tracking display -->
+  <text x="98" y="52" font-family="Inter, Arial, Helvetica, sans-serif" font-weight="600"
+        font-size="34" fill="#ffffff" letter-spacing="10">VANTA</text>
+  <text x="100" y="72" font-family="Inter, Arial, Helvetica, sans-serif" font-weight="500"
+        font-size="10" fill="#c8cdd4" letter-spacing="4.4" opacity="0.62">ZOMBIE SURVIVAL · PVP</text>
+</svg>
