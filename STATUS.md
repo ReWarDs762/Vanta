@@ -13,7 +13,7 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 | Resource | Statut | Détail |
 |---|---|---|
 | `pvp_character` | Refondu (22/08/2026), **non testé en jeu** | Écran de création revu en profondeur : cadrage caméra corrigé (le perso était mal visible derrière le panel), personnalisation étendue (peau, morphologie, cheveux, 10 emplacements vêtements + 5 accessoires en freemode, ou choix d'un ped spécial du catalogue `pvp_inventory`). Fix du bug de timing qui empêchait l'écran de s'afficher (`Wait(400)` fixe → retry loop). Voir CLAUDE.md pour le détail. À valider intégralement en jeu avant de considérer ce chantier terminé. |
-| `pvp_drops` | Fonctionnel, polish en cours | À finir : UI d'annonce, animations, sons, polish visuel général |
+| `pvp_drops` | Testé en jeu (avion, trajet, largage, descente OK), révisions du 25/08/2026 **non retestées** | Revu : trajectoire en flèches rouges custom sur la minimap (les blips ne restent que sur la carte de pause), atterrissage au premier contact par raycast (la caisse traversait les bâtiments), commande `/droptest` pour valider chaque étape sans attendre. À finir : UI d'annonce, animations, sons, polish visuel général. ⚠ `Config.Trail.minimapRange` est un calibrage à valider en jeu. |
 | `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
 | `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous |
 | `pvp_crew` | Fonctionnel, à approfondir | Vision long terme : hiérarchie (leader + membres), coffre partagé crew, système d'affrontement entre crews (à brainstormer), stats de crew |
@@ -88,7 +88,9 @@ suit n'a été validé manette en main :
 - [ ] `pvp_inventory` — le plus gros système (217 fichiers), jamais testé
 - [ ] `pvp_killfeed` — créé, jamais testé
 - [ ] `pvp_crew` — 4 crews en base mais 0 membre, jamais réellement exercé
-- [ ] `pvp_drops` — avion, parachute, ouverture de caisse : jamais validés
+- [x] `pvp_drops` — avion, blip avion, trajet aléatoire, largage et descente validés en jeu (24/08/2026)
+- [ ] `pvp_drops` — révisions du 25/08 à valider : flèches de trajectoire, arrêt de la caisse au premier
+      contact (toit/relief), `/droptest` et ses étapes, ouverture de caisse
 - [ ] `pvp_redzones` — rotation horaire, loot ×2 : jamais validés
 - [ ] `pvp_zombies` — spawn, IA, loot pondéré : jamais validés
 - [ ] `pvp_hud` — restrictions de combat réactivées, jamais vues en jeu
@@ -128,6 +130,7 @@ doc fiable — hors périmètre de la session actuelle.
 - [x] Phase 3 — Avant-postes, garage, admin, profil, badges, XP/prestige
 - [ ] **En cours — Polish & consolidation** :
   - [ ] pvp_drops : UI d'annonce, sons, animations
+  - [ ] pvp_drops : calibrer `Config.Trail.minimapRange` en jeu (défilement des flèches)
   - [ ] pvp_redzones : polish visuel, notifications rotation, timer
   - [ ] pvp_killfeed : tester et finaliser
   - [ ] pvp_crew : tester, corriger, brainstormer la vision long terme

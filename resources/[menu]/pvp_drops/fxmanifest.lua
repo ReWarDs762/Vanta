@@ -18,6 +18,11 @@ client_scripts {
     'client/client.lua',
 }
 
+-- Texture de la flèche de trajectoire (chargée via CreateRuntimeTextureFromImage)
+files {
+    'html/img/arrow.png',
+}
+
 dependencies {
     'es_extended',
 }

@@ -868,6 +868,7 @@ RegisterCommand('ahelp', function(src)
         '/givexp [id] [montant] — Donner de l\'XP',
         '/clearinv [id] — Vider l\'inventaire',
         '/drop — Forcer un drop de ravitaillement',
+        '/droptest — Tester les étapes d\'un drop (voir /droptest sans argument)',
         '/rzrotate — Forcer la rotation des redzones',
         '/killzombies — Tuer les zombies proches',
         '/spawnzombies [n] — Spawn N zombies sur vous',

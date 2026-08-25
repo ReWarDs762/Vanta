@@ -37,39 +37,61 @@ local function rollDropLoot()
     return result
 end
 
--- ── Démarrer un drop ─────────────────────────────────────────────────────
-local function startDrop()
-    if activeDrop then return end
+-- ── Contrôleur : le joueur le plus proche de la zone ─────────────────────
+-- (c'est lui qui fait tourner l'avion, la caisse et les raycasts de
+--  collision — le plus proche est celui qui a la map en streaming)
+local function pickController(x, y)
+    local best, bestDist = nil, nil
+    for _, pid in ipairs(GetPlayers()) do
+        local src = tonumber(pid)
+        local ped = src and GetPlayerPed(src) or nil
+        if ped and ped ~= 0 then
+            local c = GetEntityCoords(ped)
+            local dx, dy = c.x - x, c.y - y
+            local d2 = dx * dx + dy * dy
+            if not bestDist or d2 < bestDist then best, bestDist = src, d2 end
+        end
+    end
+    return best
+end
 
-    -- Choisir une zone de drop prédéfinie (Z fiable, pas de traversée de sol)
-    local zone = Config.DropZones[math.random(#Config.DropZones)]
-    local dropX = zone.x
-    local dropY = zone.y
-    local dropZ = zone.z
+-- ── Démarrer un drop ─────────────────────────────────────────────────────
+-- opts = { x, y, z, label, fast }
+--   x/y/z : position imposée (tests) — sinon une zone de Config.DropZones
+--   fast  : timers courts de Config.TestTimers (commande /droptest)
+local function startDrop(opts)
+    opts = opts or {}
+    if activeDrop then return false, 'Un drop est déjà en cours (/droptest stop pour l\'annuler).' end
+
+    local zone
+    if opts.x and opts.y then
+        zone = { x = opts.x + 0.0, y = opts.y + 0.0, z = (opts.z or 30.0) + 0.0,
+                 label = opts.label or 'Position de test' }
+    else
+        zone = Config.DropZones[math.random(#Config.DropZones)]
+    end
+
+    local T = opts.fast and Config.TestTimers or nil
+    local approachTime = (T and T.approachTime) or Config.ApproachTime
+    local fallDuration = (T and T.fallDuration) or Config.FallDuration
+    local openDelay    = (T and T.openDelay)    or Config.OpenDelay
+    local altitude     = (T and T.altitude)     or Config.DropAltitude
+    local halfLen      = (T and T.planeStartDistance) or Config.PlaneStartDistance
 
     -- Trajectoire de l'avion : passe au-dessus de la zone de drop
-    local angle = math.random() * math.pi * 2
-    local halfLen = Config.PlaneStartDistance
-
-    local startX = dropX + math.cos(angle) * halfLen
-    local startY = dropY + math.sin(angle) * halfLen
-    local endX   = dropX - math.cos(angle) * halfLen
-    local endY   = dropY - math.sin(angle) * halfLen
+    local angle  = math.random() * math.pi * 2
+    local startX = zone.x + math.cos(angle) * halfLen
+    local startY = zone.y + math.sin(angle) * halfLen
+    local endX   = zone.x - math.cos(angle) * halfLen
+    local endY   = zone.y - math.sin(angle) * halfLen
 
     -- Le drop tombe au milieu de la trajectoire (50%)
     local dropPct = 0.5
 
-    -- Désigner un contrôleur (premier joueur connecté)
-    local controller = nil
-    for _, pid in ipairs(GetPlayers()) do
-        controller = tonumber(pid)
-        break
-    end
-
-    -- Si aucun joueur connecté, annuler le drop
+    local controller = pickController(zone.x, zone.y)
     if not controller then
         print('[pvp_drops] Aucun joueur connecté — drop annulé.')
-        return
+        return false, 'Aucun joueur connecté.'
     end
 
     activeDrop = {
@@ -79,14 +101,28 @@ local function startDrop()
         planeEndX   = endX,
         planeEndY   = endY,
         dropPct     = dropPct,
-        dropX       = dropX,
-        dropY       = dropY,
-        landX       = dropX,
-        landY       = dropY,
-        landZ       = dropZ,   -- Z connu depuis Config.DropZones
+        dropX       = zone.x,
+        dropY       = zone.y,
+        landX       = zone.x,
+        landY       = zone.y,
+        -- ⚠ Z de SECOURS uniquement : la vraie altitude d'impact est
+        -- déterminée côté client par raycast (toit de bâtiment, relief...).
+        fallbackZ   = zone.z,
+        landZ       = nil,
+        landed      = false,
+        landedAt    = nil,
+        openAt      = nil,
         loot        = rollDropLoot(),
         opened      = false,
         controller  = controller,
+        label       = zone.label,
+        startedAt   = GetGameTimer(),
+        approachTime = approachTime,
+        fallDuration = fallDuration,
+        openDelay    = openDelay,
+        altitude     = altitude,
+        dropTimeMs   = dropPct * approachTime * 2,
+        fast         = opts.fast and true or false,
     }
 
     TriggerClientEvent('pvp_drops:start', -1, {
@@ -96,13 +132,13 @@ local function startDrop()
         planeEndX   = endX,
         planeEndY   = endY,
         dropPct     = dropPct,
-        dropX       = dropX,
-        dropY       = dropY,
-        landZ       = dropZ,   -- Z du sol envoyé directement
-        altitude    = Config.DropAltitude,
-        approachTime = Config.ApproachTime,
-        fallDuration = Config.FallDuration,
-        openDelay   = Config.OpenDelay,
+        dropX       = zone.x,
+        dropY       = zone.y,
+        fallbackZ   = zone.z,
+        altitude    = altitude,
+        approachTime = approachTime,
+        fallDuration = fallDuration,
+        openDelay   = openDelay,
         controller  = controller,
     })
 
@@ -111,25 +147,72 @@ local function startDrop()
         args = { '★ DROP ★', 'Un avion de ravitaillement a été détecté ! Suivez sa trajectoire... [' .. zone.label .. ']' }
     })
 
-    print(('[pvp_drops] Drop #%d — zone: %s (%.0f, %.0f, %.0f)'):format(
-        activeDrop.id, zone.label, dropX, dropY, dropZ
+    print(('[pvp_drops] Drop #%d — zone: %s (%.0f, %.0f) %s'):format(
+        activeDrop.id, zone.label, zone.x, zone.y, activeDrop.fast and '[TEST]' or ''
     ))
+
+    -- Watchdog : si le contrôleur ne rapporte jamais l'atterrissage
+    -- (déconnexion, collision jamais chargée...), on pose la caisse d'office.
+    local watchId    = activeDrop.id
+    local watchDelay = activeDrop.dropTimeMs + fallDuration + 15000
+    CreateThread(function()
+        Wait(watchDelay)
+        if activeDrop and activeDrop.id == watchId and not activeDrop.landed then
+            print('[pvp_drops] Watchdog : atterrissage non rapporté, Z de secours utilisé.')
+            markLanded(activeDrop.landZ or activeDrop.fallbackZ)
+        end
+    end)
+
+    return true
 end
 
--- ── Le contrôleur rapporte le Z du sol au point de drop ──────────────────
+-- ── Atterrissage ─────────────────────────────────────────────────────────
+-- Le contrôleur affine le Z de la surface d'impact pendant l'approche
+-- (raycast vertical : toit de bâtiment, montagne, prop, sol...).
 RegisterNetEvent('pvp_drops:reportGroundZ')
 AddEventHandler('pvp_drops:reportGroundZ', function(dropId, landX, landY, landZ)
+    local src = source
     if not activeDrop or activeDrop.id ~= dropId then return end
-    if activeDrop.landZ then return end  -- déjà reçu
+    if activeDrop.controller ~= src then return end
+    if activeDrop.landed then return end
+    if type(landZ) ~= 'number' or landZ ~= landZ then return end   -- NaN
+    if landZ < -300.0 or landZ > 2000.0 then return end
 
     activeDrop.landX = landX
     activeDrop.landY = landY
     activeDrop.landZ = landZ
 
-    -- Diffuser les coordonnées d'atterrissage à tous
     TriggerClientEvent('pvp_drops:landingCoords', -1, dropId, landX, landY, landZ)
+end)
 
-    print(('[pvp_drops] Atterrissage confirmé : %.1f, %.1f, %.1f'):format(landX, landY, landZ))
+-- Bascule serveur : la caisse a touché une surface → départ du chrono
+-- d'ouverture, identique pour tout le monde.
+function markLanded(z)
+    if not activeDrop or activeDrop.landed then return end
+    activeDrop.landed   = true
+    activeDrop.landZ    = z
+    activeDrop.landedAt = GetGameTimer()
+    activeDrop.openAt   = activeDrop.landedAt + activeDrop.openDelay
+
+    TriggerClientEvent('pvp_drops:landed', -1, activeDrop.id,
+        activeDrop.landX, activeDrop.landY, z, activeDrop.openDelay)
+
+    print(('[pvp_drops] Caisse posée : %.1f, %.1f, %.1f (ouverture dans %ds)'):format(
+        activeDrop.landX, activeDrop.landY, z, activeDrop.openDelay / 1000))
+end
+
+-- Le contrôleur signale le contact.
+RegisterNetEvent('pvp_drops:reportLanded')
+AddEventHandler('pvp_drops:reportLanded', function(dropId, landX, landY, landZ)
+    local src = source
+    if not activeDrop or activeDrop.id ~= dropId then return end
+    if activeDrop.controller ~= src then return end
+    if type(landZ) ~= 'number' or landZ ~= landZ then return end
+    if landZ < -300.0 or landZ > 2000.0 then return end
+
+    activeDrop.landX = landX
+    activeDrop.landY = landY
+    markLanded(landZ)
 end)
 
 -- ── Utilitaire : loot avec labels pour le NUI ────────────────────────────
@@ -150,7 +233,7 @@ end
 local LOCK_TIMEOUT_S = 60  -- SÉCURITÉ : un joueur qui laisse l'UI ouverte
                             -- > 60s (crash, déco, AFK) libère le drop.
 local function playerNearDrop(src)
-    if not activeDrop or not activeDrop.landZ then return false end
+    if not activeDrop or not activeDrop.landed or not activeDrop.landZ then return false end
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return false end
     local c = GetEntityCoords(ped)
@@ -185,6 +268,18 @@ AddEventHandler('pvp_drops:open', function(dropId)
             TriggerClientEvent('pvp_market:notify', src, 'Un joueur accède déjà à ce drop !', false)
             return
         end
+    end
+
+    -- SÉCURITÉ : la caisse doit être posée et le délai de sécurisation écoulé
+    -- (le client affiche le compte à rebours, le serveur fait foi).
+    if not activeDrop.landed then
+        TriggerClientEvent('pvp_market:notify', src, 'La caisse n\'a pas encore touché le sol !', false)
+        return
+    end
+    if activeDrop.openAt and GetGameTimer() < activeDrop.openAt then
+        local rem = math.ceil((activeDrop.openAt - GetGameTimer()) / 1000)
+        TriggerClientEvent('pvp_market:notify', src, ('Caisse verrouillée encore %ds.'):format(rem), false)
+        return
     end
 
     -- SÉCURITÉ : le joueur doit être à proximité du drop.
@@ -331,18 +426,176 @@ CreateThread(function()
     end
 end)
 
+-- =========================================================================
+--   COMMANDES ADMIN
+-- =========================================================================
+local function isAdmin(src)
+    if not src or src == 0 then return true end          -- console
+    local xPlayer = ESX and ESX.GetPlayerFromId(src) or nil
+    if not xPlayer then return false end
+    return Config.AdminGroups[xPlayer.getGroup()] == true
+end
+
+local function say(src, msg)
+    if not src or src == 0 then print('[pvp_drops] ' .. msg) return end
+    TriggerClientEvent('chat:addMessage', src, { color = { 255, 200, 50 }, args = { '★ DROP ★', msg } })
+end
+
 -- SÉCURITÉ : restricted = true force une ACE admin. Sans ça, n'importe quel
 -- joueur pouvait exécuter /dropadmin et déclencher un drop à volonté.
 RegisterCommand('dropadmin', function(src, args, raw)
-    if src and src > 0 then
-        local xPlayer = ESX and ESX.GetPlayerFromId(src) or nil
-        if not xPlayer then return end
-        local group = xPlayer.getGroup()
-        if group ~= 'admin' and group ~= 'superadmin' then return end
-    end
+    if not isAdmin(src) then return end
     activeDrop = nil
     startDrop()
 end, true)
+
+-- ── /droptest — outil de test des étapes du drop ─────────────────────────
+-- Permet de valider chaque phase sans attendre les minuteurs de production.
+local TEST_HELP = {
+    '/droptest            — drop de test (timers courts) sur une zone aléatoire',
+    '/droptest ici        — drop de test à TA position (idéal pour tester un toit)',
+    '/droptest zone <n>   — drop de test sur la zone n de Config.DropZones',
+    '/droptest zones      — liste les zones disponibles',
+    '/droptest reel       — drop avec les VRAIS timers de production',
+    '/droptest largage    — saute l\'approche : largage immédiat',
+    '/droptest sol        — pose la caisse immédiatement (fin de chute)',
+    '/droptest ouvrir     — pose la caisse ET débloque l\'ouverture',
+    '/droptest tp         — te téléporte sur la caisse',
+    '/droptest info       — état du drop en cours (phase, position, loot)',
+    '/droptest stop       — annule le drop en cours',
+}
+
+-- Avance tous les compteurs (serveur + clients) de `ms`
+local function fastForward(ms)
+    if ms <= 0 then return end
+    activeDrop.startedAt = activeDrop.startedAt - ms
+    if activeDrop.openAt then activeDrop.openAt = activeDrop.openAt - ms end
+    TriggerClientEvent('pvp_drops:timeShift', -1, activeDrop.id, ms)
+end
+
+local function phaseName()
+    if not activeDrop then return 'aucun' end
+    if activeDrop.opened then return 'ouvert' end
+    if activeDrop.landed then
+        if activeDrop.openAt and GetGameTimer() < activeDrop.openAt then return 'sécurisation' end
+        return 'ouvrable'
+    end
+    local el = GetGameTimer() - activeDrop.startedAt
+    if el < activeDrop.dropTimeMs then return 'approche' end
+    return 'chute'
+end
+
+RegisterCommand('droptest', function(src, args)
+    if not isAdmin(src) then say(src, 'Accès refusé.') return end
+    local sub = (args[1] or ''):lower()
+
+    -- ── Lancer ───────────────────────────────────────────────────────────
+    if sub == '' or sub == 'start' or sub == 'fast' then
+        activeDrop = nil
+        local ok, err = startDrop({ fast = true })
+        say(src, ok and 'Drop de test lancé (timers courts).' or err)
+
+    elseif sub == 'reel' or sub == 'réel' or sub == 'full' then
+        activeDrop = nil
+        local ok, err = startDrop()
+        say(src, ok and 'Drop lancé avec les timers de production.' or err)
+
+    elseif sub == 'ici' or sub == 'here' then
+        if not src or src == 0 then say(src, 'Commande à utiliser en jeu.') return end
+        local ped = GetPlayerPed(src)
+        local c   = GetEntityCoords(ped)
+        activeDrop = nil
+        local ok, err = startDrop({ x = c.x, y = c.y, z = c.z, fast = true,
+                                    label = 'Test — position admin' })
+        say(src, ok and ('Drop de test sur ta position (%.0f, %.0f).'):format(c.x, c.y) or err)
+
+    elseif sub == 'zones' then
+        for i, z in ipairs(Config.DropZones) do
+            say(src, ('%d — %s (%.0f, %.0f)'):format(i, z.label, z.x, z.y))
+        end
+
+    elseif sub == 'zone' then
+        local n = tonumber(args[2] or '')
+        local z = n and Config.DropZones[n] or nil
+        if not z then say(src, 'Zone inconnue. /droptest zones') return end
+        activeDrop = nil
+        local ok, err = startDrop({ x = z.x, y = z.y, z = z.z, label = z.label, fast = true })
+        say(src, ok and ('Drop de test sur %s.'):format(z.label) or err)
+
+    -- ── Sauter des étapes ────────────────────────────────────────────────
+    elseif sub == 'largage' or sub == 'drop' or sub == 'skip' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        if activeDrop.landed then say(src, 'La caisse est déjà posée.') return end
+        local el  = GetGameTimer() - activeDrop.startedAt
+        local rem = activeDrop.dropTimeMs - el
+        if rem <= 0 then say(src, 'Le largage a déjà eu lieu.') return end
+        fastForward(rem + 100)
+        say(src, 'Approche sautée → largage immédiat.')
+
+    elseif sub == 'sol' or sub == 'land' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        if activeDrop.landed then say(src, 'La caisse est déjà posée.') return end
+        local el  = GetGameTimer() - activeDrop.startedAt
+        if el < activeDrop.dropTimeMs then fastForward(activeDrop.dropTimeMs - el + 100) end
+        -- le contrôleur pose la caisse sur la 1re surface trouvée
+        TriggerClientEvent('pvp_drops:forceLand', activeDrop.controller, activeDrop.id)
+        say(src, 'Chute sautée → la caisse se pose sur la première surface.')
+
+    elseif sub == 'ouvrir' or sub == 'open' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        local dropId = activeDrop.id
+        if not activeDrop.landed then
+            local el = GetGameTimer() - activeDrop.startedAt
+            if el < activeDrop.dropTimeMs then fastForward(activeDrop.dropTimeMs - el + 100) end
+            TriggerClientEvent('pvp_drops:forceLand', activeDrop.controller, dropId)
+        end
+        say(src, 'Caisse débloquée : ouverture immédiate.')
+        CreateThread(function()
+            -- laisse au contrôleur le temps de poser la caisse et de rapporter
+            local waited = 0
+            while activeDrop and activeDrop.id == dropId and not activeDrop.landed and waited < 4000 do
+                Wait(200); waited = waited + 200
+            end
+            if not activeDrop or activeDrop.id ~= dropId then return end
+            if not activeDrop.landed then
+                markLanded(activeDrop.landZ or activeDrop.fallbackZ)
+            end
+            activeDrop.openAt = GetGameTimer()
+            TriggerClientEvent('pvp_drops:openNow', -1, dropId)
+        end)
+
+    -- ── Divers ───────────────────────────────────────────────────────────
+    elseif sub == 'tp' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        if not src or src == 0 then return end
+        TriggerClientEvent('pvp_drops:tpToDrop', src,
+            activeDrop.landX, activeDrop.landY,
+            activeDrop.landZ or activeDrop.fallbackZ)
+        say(src, 'Téléporté sur la caisse.')
+
+    elseif sub == 'info' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        say(src, ('Drop #%d — %s — phase: %s%s'):format(
+            activeDrop.id, activeDrop.label or '?', phaseName(),
+            activeDrop.fast and ' [TEST]' or ''))
+        say(src, ('Position: %.0f, %.0f, Z=%s (secours %.1f) — contrôleur: %s'):format(
+            activeDrop.landX, activeDrop.landY,
+            activeDrop.landZ and ('%.1f'):format(activeDrop.landZ) or 'non sondé',
+            activeDrop.fallbackZ, GetPlayerName(activeDrop.controller) or '?'))
+        local names = {}
+        for _, it in ipairs(activeDrop.loot) do names[#names + 1] = it.item .. ' x' .. it.count end
+        say(src, 'Loot: ' .. (#names > 0 and table.concat(names, ', ') or 'vide'))
+
+    elseif sub == 'stop' or sub == 'cancel' then
+        if not activeDrop then say(src, 'Aucun drop en cours.') return end
+        TriggerClientEvent('pvp_drops:opened', -1, activeDrop.id)
+        activeDrop = nil
+        say(src, 'Drop annulé et nettoyé.')
+
+    else
+        for _, line in ipairs(TEST_HELP) do say(src, line) end
+    end
+end, false)
 
 -- SÉCURITÉ : si le joueur qui verrouillait le drop se déconnecte, libérer
 -- le lock pour que le drop redevienne accessible aux autres.

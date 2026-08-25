@@ -28,6 +28,62 @@ Config.PlaneStartDistance = 3000.0
 -- Rayon d'interaction pour ouvrir la caisse (mètres)
 Config.InteractRadius = 4.0
 
+-- ── Atterrissage : détection de collision ────────────────────────────────
+-- La caisse s'arrête au PREMIER contact (toit de bâtiment, montagne, sol...).
+-- Hauteur depuis laquelle part le raycast vertical de recherche de surface.
+Config.LandingProbeTop    = 1500.0
+-- Profondeur maximale sondée sous la zone (sous le niveau de la mer)
+Config.LandingProbeBottom = -250.0
+-- Ré-sondage pendant la chute (ms) : la collision peut arriver en streaming
+-- après le largage, on réévalue la surface d'impact en continu.
+Config.LandingRefreshMs   = 400
+-- Distance sondée sous la caisse pendant la chute (mètres)
+Config.LandingLookAhead   = 60.0
+
+-- ── Trajectoire : flèches rouges sur la carte ────────────────────────────
+Config.Trail = {
+    enabled  = true,
+
+    -- Texture de la flèche (déclarée dans fxmanifest > files).
+    -- La flèche pointe vers le HAUT dans l'image : la rotation appliquée
+    -- correspond donc directement au cap à l'écran.
+    texture  = 'html/img/arrow.png',
+
+    spacing  = 55.0,    -- distance en mètres entre 2 flèches sur la trajectoire
+    scrollSpeed = 14.0, -- défilement des flèches vers le point de largage (m/s, 0 = fixe)
+    size     = 0.030,   -- taille de la flèche (fraction de la hauteur d'écran)
+    tint     = { 255, 255, 255 },  -- teinte (la texture est déjà rouge)
+    alpha    = 235,
+
+    -- Portée monde couverte par la HAUTEUR de la minimap, en mètres.
+    -- ⚠ À calibrer en jeu si les flèches défilent trop vite/trop lentement :
+    --   flèches trop espacées / trop rapides  → augmenter la valeur
+    --   flèches trop tassées / trop lentes    → diminuer la valeur
+    minimapRange = 260.0,
+    bigmapRange  = 900.0,   -- idem quand la minimap est agrandie (bigmap)
+
+    -- Décalage de rotation en degrés (0 = flèche pointant vers le haut)
+    rotationOffset = 0.0,
+
+    -- La grande carte (pause) est rendue par le moteur : impossible d'y
+    -- injecter une texture custom. On y trace donc la trajectoire avec des
+    -- petits blips rouges, UNIQUEMENT pendant que la carte est ouverte.
+    pauseMapBlips = true,
+    pauseMapSpacing = 300.0,
+}
+
+-- ── Mode test (commande /droptest fast) ──────────────────────────────────
+Config.TestTimers = {
+    approachTime = 10 * 1000,
+    fallDuration = 15 * 1000,
+    openDelay    = 10 * 1000,
+    altitude     = 150.0,
+    planeStartDistance = 800.0,
+}
+
+-- Groupes ESX autorisés sur /droptest et /dropadmin
+Config.AdminGroups = { admin = true, superadmin = true }
+
 -- Modèle de l'avion
 Config.PlaneModel = 'cargoplane'
 

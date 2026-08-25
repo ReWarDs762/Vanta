@@ -210,8 +210,27 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 
 ### Drops de ravitaillement (pvp_drops)
 - Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap
-- Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 3 min
+- Le drop tombe en parachute pendant 5 min, puis s'ouvre au sol après 5 min
 - **Loot exclusif** : items légendaires uniquement (armes + véhicules légendaires, AWP/AWP MK2)
+- **Trajectoire = flèches rouges custom** (`html/img/arrow.png`, chargée via
+  `CreateRuntimeTxd` + `CreateRuntimeTextureFromImage`, dessinée avec `DrawSprite`).
+  La grande carte (pause) est rendue par le moteur : impossible d'y injecter une texture
+  custom sans streamer un `minimap.ytd` modifié → sur la carte de pause uniquement, la
+  trajectoire retombe sur de petits blips rouges (`Config.Trail.pauseMapBlips`), qui
+  n'apparaissent QUE tant que la carte est ouverte.
+  ⚠ `Config.Trail.minimapRange` / `bigmapRange` sont des constantes de calibrage
+  (mètres couverts par la hauteur de la minimap) — à ajuster en jeu si le défilement
+  des flèches ne colle pas au terrain.
+- **Atterrissage = premier contact** : le contrôleur (joueur le plus proche de la zone)
+  fait un raycast vertical (`StartExpensiveSynchronousShapeTestLosProbe`, flags monde +
+  véhicules + objets) et pose la caisse sur la 1re surface rencontrée — toit de bâtiment,
+  rocher, prop, sol. Le `z` de `Config.DropZones` n'est plus qu'un **Z de secours**.
+  Le sondage est répété pendant la chute (la collision peut arriver en streaming après
+  le largage). Un watchdog serveur pose la caisse d'office si le contrôleur ne rapporte
+  jamais l'atterrissage.
+- **Serveur autoritaire** : c'est le serveur qui déclare l'atterrissage (`markLanded`) et
+  la fin du délai de sécurisation ; `pvp_drops:open` refuse toute ouverture avant.
+- **Tests** : `/droptest` (admin) — voir « Commandes Admin ».
 
 ### Redzones (pvp_redzones)
 - 3 zones rouges actives en permanence sur la carte
@@ -415,4 +434,10 @@ Voir `STATUS.md` — mise à jour plus fréquente, section « Roadmap ».
 ---
 
 ## Commandes Admin (pvp_admin)
-`/ahelp`, `/tp [id]`, `/bring [id]`, `/tpc [x] [y] [z]`, `/heal [id]`, `/revive [id]`, `/slay [id]`, `/kick [id] [raison]`, `/give [id] [item] [qty]`, `/givemoney [id] [montant]`, `/givexp [id] [montant]`, `/clearinv [id]`, `/drop`, `/rzrotate`, `/rzlist`, `/killzombies`, `/spawnzombies [qty]`, `/weather [type]`, `/time [heure]`, `/announce [message]`, `/noclip`, `/god`, `/spec [id]`, `/car [modèle]`, `/dv`, `/tpwp`
+`/ahelp`, `/droptest [étape]`, `/tp [id]`, `/bring [id]`, `/tpc [x] [y] [z]`, `/heal [id]`, `/revive [id]`, `/slay [id]`, `/kick [id] [raison]`, `/give [id] [item] [qty]`, `/givemoney [id] [montant]`, `/givexp [id] [montant]`, `/clearinv [id]`, `/drop`, `/rzrotate`, `/rzlist`, `/killzombies`, `/spawnzombies [qty]`, `/weather [type]`, `/time [heure]`, `/announce [message]`, `/noclip`, `/god`, `/spec [id]`, `/car [modèle]`, `/dv`, `/tpwp`
+
+**`/droptest` (pvp_drops)** — teste chaque étape d'un drop sans attendre les minuteurs :
+`ici` (drop sur ta position, idéal pour valider la collision sur un toit), `zone <n>`,
+`zones`, `reel` (timers de production), `largage` (saute l'approche), `sol` (pose la
+caisse immédiatement), `ouvrir` (pose + débloque l'ouverture), `tp`, `info`, `stop`.
+Sans argument : drop de test avec les timers courts de `Config.TestTimers`.
