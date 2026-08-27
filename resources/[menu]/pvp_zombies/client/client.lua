@@ -305,12 +305,21 @@ Citizen.CreateThread(function()
 end)
 
 -- ── Réception du loot depuis le serveur ────────────────────────────────────
+-- Nettoie le nom affiché au joueur : retire le préfixe technique weapon_ /
+-- vehicle_ / veh_ (affichage uniquement, l'item reste inchangé côté inventaire).
+local function prettyLootName(name)
+    if type(name) ~= 'string' then return name end
+    return (name:gsub('^[Ww][Ee][Aa][Pp][Oo][Nn]_', '')
+                :gsub('^[Vv][Ee][Hh][Ii][Cc][Ll][Ee]_', '')
+                :gsub('^[Vv][Ee][Hh]_', ''))
+end
+
 RegisterNetEvent('pvp_zombies:receiveLoot')
 AddEventHandler('pvp_zombies:receiveLoot', function(zombieLabel, reward, lootItems)
     SendNUIMessage({
         action = 'showLootToast',
         amount = reward,
-        item   = lootItems[1], -- 1 seul item par zombie
+        item   = prettyLootName(lootItems[1]), -- 1 seul item par zombie
     })
 end)
 
