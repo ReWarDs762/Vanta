@@ -515,7 +515,7 @@ local function teardownPreviewScene()
         previewCam = nil
     end
     DisplayRadar(true)
-    NetworkClearClockOverride()
+    NetworkClearClockTimeOverride()
     ClearOverrideWeather()
     ClearWeatherTypePersist()
 end
@@ -782,7 +782,10 @@ AddEventHandler('pvp_character:creationDone', function(data)
     Citizen.CreateThread(function()
         applyStoredAppearanceInternal(data.model, data.appearance)
 
-        teardownPreviewScene()
+        -- pcall : même si une native de teardown échoue, on DOIT continuer
+        -- jusqu'au TriggerServerEvent plus bas, sinon le joueur reste figé
+        -- aux PREVIEW_COORDS (pvp_spawn n'est jamais notifié).
+        pcall(teardownPreviewScene)
 
         local ped = PlayerPedId()
         SetPedCanPlayAmbientAnims(ped, true)
