@@ -188,7 +188,6 @@ local function spawnNpc(coords, heading, model)
     SetPedCombatAttributes(ped, 46, true)
     FreezeEntityPosition(ped, true)
     SetModelAsNoLongerNeeded(hash)
-    print('[pvp_outposts] NPC spawné: ' .. model .. ' (entity=' .. tostring(ped) .. ')')
     return ped
 end
 
@@ -215,13 +214,9 @@ local function spawnProp(coords, heading, model)
     local found, groundZ = GetGroundZFor_3dCoord(coords.x, coords.y, coords.z + 5.0, false)
     if found then
         z = groundZ
-        print('[pvp_outposts] Prop groundZ trouvé: ' .. groundZ)
-    else
-        print('[pvp_outposts] Prop groundZ NON trouvé, utilise Z=' .. z)
     end
 
     local obj = CreateObject(hash, coords.x, coords.y, z, false, false, false)
-    print('[pvp_outposts] CreateObject résultat: ' .. tostring(obj) .. ' pour ' .. model)
     if obj == 0 or obj == nil then
         print('[pvp_outposts] ERREUR: CreateObject retourné 0 pour ' .. model)
         return nil
@@ -230,7 +225,6 @@ local function spawnProp(coords, heading, model)
     FreezeEntityPosition(obj, true)
     SetEntityInvincible(obj, true)
     SetModelAsNoLongerNeeded(hash)
-    print('[pvp_outposts] Prop spawné OK: ' .. model .. ' à ' .. coords.x .. ', ' .. coords.y .. ', ' .. z)
     return obj
 end
 
@@ -260,11 +254,8 @@ local function spawnOutpostEntities(idx, op)
     if spawnedOutposts[idx] then return end
     spawnedOutposts[idx] = true
 
-    print('[pvp_outposts] Spawn des entités pour ' .. op.label .. ' (idx=' .. idx .. ')')
-
     -- NPC téléporteur (pilote militaire)
     if op.npcTeleport then
-        print('[pvp_outposts]   -> NPC Téléporteur à ' .. tostring(op.npcTeleport))
         local ent = spawnNpc(op.npcTeleport, op.headingTeleport or op.heading, 's_m_y_pilot_01')
         if ent then table.insert(spawnedEntities, ent) end
         Citizen.Wait(200)
@@ -272,7 +263,6 @@ local function spawnOutpostEntities(idx, op)
 
     -- NPC marchand (paramédic)
     if op.npcShop then
-        print('[pvp_outposts]   -> NPC Boutique à ' .. tostring(op.npcShop))
         local ent = spawnNpc(op.npcShop, op.headingShop or op.heading, 's_m_m_paramedic_01')
         if ent then table.insert(spawnedEntities, ent) end
         Citizen.Wait(200)
@@ -280,7 +270,6 @@ local function spawnOutpostEntities(idx, op)
 
     -- NPC custom armes (mécanicien armée)
     if op.npcWeaponCustom then
-        print('[pvp_outposts]   -> NPC Custom Armes à ' .. tostring(op.npcWeaponCustom))
         local ent = spawnNpc(op.npcWeaponCustom, op.headingWeaponCustom or op.heading, 's_m_y_armymech_01')
         if ent then
             table.insert(spawnedEntities, ent)
@@ -291,30 +280,19 @@ local function spawnOutpostEntities(idx, op)
 
     -- NPC custom véhicules (mécanicien)
     if op.npcVehicleCustom then
-        print('[pvp_outposts]   -> NPC Custom Véhicules à ' .. tostring(op.npcVehicleCustom))
         local ent = spawnNpc(op.npcVehicleCustom, op.headingVehicleCustom or op.heading, 's_m_m_autoshop_01')
         if ent then table.insert(spawnedEntities, ent) end
         Citizen.Wait(200)
-    else
-        print('[pvp_outposts]   -> PAS de npcVehicleCustom défini pour ' .. op.label)
     end
 
 
     -- Prop coffre (caisse militaire)
     if op.stashProp then
-        print('[pvp_outposts]   -> Prop Coffre à ' .. tostring(op.stashProp))
         local obj = spawnProp(op.stashProp, op.stashPropHeading or op.heading, 'prop_mil_crate_01')
         if obj then
             table.insert(spawnedEntities, obj)
-            print('[pvp_outposts]   -> Coffre OK (entity=' .. tostring(obj) .. ')')
-        else
-            print('[pvp_outposts]   -> ECHEC spawn coffre!')
         end
-    else
-        print('[pvp_outposts]   -> PAS de stashProp défini pour ' .. op.label)
     end
-
-    print('[pvp_outposts] NPCs/props spawnés pour ' .. op.label)
 end
 
 -- Thread de spawn par proximité (150m)
