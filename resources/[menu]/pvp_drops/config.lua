@@ -36,6 +36,62 @@ Config.PlaneStartDistance = 3000.0
 -- Rayon d'interaction pour ouvrir la caisse (mètres)
 Config.InteractRadius = 4.0
 
+-- ── Atterrissage : détection de collision ────────────────────────────────
+-- La caisse s'arrête au PREMIER contact (toit de bâtiment, montagne, sol...).
+-- Hauteur depuis laquelle part le raycast vertical de recherche de surface.
+Config.LandingProbeTop    = 1500.0
+-- Profondeur maximale sondée sous la zone (sous le niveau de la mer)
+Config.LandingProbeBottom = -250.0
+-- Ré-sondage pendant la chute (ms) : la collision peut arriver en streaming
+-- après le largage, on réévalue la surface d'impact en continu.
+Config.LandingRefreshMs   = 400
+-- Distance sondée sous la caisse pendant la chute (mètres)
+Config.LandingLookAhead   = 60.0
+
+-- ── Trajectoire : flèches rouges sur la carte ────────────────────────────
+Config.Trail = {
+    enabled  = true,
+
+    -- Texture de la flèche (déclarée dans fxmanifest > files).
+    -- La flèche pointe vers le HAUT dans l'image : la rotation appliquée
+    -- correspond donc directement au cap à l'écran.
+    texture  = 'html/img/arrow.png',
+
+    spacing  = 55.0,    -- distance en mètres entre 2 flèches sur la trajectoire
+    scrollSpeed = 14.0, -- défilement des flèches vers le point de largage (m/s, 0 = fixe)
+    size     = 0.030,   -- taille de la flèche (fraction de la hauteur d'écran)
+    tint     = { 255, 255, 255 },  -- teinte (la texture est déjà rouge)
+    alpha    = 235,
+
+    -- Portée monde couverte par la HAUTEUR de la minimap, en mètres.
+    -- ⚠ À calibrer en jeu si les flèches défilent trop vite/trop lentement :
+    --   flèches trop espacées / trop rapides  → augmenter la valeur
+    --   flèches trop tassées / trop lentes    → diminuer la valeur
+    minimapRange = 260.0,
+    bigmapRange  = 900.0,   -- idem quand la minimap est agrandie (bigmap)
+
+    -- Décalage de rotation en degrés (0 = flèche pointant vers le haut)
+    rotationOffset = 0.0,
+
+    -- La grande carte (pause) est rendue par le moteur : impossible d'y
+    -- injecter une texture custom. On y trace donc la trajectoire avec des
+    -- petits blips rouges, UNIQUEMENT pendant que la carte est ouverte.
+    pauseMapBlips = true,
+    pauseMapSpacing = 300.0,
+}
+
+-- ── Mode test (commande /droptest fast) ──────────────────────────────────
+Config.TestTimers = {
+    approachTime = 10 * 1000,
+    fallDuration = 15 * 1000,
+    openDelay    = 10 * 1000,
+    altitude     = 150.0,
+    planeStartDistance = 800.0,
+}
+
+-- Groupes ESX autorisés sur /droptest et /dropadmin
+Config.AdminGroups = { admin = true, superadmin = true }
+
 -- Modèle de l'avion
 Config.PlaneModel = 'cargoplane'
 
@@ -51,12 +107,6 @@ Config.FlarePtfxName = 'exp_grd_flare'  -- effet de flamme/fumée rouge
 Config.FlareSoundSet = 'FBI_05_SOUNDS'  -- soundset contenant le son de flare
 Config.FlareSoundName = 'Flare'         -- son d'allumage joué à l'atterrissage
 Config.FlareSoundRange = 80             -- portée du son (mètres)
-
--- ── Trajectoire sur la minimap (flèches rouges clignotantes) ─────────────
-Config.TrailSpacing     = 220.0  -- distance entre deux flèches (mètres)
-Config.TrailScale       = 0.45   -- taille des flèches (petites)
-Config.TrailFlashBase   = 450    -- intervalle de clignotement de base (ms)
-Config.TrailFlashStagger = 90    -- décalage par flèche → effet de vague (ms)
 
 -- ── Zones de drop (avec Z au sol précis) ─────────────────────────────────
 Config.DropZones = {
@@ -76,11 +126,11 @@ Config.DropZones = {
 
 -- ── Loot de la caisse de ravitaillement ──────────────────────────────────
 -- Uniquement catégories Légendaire et Épic
--- 3 items tirés aléatoirement parmi cette table
-Config.LootCount = 3
+-- 1 seul item tiré par caisse (revu le 25/08/2026 — auparavant 3)
+Config.LootCount = 1
 
 -- NOTE BALANCE : les chances sont pondérées entre elles (pas des %).
--- Légendaire total ~40, Épic total ~250 → ratio ~86% épic, ~14% légendaire.
+-- Légendaire total 54, Épic total 229 → ratio ~81% épic, ~19% légendaire.
 -- Ajuster si inflation observée : réduire chances ou augmenter DropInterval.
 Config.LootTable = {
     -- ══ LÉGENDAIRE (chances réduites pour limiter l'inflation) ═══════════
@@ -107,17 +157,14 @@ Config.LootTable = {
     { item = 'weapon_combatmg_mk2',      chance = 25, count = 1 },
     { item = 'weapon_musket',            chance = 22, count = 1 },
     -- Véhicules épic
-    { item = 'vehicle_schafter5',        chance = 22, count = 1 },
-    { item = 'vehicle_baller6',          chance = 22, count = 1 },
-    { item = 'vehicle_xls2',            chance = 18, count = 1 },
+    -- Retirés le 25/08/2026 : vehicle_maverick, vehicle_schafter5,
+    -- vehicle_baller6, vehicle_buzzard2, vehicle_xls2, vehicle_cog552,
+    -- vehicle_havok — restent disponibles ailleurs (zombies/marché), juste
+    -- plus tirables dans une caisse de ravitaillement.
     { item = 'vehicle_voltic2',          chance = 18, count = 1 },
     { item = 'vehicle_cerberus',         chance = 22, count = 1 },
     { item = 'vehicle_zr380',            chance = 22, count = 1 },
-    { item = 'vehicle_cog552',           chance = 18, count = 1 },
     { item = 'vehicle_sasquatch',        chance = 18, count = 1 },
     { item = 'vehicle_thruster',         chance = 15, count = 1 },
     { item = 'vehicle_vigilante',        chance = 22, count = 1 },
-    { item = 'vehicle_buzzard2',         chance = 22, count = 1 },
-    { item = 'vehicle_maverick',         chance = 25, count = 1 },
-    { item = 'vehicle_havok',            chance = 18, count = 1 },
 }

@@ -751,7 +751,7 @@ AddEventHandler('pvp_admin:action', function(action, data)
         end
 
     elseif action == 'forcedrop' then
-        TriggerEvent('pvp_drops:forceStart')
+        exports['pvp_drops']:AdminForceStart()
         logAction(src, 'forcedrop', '', 0)
         toast(src, 'Drop de ravitaillement lancé !')
 
@@ -829,7 +829,7 @@ end)
 
 -- ══ Force drop (relais vers pvp_drops) ═══════════════════════════════════
 AddEventHandler('pvp_drops:adminForceDrop', function()
-    TriggerEvent('pvp_drops:forceStart')
+    exports['pvp_drops']:AdminForceStart()
 end)
 
 -- ══ Force rotation redzones (relais vers pvp_redzones) ═══════════════════
@@ -868,6 +868,7 @@ RegisterCommand('ahelp', function(src)
         '/givexp [id] [montant] — Donner de l\'XP',
         '/clearinv [id] — Vider l\'inventaire',
         '/drop — Forcer un drop de ravitaillement',
+        '/droptest — Tester les étapes d\'un drop (voir /droptest sans argument)',
         '/rzrotate — Forcer la rotation des redzones',
         '/killzombies — Tuer les zombies proches',
         '/spawnzombies [n] — Spawn N zombies sur vous',
@@ -1022,7 +1023,7 @@ end, false)
 
 RegisterCommand('drop', function(src)
     if src == 0 or not hasPerm(src, 'forcedrop') then if src > 0 then denyAccess(src) end return end
-    TriggerEvent('pvp_drops:forceStart')
+    exports['pvp_drops']:AdminForceStart()
     logAction(src, 'forcedrop', '', 0)
     adminMsg(src, 'Drop de ravitaillement lancé !')
 end, false)

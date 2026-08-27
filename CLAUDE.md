@@ -259,11 +259,20 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 
 ### Drops de ravitaillement (pvp_drops)
 - Un avion traverse la carte aléatoirement, sa trajectoire est visible sur la minimap sous
-  forme de **petites flèches rouges clignotantes** orientées dans le sens du vol
-  (sprite 1 + `ShowHeadingIndicatorOnBlip` + `SetBlipFlashInterval` décalé par flèche →
-  effet de vague). Elles disparaissent au largage.
+  forme de **flèches rouges défilantes** (texture `html/img/arrow.png`, dessinée en overlay
+  via `CreateRuntimeTextureFromImage` + `DrawSprite`, projetée dans le repère écran de la
+  minimap — `Config.Trail`). Sur la grande carte (pause), impossible d'injecter une texture
+  custom : on retombe sur de petits blips rouges (`Config.Trail.pauseMapBlips`) uniquement
+  pendant que la carte est ouverte. Les flèches disparaissent au largage.
 - Le drop tombe en parachute pendant 5 min (`Config.FallDuration`), puis devient ouvrable
   après 5 min de « sécurisation » au sol (`Config.OpenDelay`)
+- **Atterrissage au premier contact** : pendant la chute, le contrôleur sonde le terrain par
+  raycast vertical (`StartExpensiveSynchronousShapeTestLosProbe` + `GetGroundZFor_3dCoord`,
+  re-sondé toutes les `Config.LandingRefreshMs` — `Config.LandingProbeTop/Bottom`) et la
+  caisse s'arrête sur la **première** surface rencontrée (toit, relief, prop...) plutôt que
+  sur le Z fixe de `Config.DropZones`, qui ne sert plus que de secours (`fallbackZ`) tant que
+  rien n'est confirmé. Le serveur fait foi sur l'atterrissage (`pvp_drops:reportLanded` →
+  `markLanded()`), diffusé à tous via `pvp_drops:landed`.
 - **À l'atterrissage** : cercle de fusées éclairantes autour de la caisse
   (`prop_flare_01` × 6, `Config.FlareRadius`) + particules `core`/`exp_grd_flare` +
   son d'allumage `Flare` du soundset `FBI_05_SOUNDS`. Particules et son sont **locaux à
@@ -271,20 +280,29 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
   créés par le contrôleur.
 - **Loot** : catégories Épic et Légendaire (AWP/AWP MK2 exclusifs aux drops). Le ratio réel
   penche largement vers l'épic — voir `STATUS.md` → « Écarts de documentation connus ».
-- **Modèle contrôleur** : un client est désigné « contrôleur » et pilote les entités réseau
-  (avion, caisse, props de flares) ; les autres se contentent d'interpoler localement la
-  même trajectoire. Le serveur **réassigne automatiquement un nouveau contrôleur** si
-  celui-ci se déconnecte (`pvp_drops:controllerChanged`), et le nouveau *reprend* les
-  entités existantes (`findEntityNear` + `NetworkRequestControlOfEntity`) au lieu d'en
-  créer de nouvelles. Le filtre `NetworkGetEntityIsNetworked` y est indispensable : les
-  modèles utilisés existent aussi en décor statique sur la carte (Fort Zancudo est à la
-  fois une zone de drop et un site rempli de caisses militaires).
+- **Modèle contrôleur** : le joueur le plus proche de la zone de drop (pas le premier
+  connecté) est désigné « contrôleur » et pilote les entités réseau (avion, caisse, props de
+  flares) ; les autres se contentent d'interpoler localement la même trajectoire. Le serveur
+  **réassigne automatiquement un nouveau contrôleur** (le plus proche restant) si celui-ci se
+  déconnecte (`pvp_drops:controllerChanged`), et le nouveau *reprend* les entités existantes
+  (`findEntityNear` + `NetworkRequestControlOfEntity`) au lieu d'en créer de nouvelles — y
+  compris la recherche de surface d'impact si elle n'était pas encore confirmée. Le filtre
+  `NetworkGetEntityIsNetworked` y est indispensable : les modèles utilisés existent aussi en
+  décor statique sur la carte (Fort Zancudo est à la fois une zone de drop et un site rempli
+  de caisses militaires).
 - **Expiration** : un drop non vidé disparaît après `Config.DropLifetime` (1h) et tous les
   clients sont prévenus via `pvp_drops:ended`. Ne jamais remettre `activeDrop = nil` sans
   passer par `endDrop()` — sinon la caisse et les blips restent affichés côté client pour
   un drop qui n'existe plus côté serveur.
 - **Sync à la connexion** : un client qui rejoint en cours de drop demande l'état via
-  `pvp_drops:requestSync` et reçoit un `elapsed` qui recale sa timeline locale.
+  `pvp_drops:requestSync` et reçoit un `elapsed` qui recale sa timeline locale — si la caisse
+  est déjà posée, il reçoit directement `landed`/`landZ`/`openRemainingMs` et saute la
+  chute au lieu de la rejouer.
+- **`/droptest`** (admin, `Config.AdminGroups`) : outil de test qui lance un drop à timers
+  courts (`Config.TestTimers`) sur une zone aléatoire, la position de l'admin ou une zone
+  précise, et permet de sauter chaque étape (largage, atterrissage, ouverture),
+  téléporter/inspecter/annuler — sans attendre les timers de production. `/dropadmin` reste
+  le lancement admin « normal » (timers réels).
 - Dépend de `vanta_ui` (notifications) et `pvp_inventory` (export `canAddToBag`, UI de la
   caisse) — déclaré dans `fxmanifest.lua`
 

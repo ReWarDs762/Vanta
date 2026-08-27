@@ -14,7 +14,7 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 |---|---|---|
 | `pvp_combat` | **Nouveau (23/08/2026), jamais testé** | Mode combat / anti combat-log : voir CLAUDE.md → « Mode combat (pvp_combat) ». Dépend de `pvp_outposts` (déclenche le mode combat) et `pvp_inventory` (délègue la mort par combat-log). À tester en priorité : déconnexion en plein fight (le stuff doit tomber), blocage du dépôt au coffre protégé en combat, expiration du mode combat 5s après le dernier coup. |
 | `pvp_character` | Refondu (22/08/2026), **non testé en jeu** | Écran de création revu en profondeur : cadrage caméra corrigé (le perso était mal visible derrière le panel), personnalisation étendue (peau, morphologie, cheveux, 10 emplacements vêtements + 5 accessoires en freemode, ou choix d'un ped spécial du catalogue `pvp_inventory`). Fix du bug de timing qui empêchait l'écran de s'afficher (`Wait(400)` fixe → retry loop). Voir CLAUDE.md pour le détail. À valider intégralement en jeu avant de considérer ce chantier terminé. |
-| `pvp_drops` | Audité + corrigé (24/08/2026), **non testé en jeu** | Audit complet : 3 bugs de fiabilité corrigés (failover du contrôleur, expiration du drop, dépendances implicites), notifications migrées vers `vanta_ui`, fusées éclairantes (son + particules) à l'atterrissage, trajectoire en flèches rouges clignotantes. Reste : validation manette en main. |
+| `pvp_drops` | Audité + corrigé (24/08/2026) + revu (25/08/2026), **non testé en jeu** | Audit du 24/08 : 3 bugs de fiabilité corrigés (failover du contrôleur, expiration du drop, dépendances implicites), notifications migrées vers `vanta_ui`, fusées éclairantes (son + particules) à l'atterrissage. Revu le 25/08 (import du travail cloud, fusionné à la main avec l'audit du 24/08 car les deux touchaient les mêmes fonctions) : trajectoire passée de flèches-blips clignotantes à des flèches-sprite défilantes sur la minimap (`Config.Trail`, `html/img/arrow.png`), atterrissage désormais au premier contact par raycast (toit, relief...) au lieu du Z fixe de zone, contrôleur choisi par proximité (pas premier connecté), commande `/droptest` pour tester chaque étape sans attendre les timers. Reste : validation manette en main — priorité sur le raycast d'atterrissage et le failover de contrôleur, jamais testés ensemble. |
 | `vanta_ui` | Étendu (24/08/2026), **non testé en jeu** | Ajout d'un système de notifications générique (`ui_page` + exports `notify`/`notifyAll`). Seul `pvp_drops` l'utilise pour l'instant — les autres resources passent toujours par `pvp_market:notify` (voir Écarts). |
 | `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
 | `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous. Annonces chat de série de kills retirées (23/08/2026, trop bruyantes à plusieurs joueurs) — le killfeed NUI et les leaders de session restent inchangés. |
@@ -154,10 +154,14 @@ suit n'a été validé manette en main :
       bonus de coffre prestige/abonnement (fix multi-sources ci-dessus)
 - [ ] `pvp_drops` — avion, parachute, ouverture de caisse : jamais validés. Depuis les
       correctifs du 24/08/2026, à tester en plus : la déconnexion du contrôleur en plein
-      vol (l'avion doit continuer sa trajectoire chez les autres joueurs), l'expiration
-      d'un drop non récupéré (`Config.DropLifetime`, 1h), les fusées éclairantes
-      (`prop_flare_01` + son `Flare`/`FBI_05_SOUNDS`), et les flèches rouges clignotantes
-      de trajectoire sur la minimap
+      vol ET en pleine chute (l'avion/la caisse doivent continuer chez les autres joueurs,
+      la recherche de surface d'impact doit reprendre côté nouveau contrôleur),
+      l'expiration d'un drop non récupéré (`Config.DropLifetime`, 1h), les fusées
+      éclairantes (`prop_flare_01` + son `Flare`/`FBI_05_SOUNDS`). Depuis la revue du
+      25/08/2026, à tester en plus : les flèches-sprite de trajectoire sur la minimap
+      (`Config.Trail`, en particulier en bigmap et sur écrans ultra-larges), l'atterrissage
+      par raycast au premier contact (toit de bâtiment en particulier — c'est le cas que le
+      Z fixe des zones ne couvrait pas), et la commande `/droptest`
 - [ ] `vanta_ui` — système de notifications générique : jamais affiché en jeu
 - [ ] `pvp_redzones` — rotation horaire, loot ×2 : jamais validés
 - [ ] `pvp_zombies` — spawn, IA, loot pondéré : jamais validés
@@ -210,10 +214,17 @@ systèmes coexistent (deux styles de toast possibles à l'écran).
 
 ### `pvp_drops` — loot annoncé « légendaire », majoritairement épic
 
-`Config.LootTable` pondère ~86 % d'épic pour ~14 % de légendaire. Les libellés en jeu ont
-été neutralisés le 24/08/2026 (« DROP DE RAVITAILLEMENT », plus de mention de rareté),
-mais **la table de loot elle-même n'a pas été rééquilibrée** — à trancher : soit augmenter
-la part de légendaire, soit assumer le ratio actuel.
+`Config.LootTable` pondère ~81 % d'épic pour ~19 % de légendaire (mis à jour le 25/08/2026 :
+7 véhicules épic retirés de la table — voir ci-dessous — ratio auparavant ~86/14). Les
+libellés en jeu ont été neutralisés le 24/08/2026 (« DROP DE RAVITAILLEMENT », plus de
+mention de rareté), mais **la pondération elle-même n'a pas été revue en profondeur** — à
+trancher : soit augmenter encore la part de légendaire, soit assumer le ratio actuel.
+Rééquilibrage du 25/08/2026 : `Config.LootCount` passé de 3 à 1 item par caisse, et 7
+véhicules épic retirés (`vehicle_maverick`, `vehicle_schafter5`, `vehicle_baller6`,
+`vehicle_buzzard2`, `vehicle_xls2`, `vehicle_cog552`, `vehicle_havok`) — toujours
+disponibles via zombies/marché, juste plus tirables en airdrop. Annonce chat ajoutée à la
+prise d'un item (`★ DROP ★ <joueur> a récupéré <item> dans le airdrop.`), en plus du toast
+`vanta_ui` existant à la fermeture du drop — pas encore testé en jeu.
 
 ---
 
@@ -226,7 +237,9 @@ la part de légendaire, soit assumer le ratio actuel.
 - [x] Phase 2.5 — Inventaire NUI complet + armes + véhicules
 - [x] Phase 3 — Avant-postes, garage, admin, profil, badges, XP/prestige
 - [ ] **En cours — Polish & consolidation** :
-  - [x] pvp_drops : correctifs de fiabilité + sons/flares + trajectoire clignotante (24/08/2026, à tester)
+  - [x] pvp_drops : correctifs de fiabilité + sons/flares (24/08/2026), puis atterrissage
+        par raycast + trajectoire en flèches-sprite + `/droptest` (25/08/2026, import
+        cloud fusionné à la main avec les correctifs du 24/08 — à tester)
   - [ ] pvp_drops : rééquilibrer la table de loot (voir Écarts) et tester en jeu
   - [ ] Migrer `pvp_market`, `pvp_zombies` et `pvp_inventory` vers `exports['vanta_ui']:notify`
   - [ ] pvp_redzones : polish visuel, notifications rotation, timer
