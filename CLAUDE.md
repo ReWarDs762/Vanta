@@ -385,20 +385,30 @@ qu'un bonus du même type est actif) :
 - **Config** : `Config.WeaponComponents` et `Config.WeaponsTintEnabled` dans `pvp_outposts/config.lua`
 
 ### Garage (pvp_garage) — style VANTA v2
-- NUI HTML/CSS/JS, importé depuis `vanta_ui`
+- NUI HTML/CSS/JS. Le panneau **concessionnaire** (`html/dealer.css`, lié par `index.html`)
+  reprend exactement le design de l'armurerie/boutique des avant-postes
+  (`pvp_outposts/html/shop.css`) : boutons « ghost » (fond transparent + bordure fine),
+  0 border-radius, titre discret, panneau droit opaque `#0a0a0a` bordé à gauche. Le panneau
+  **personnalisation** garde son style propre (`html/style.css`).
 - Déclenché depuis `pvp_outposts` via `TriggerEvent('pvp_garage:openMechanic')` et `TriggerEvent('pvp_garage:openDealer')`
 - **Personnalisation** (12 catégories) : Peinture, Roues, Moteur, Freins, Transmission, Blindage, Turbo, Suspension, Livrée, Néons, Teinte vitres, Phares Xenon
 - **Mods Spéciaux** (véhicules Apocalypse) : Saut, Tourelle, Propulseurs, Bélier, Boost
-- **Concessionnaire** : grille de véhicules (`Config.Vehicles`, ~35 entrées, catégories dont
-  « Butin Rare »), **payant** (achat → item inventaire → hotbar pour spawn, comme les
-  armes ; PAS un spawn gratuit malgré l'ancien libellé du menu). Revente symétrique au
-  garagiste (`pvp_garage:sellVehicleItem`, 50% du prix catalogue). Seul point de vente
-  véhicule du serveur — `pvp_outposts` n'a pas son propre catalogue.
-- **Véhicules épique/légendaire** (Schafter V12, Baller LE, ZR380, Vigilante, Oppressor MK2,
-  Nightshark, Scarab) : `Config.MarketOnlyVehicles` — absents de `Config.Vehicles`, et
-  explicitement bloqués côté serveur dans `sellVehicleItem` (sinon retombent sur le forfait
-  500$ par défaut). Trouvables uniquement en loot zombie/caisse, échangeables uniquement via
-  `pvp_market` (annonce ou trade direct) — jamais de prix NPC.
+- **Concessionnaire** : grille de véhicules (`Config.Vehicles`), **payant** (achat → item
+  inventaire → hotbar pour spawn, comme les armes). Le catalogue ne contient QUE les 7
+  véhicules du palier « rare » de la table de loot zombie (`pvp_zombies` → `Config.LootTable`)
+  — `ztype`, `mule`, `blazer5`, `dominator4`, `revolter`, `microlight` (libellé « Ultralight »),
+  `speedo2` (15 000 $ / 30 000 $). Revente au garagiste = `prix / 2` par défaut, sauf override `sellPrice` par
+  entrée : `dominator4` → 2 250 $, `revolter` / `ultralight` → `0` (invendables au garagiste,
+  marché/trade uniquement). `pvp_garage:sellVehicleItem` refuse désormais tout modèle absent
+  du catalogue (plus de forfait 500 $). Seul point de vente véhicule du serveur —
+  `pvp_outposts` n'a pas son propre catalogue.
+- **Véhicules épique/légendaire** : `Config.MarketOnlyVehicles` (aligné sur les paliers
+  `epic` + `legendaire` de `pvp_zombies/config.lua` : schafter5, baller6, xls2, voltic2,
+  cerberus, zr380, cog552, sasquatch, thruster, vigilante, buzzard2, maverick, havok,
+  deluxo, oppressor2, nightshark, scarab, insurgent3, dukes2). Absents de `Config.Vehicles`,
+  bloqués à l'achat ET à la revente côté serveur (`buyVehicleCart` + `sellVehicleItem`).
+  Trouvables uniquement en loot zombie/caisse, échangeables uniquement via `pvp_market`
+  (annonce ou trade direct) — jamais de prix NPC.
 - Annuler = restaure les mods d'origine
 - `Config.ApocalypseVehicles` : hash map pour détection rapide
 - Ordre server.cfg : `pvp_garage` avant `pvp_outposts`
@@ -570,7 +580,9 @@ restrictions ni le nettoyage du monde.
 
 ## Roadmap
 
-Voir `STATUS.md` — mise à jour plus fréquente, section « Roadmap ».
+- **Pilotage vers la sortie** (phases, priorités, check-list Go/No-Go, journal de session) :
+  `ROADMAP.md`
+- Détail court terme et bugs actifs : `STATUS.md`, section « Roadmap ».
 
 ---
 

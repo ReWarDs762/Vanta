@@ -521,6 +521,10 @@ end)
 -- ══ SYSTÈME VÉHICULES ═══════════════════════════════════════════════════
 local mySpawnedVehicle = nil  -- entity du véhicule que CE joueur a spawné (pour le supprimer à la mort)
 
+-- Vitesse max autorisée pour ranger un véhicule (m/s) : le joueur doit être
+-- quasiment à l'arrêt (1.5 m/s ~ 5 km/h).
+local STORE_MAX_SPEED = 1.5
+
 -- ── Spawn véhicule devant le joueur ─────────────────────────────────────
 RegisterNetEvent('pvp_inventory:spawnVehicle')
 AddEventHandler('pvp_inventory:spawnVehicle', function(model, itemName, itemLabel)
@@ -602,6 +606,12 @@ RegisterCommand('pvp_store_vehicle', function()
     local itemLabel = Entity(veh).state.pvp_itemLabel
     if not itemName or not itemLabel then
         SendNUIMessage({ type = 'notify', msg = 'Ce véhicule ne peut pas être rangé.', success = false })
+        return
+    end
+
+    -- Le véhicule doit être quasiment à l'arrêt pour être rangé
+    if GetEntitySpeed(veh) > STORE_MAX_SPEED then
+        SendNUIMessage({ type = 'notify', msg = 'Arrête-toi pour ranger le véhicule !', success = false })
         return
     end
 

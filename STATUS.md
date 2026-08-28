@@ -47,9 +47,41 @@ l'export `addXP()` de `vanta_xp` (la vraie table de progression).
 **Non corrigé** — nécessite une décision : garder la version de `vanta_xp` (supprimer
 celle de `pvp_admin`), ou faire relayer `pvp_admin` vers l'export `addXP` de `vanta_xp`.
 
+### `vehicle_sasquatch` — modèle inexistant dans le loot
+
+`pvp_zombies/config.lua` (palier `epic`), `pvp_drops/config.lua` et le catalogue marché de
+`pvp_inventory` référencent `vehicle_sasquatch`. **Aucun véhicule GTA V n'a ce spawn code**
+(absent des packs d'images exhaustifs, non enregistrable comme item). Il ne pourra jamais
+être looté ni spawné. **Non corrigé** — nécessite de choisir un modèle de remplacement (ex.
+`monster` / `marshall` pour rester dans le thème) ou de le retirer des trois listes. Tant
+que ce n'est pas tranché, il occupe un slot mort dans les tables de loot epic.
+
 ---
 
 ## Bugs corrigés
+
+### `pvp_garage` — refonte concessionnaire + images véhicules (27/08/2026)
+
+- **Design** : le panneau concessionnaire est passé au style de l'armurerie/boutique des
+  avant-postes (`pvp_outposts/html/shop.css`) — boutons ghost, 0 radius, panneau droit
+  opaque. Le CSS inline mort de `index.html` a été remplacé par un `<link>` vers
+  `html/dealer.css` (qui était listé au manifest mais jamais chargé).
+- **Catalogue** : `Config.Vehicles` réduit aux 7 véhicules du palier « rare » du loot
+  zombie ; épique/légendaire (`Config.MarketOnlyVehicles`, liste étendue aux 19 modèles des
+  paliers `epic`+`legendaire`) bloqués à l'achat ET à la revente. `sellVehicleItem` ne
+  retombe plus sur le forfait 500 $ pour un modèle hors catalogue.
+- **`vehicle_ultralight` → `vehicle_microlight`** : le spawn code GTA V de l'« Ultralight »
+  est `microlight`. L'ancien `vehicle_ultralight` était un item mort (jamais enregistré,
+  jamais spawnable). Corrigé dans `pvp_zombies`, `pvp_garage`, `pvp_inventory` (catalogue +
+  map de rareté).
+- **Items véhicule manquants** : `speedo2`, `cerberus`, `cog552`, `thruster` étaient
+  référencés en loot/dealer sans être enregistrés dans la table `items` de `pvp_inventory` →
+  ajoutés à la liste `registerVehicleItems()`.
+- **Images** : 17 PNG véhicules ajoutés dans `pvp_inventory/html/img/` (source :
+  `github.com/MericcaN41/gta5carimages`, PNG transparents nommés par spawn code) — couvre
+  désormais tous les véhicules lootables/achetables sauf `sasquatch` (voir bug actif
+  ci-dessus). Fallback NUI du concessionnaire : emoji 🚗 remplacé par une silhouette SVG
+  monochrome. **Armes : déjà 100 % couvertes**, aucun ajout nécessaire.
 
 ### `pvp_inventory` — bonus de coffre protégé écrasé entre sources (corrigé 24/08/2026)
 
@@ -229,6 +261,9 @@ prise d'un item (`★ DROP ★ <joueur> a récupéré <item> dans le airdrop.`),
 ---
 
 ## Roadmap
+
+> Vue d'ensemble phasée, priorités et check-list de sortie : `ROADMAP.md`.
+> Ci-dessous = suivi fin, à jour session par session.
 
 ### Priorité actuelle : rendre toutes les features existantes fonctionnelles et cohérentes avant d'en ajouter de nouvelles.
 

@@ -66,14 +66,32 @@ AddEventHandler('playerDropped', function()
     end
 end)
 
--- [HELPER — find vehicle price in catalog]
-local function GetVehiclePrice(model)
+-- [HELPER — find vehicle entry / price in catalog]
+local function GetVehicleEntry(model)
     for _, v in ipairs(Config.Vehicles) do
         if v.model == model then
-            return v.price
+            return v
         end
     end
     return nil
+end
+
+local function GetVehiclePrice(model)
+    local entry = GetVehicleEntry(model)
+    return entry and entry.price or nil
+end
+
+-- Prix de revente au garagiste.
+--   nil            → véhicule non référencé au catalogue garagiste (invendable ici)
+--   entry.sellPrice absent → prix / 2
+--   entry.sellPrice == 0   → invendable explicite
+local function GetVehicleSellPrice(model)
+    local entry = GetVehicleEntry(model)
+    if not entry then return nil end
+    if entry.sellPrice ~= nil then
+        return entry.sellPrice
+    end
+    return math.floor(entry.price * 0.5)
 end
 
 -- [HELPER — modèles épique/légendaire exclus du garagiste : marché/trade uniquement]
@@ -196,17 +214,19 @@ ESX.RegisterServerCallback('pvp_garage:sellVehicleItem', function(source, cb, it
 
     local model = itemName:gsub('^vehicle_', '')
 
-    -- SÉCURITÉ / ÉCONOMIE : modèles épique/légendaire → jamais de rachat NPC,
-    -- même en forfait. Sans ce blocage explicite, un modèle absent de
-    -- Config.Vehicles retombe sur le forfait 500$ ci-dessous, ce qui
-    -- contournerait la règle "marché joueur uniquement".
+    -- SÉCURITÉ / ÉCONOMIE : modèles épique/légendaire → jamais de rachat NPC.
     if isMarketOnly(model) then
         cb(false, 0)
         return
     end
 
-    local price = GetVehiclePrice(model)
-    local sellPrice = price and math.floor(price * 0.5) or 500
+    -- nil  → pas au catalogue garagiste (donc invendable ici, plus de forfait 500$)
+    -- <= 0 → invendable explicite (Config.Vehicles.sellPrice == 0)
+    local sellPrice = GetVehicleSellPrice(model)
+    if not sellPrice or sellPrice <= 0 then
+        cb(false, 0)
+        return
+    end
 
     xPlayer.removeInventoryItem(itemName, 1)
     xPlayer.addAccountMoney('bank', sellPrice)

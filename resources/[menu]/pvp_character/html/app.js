@@ -197,46 +197,7 @@ function onSetHairColor(i) {
     });
 }
 
-// ── Tenue / accessoires ──────────────────────────────────────────────────
-function renderOutfitCyclers() {
-    if (!st) return;
-    const container = document.getElementById('outfit-cyclers');
-    container.innerHTML = st.comps.map(renderComponentRow).join('');
-}
-
-function renderComponentRow(c) {
-    const dLabel = (c.drawable + 1) + '/' + (c.drawableMax + 1);
-    const tLabel = (c.texture + 1) + '/' + (c.textureMax + 1);
-    return `
-        <div class="cycler-row">
-            <div class="cycler-label">${c.label}</div>
-            <div class="cycler-fields">
-                <div class="cycler-line">
-                    <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'drawable',-1)">◀</button>
-                    <span class="cycler-value">Variante</span>
-                    <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'drawable',1)">▶</button>
-                    <span class="cycler-count">${dLabel}</span>
-                </div>
-                ${c.textureMax > 0 ? `
-                <div class="cycler-line">
-                    <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'texture',-1)">◀</button>
-                    <span class="cycler-value">Teinte</span>
-                    <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'texture',1)">▶</button>
-                    <span class="cycler-count">${tLabel}</span>
-                </div>` : ''}
-            </div>
-        </div>`;
-}
-
-function onCycleComponent(compId, field, dir) {
-    lua('cycleComponent', { comp: compId, field: field, dir: dir }).then(function (data) {
-        if (!data) return;
-        const entry = st.comps.find(c => c.id === compId);
-        if (entry) Object.assign(entry, data);
-        renderOutfitCyclers();
-    });
-}
-
+// ── Accessoires ──────────────────────────────────────────────────────────
 function renderPropCyclers() {
     if (!st) return;
     const container = document.getElementById('prop-cyclers');
@@ -344,7 +305,6 @@ function renderAll() {
     renderSkinGrid();
     renderFaceCyclers();
     renderHairCyclers();
-    renderOutfitCyclers();
     renderPropCyclers();
 }
 

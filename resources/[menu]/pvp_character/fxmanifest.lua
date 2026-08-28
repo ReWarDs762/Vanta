@@ -6,7 +6,10 @@ description 'Création de personnage — pseudo + genre'
 version '1.0.0'
 
 shared_scripts {
-    '@es_extended/imports.lua'
+    '@es_extended/imports.lua',
+    -- Etat corporel impose (sous-vetement) : partage client/serveur pour que la
+    -- validation cote serveur parle des memes valeurs que le rendu cote client.
+    'shared/body.lua'
 }
 
 client_scripts {

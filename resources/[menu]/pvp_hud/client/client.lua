@@ -283,10 +283,22 @@ Citizen.CreateThread(function()
             DisableControlAction(0, 142, true) -- MELEE_ATTACK_ALTERNATE
         end
 
-        -- Bloquer tir depuis un véhicule
+        -- Bloquer tir / visée / lancer d'explosifs depuis un véhicule
+        -- (moto comme voiture). SetPlayerCanDoDriveBy(false) coupe nativement
+        -- toute la mécanique de drive-by : visée, tir ET lancer de grenade /
+        -- molotov depuis un siège. Les DisableControlAction restent en filet
+        -- de sécurité pour la frame courante.
         if IsPedInAnyVehicle(ped, false) then
-            DisableControlAction(0, 24,  true) -- ATTACK (tir principal)
+            local playerId = PlayerId()
+            SetPlayerCanDoDriveBy(playerId, false)
+            DisablePlayerFiring(playerId, true) -- bloque tout tir cette frame
+
+            DisableControlAction(0, 24,  true) -- ATTACK (tir principal / lancer)
             DisableControlAction(0, 25,  true) -- AIM (visée)
+            DisableControlAction(0, 257, true) -- ATTACK2 (lancer projectile)
+            DisableControlAction(0, 140, true) -- MELEE_ATTACK_LIGHT
+            DisableControlAction(0, 141, true) -- MELEE_ATTACK_HEAVY
+            DisableControlAction(0, 142, true) -- MELEE_ATTACK_ALTERNATE
             DisableControlAction(0, 69,  true) -- VEH_ATTACK
             DisableControlAction(0, 70,  true) -- VEH_ATTACK2
             DisableControlAction(0, 92,  true) -- VEH_GUN_LEFT

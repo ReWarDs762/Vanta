@@ -61,22 +61,21 @@ local function defaultAppearance(gender)
     local hairs = (gender == 'female') and LegacyHairFemale or LegacyHairMale
     local hair  = hairs[1]
     return {
-        v      = 1,
+        v      = 3,
         head   = { 0, 0, 0, 0, 0, 0, 0.5, 0.0, 0.0 },
         hair   = { hair[1], 0, hair[2], 0 },
         ovl    = {},
         ovlc   = {},
         eye    = 0,
-        comps  = {},
         props  = {},
     }
 end
 
 -- ── Whitelists de validation ─────────────────────────────────────────────
--- Volontairement restreint (décision produit) : pas de bras/torse(3), sac(5),
--- sous-vêtement(8), gilet(9), decal(10) — seulement masque/jambes/chaussures/
--- accessoire cou/hauts, en cohérence avec COMPONENT_SLOTS côté client.
-local ALLOWED_COMPONENTS = { [1]=true, [4]=true, [6]=true, [7]=true, [11]=true }
+-- Aucun composant vêtement n'est validé ici : le client n'en envoie plus.
+-- Le corps entier est imposé côté serveur ET client par shared/body.lua, il
+-- est donc structurellement impossible pour un client de demander une
+-- apparence vestimentaire quelconque. Seuls restent les accessoires portés.
 local ALLOWED_PROPS      = { [0]=true, [1]=true, [2]=true, [6]=true, [7]=true }
 local ALLOWED_OVERLAYS   = { [0]=true, [1]=true, [2]=true, [3]=true, [4]=true, [5]=true, [6]=true, [7]=true, [8]=true, [9]=true, [10]=true, [11]=true, [12]=true }
 
@@ -101,7 +100,7 @@ end
 local function sanitizeAppearance(input, gender)
     if type(input) ~= 'table' then return defaultAppearance(gender) end
 
-    local out = { v = 1, head = {}, hair = {}, ovl = {}, ovlc = {}, eye = 0, comps = {}, props = {} }
+    local out = { v = 3, head = {}, hair = {}, ovl = {}, ovlc = {}, eye = 0, props = {} }
 
     -- head : 9 valeurs (6 index morpho/peau clampés 0-45, 3 mix clampés 0-1)
     local h = type(input.head) == 'table' and input.head or {}
@@ -159,23 +158,9 @@ local function sanitizeAppearance(input, gender)
         end
     end
 
-    -- comps : { componentId, drawable, texture }, whitelist stricte, max 10, dernier gagne
-    if type(input.comps) == 'table' then
-        local byId = {}
-        for _, entry in ipairs(input.comps) do
-            if type(entry) == 'table' then
-                local cid = tonumber(entry[1])
-                if cid and ALLOWED_COMPONENTS[math.floor(cid)] then
-                    byId[math.floor(cid)] = {
-                        math.floor(cid),
-                        clamp(entry[2], 0, 511),
-                        clamp(entry[3], 0, 63),
-                    }
-                end
-            end
-        end
-        for _, v in pairs(byId) do out.comps[#out.comps + 1] = v end
-    end
+    -- Les anciennes apparences (v1/v2) portaient des `comps` et un `top` :
+    -- ils sont simplement ignorés, il n'y a rien à migrer puisque plus aucun
+    -- vêtement n'existe.
 
     -- props : { propId, drawable, texture }, whitelist stricte, max 5, dernier gagne
     if type(input.props) == 'table' then
@@ -212,13 +197,12 @@ local function legacyToAppearance(skinIdx, hairIdx, gender)
     local hairs = (gender == 'female') and LegacyHairFemale or LegacyHairMale
     local hair  = hairs[hairIdx] or hairs[1]
     return {
-        v     = 1,
+        v     = 3,
         head  = { skin[1], skin[2], skin[3], skin[4], skin[5], skin[6], skin[7], skin[8], skin[9] },
         hair  = { hair[1], 0, hair[2], 0 },
         ovl   = {},
         ovlc  = {},
         eye   = 0,
-        comps = {},
         props = {},
     }
 end

@@ -126,7 +126,7 @@ const RARITY = {
   weapon_rpg:'legendary', weapon_hominglauncher:'legendary',
   // Véhicules rares
   vehicle_ztype:'rare', vehicle_mule:'rare', vehicle_blazer5:'rare',
-  vehicle_dominator4:'rare', vehicle_revolter:'rare', vehicle_ultralight:'rare', vehicle_speedo2:'rare',
+  vehicle_dominator4:'rare', vehicle_revolter:'rare', vehicle_microlight:'rare', vehicle_speedo2:'rare',
   // Véhicules épiques
   vehicle_schafter5:'epic', vehicle_baller6:'epic', vehicle_xls2:'epic', vehicle_voltic2:'epic',
   vehicle_cerberus:'epic', vehicle_zr380:'epic', vehicle_cog552:'epic', vehicle_sasquatch:'epic',
@@ -341,7 +341,7 @@ const CATALOG = [
   { name:'vehicle_blazer5',    label:'Blazer Aqua' },
   { name:'vehicle_dominator4', label:'Dominator Apocalypse' },
   { name:'vehicle_revolter',   label:'Revolter' },
-  { name:'vehicle_ultralight', label:'Ultralight' },
+  { name:'vehicle_microlight', label:'Ultralight' },
   { name:'vehicle_speedo2',    label:'Speedo Custom' },
   // ── Véhicules Épiques ──
   { name:'vehicle_schafter5',  label:'Schafter V12 Blindé' },

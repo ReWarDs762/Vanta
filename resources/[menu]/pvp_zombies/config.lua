@@ -135,7 +135,7 @@ Config.LootTable = {
     { item = 'vehicle_blazer5',          chance = 12,   count = 1, category = 'rare' },
     { item = 'vehicle_dominator4',       chance = 11,   count = 1, category = 'rare' },
     { item = 'vehicle_revolter',         chance = 11,   count = 1, category = 'rare' },
-    { item = 'vehicle_ultralight',       chance = 11,   count = 1, category = 'rare' },
+    { item = 'vehicle_microlight',       chance = 11,   count = 1, category = 'rare' },  -- "Ultralight" en jeu, spawn code = microlight
     { item = 'vehicle_speedo2',          chance = 10,   count = 1, category = 'rare' },
 
     -- ══ ÉPIC (≈ 0.4%) ═══════════════════════════════════════════════════

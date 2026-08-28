@@ -842,10 +842,19 @@ function gdImgSrc(itemName) {
     return 'nui://pvp_inventory/html/img/' + model + '.png';
 }
 
+// Fallback affiché quand le PNG du modèle n'existe pas encore dans
+// pvp_inventory/html/img/ — silhouette monochrome (thème VANTA) plutôt qu'un emoji.
+var GD_VEH_SVG =
+    '<svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor"'
+  + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M5 29l3.2-9A5 5 0 0 1 13 17h16a5 5 0 0 1 4 2l4.6 6 4.2 1.4A3 3 0 0 1 44 29v4a2 2 0 0 1-2 2h-3"/>'
+  + '<path d="M15 35h16"/><circle cx="11" cy="35" r="3.4"/><circle cx="35" cy="35" r="3.4"/>'
+  + '<path d="M5 29h5m22-6H17"/></svg>';
+
 function gdBuildImg(itemName, cls) {
     return '<img class="' + cls + '-img" src="' + gdImgSrc(itemName) + '" alt=""'
          + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
-         + '<div class="' + cls + '-ico" style="display:none">🚗</div>';
+         + '<div class="' + cls + '-ico" style="display:none">' + GD_VEH_SVG + '</div>';
 }
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -1001,7 +1010,10 @@ function gdRenderSellGrid() {
     }
 
     filtered.forEach(function(item) {
-        var sellPrice = Math.floor(item.price * 0.5);
+        // Le Lua envoie sellPrice (override / prix·2) — item.price n'existe pas ici.
+        var sellPrice = (item.sellPrice != null)
+            ? item.sellPrice
+            : Math.floor((item.price || 0) * 0.5);
         var isSel = gdSellSel && gdSellSel.name === item.name;
         var card = document.createElement('div');
         card.className = 'gd-card' + (isSel ? ' gd-card-sell-selected' : '');
@@ -1028,9 +1040,12 @@ function gdSelectSellItem(item, sellPrice) {
     var detail = document.getElementById('gd-sell-detail');
     detail.style.display = 'flex';
 
-    document.getElementById('gd-sell-img-wrap').innerHTML =
-        '<img src="' + gdImgSrc(item.name) + '" alt="" style="width:90px;height:90px;object-fit:contain"'
-        + ' onerror="this.outerHTML=\'<span style=font-size:52px>🚗</span>\'"/>';
+    var sellWrap = document.getElementById('gd-sell-img-wrap');
+    sellWrap.innerHTML = '<img src="' + gdImgSrc(item.name) + '" alt=""'
+        + ' style="width:72px;height:72px;object-fit:contain"/>';
+    sellWrap.firstChild.onerror = function() {
+        sellWrap.innerHTML = '<div style="color:var(--gd-text-dim)">' + GD_VEH_SVG + '</div>';
+    };
     document.getElementById('gd-sell-item-name').textContent  = item.label;
     document.getElementById('gd-sell-item-price').textContent = gdFmt(sellPrice);
     document.getElementById('gd-sell-total').textContent      = gdFmt(sellPrice);
@@ -1146,7 +1161,9 @@ function gdDoSellAll() {
         }
         var item = items[i];
         var count = item.count || 1;
-        var sellPrice = Math.floor((item.price || 0) * 0.5) || item.sellPrice || 500;
+        var sellPrice = (item.sellPrice != null)
+            ? item.sellPrice
+            : Math.floor((item.price || 0) * 0.5);
 
         // Vend toutes les copies de cet item
         (function sellOne(remaining) {

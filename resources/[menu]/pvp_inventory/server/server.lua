@@ -299,6 +299,13 @@ end
 -- ── Enregistrer les armes comme items ESX ───────────────────────────────
 function registerWeaponItems()
     local weapons = {
+        -- ── MÊLÉE ──
+        { name = 'weapon_knife',             label = 'Couteau' },
+        { name = 'weapon_machete',           label = 'Machette' },
+        { name = 'weapon_bat',               label = 'Batte de Baseball' },
+        { name = 'weapon_crowbar',           label = 'Pied de Biche' },
+        { name = 'weapon_switchblade',       label = 'Cran d\'Arrêt' },
+        { name = 'weapon_hatchet',           label = 'Hachette' },
         -- ── TRÈS COMMUN ──
         { name = 'weapon_molotov',           label = 'Molotov' },
         { name = 'weapon_appistol',          label = 'AP Pistol' },
@@ -373,7 +380,8 @@ function registerVehicleItems()
         'caddy2','caddy3','calico','camper','carbonizzare','carbonrs',
         'cargobob','cargobob2','cargobob3','cargobob4','carracara','carracara2',
         'cavalcade','cavalcade2','champion','cheetah','cheetah2','checkpoint',
-        'cheburek','chinook','chino','chino2','clique','club','cogcabrio',
+        'cerberus','cerberus2','cerberus3','cheburek','chinook','chino','chino2',
+        'clique','club','cog552','cogcabrio',
         'cognet','comet2','comet3','comet4','comet5','comet6','comet7',
         'conada','contender','coquette','coquette2','coquette3','coquette4',
         'corsita','cruiser','crusader','cuban800','cutter','cyclone','cyclone2',
@@ -436,12 +444,13 @@ function registerVehicleItems()
         'seven70','shamal','sheava','sheriff','sheriff2','shinobi','shotaro',
         'skylift','slamvan','slamvan2','slamvan3','slamvan4','slamvan5',
         'slamvan6','sm722','specter','specter2','speeder','speeder2',
+        'speedo','speedo2','speedo4',
         'squaddie','stafford','stalion','stalion2','stanier','stinger',
         'stingergt','stockade','stratum','streamer216','streiter','stretch',
         'strikeforce','stromberg','sultan','sultan2','sultan3','sultanrs',
         'superd','supervolito','supervolito2','surge','surfer','surfer2',
         'surfer3','swift','swift2','t20','tahoma','taipan','tampa','tampa2',
-        'tampa3','terbyte','thrax','thrust','tigon','tiptruck','tiptruck2',
+        'tampa3','terbyte','thrax','thrust','thruster','tigon','tiptruck','tiptruck2',
         'titan','toreador','torero','torero2','tornado','tornado2','tornado3',
         'tornado4','tornado5','tornado6','toro','toro2','toros','tractor',
         'tractor2','tractor3','trailerlarge','trailerlogs','trailers','trailers2',
@@ -896,6 +905,12 @@ local function registerVehicleSpawn(itemName)
     activeVehicleSpawns[itemName] = (activeVehicleSpawns[itemName] or 0) + 1
 end
 
+-- Cooldown de re-sortie après rangement : après avoir rangé un véhicule (K),
+-- le joueur doit attendre avant de pouvoir en ressortir un. Contrôle 100%
+-- serveur (le client ne fait qu'afficher la notif).
+local VEHICLE_RESPAWN_COOLDOWN_MS = 5000
+local vehicleSpawnCooldown = {}  -- [src] = timestamp (GetGameTimer) de fin de cooldown
+
 -- ── Utiliser un item ──────────────────────────────────────────────────────
 RegisterNetEvent('pvp_inventory:useItem')
 AddEventHandler('pvp_inventory:useItem', function(itemName)
@@ -922,6 +937,15 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
 
     -- Véhicules → spawn (consomme l'item, le joueur le récupère avec K)
     elseif string.sub(itemName, 1, 8) == 'vehicle_' then
+        -- Cooldown après rangement : pas de re-sortie immédiate
+        local readyAt = vehicleSpawnCooldown[src]
+        if readyAt and GetGameTimer() < readyAt then
+            local remain = math.ceil((readyAt - GetGameTimer()) / 1000)
+            TriggerClientEvent('pvp_market:notify', src,
+                'Attends ' .. remain .. 's avant de ressortir un véhicule.', false)
+            return
+        end
+
         local model = string.sub(itemName, 9)
         xPlayer.removeInventoryItem(itemName, 1)
         registerVehicleSpawn(itemName)
@@ -1880,6 +1904,7 @@ end, false)
 -- Nettoyage du verrou si le joueur se déconnecte pendant la requête DB
 AddEventHandler('playerDropped', function()
     local src = source
+    vehicleSpawnCooldown[src] = nil
     local xPlayer = ESX.GetPlayerFromId(src)
     if xPlayer then kitStartInProgress[xPlayer.identifier] = nil end
 end)
@@ -1909,6 +1934,7 @@ AddEventHandler('pvp_inventory:storeVehicle', function(itemName, itemLabel)
     local label = (trueItem and trueItem.label) or (type(itemLabel) == 'string' and itemLabel:sub(1, 50)) or itemName
 
     xPlayer.addInventoryItem(itemName, 1)
+    vehicleSpawnCooldown[src] = GetGameTimer() + VEHICLE_RESPAWN_COOLDOWN_MS
     TriggerClientEvent('pvp_market:notify', src, label .. ' rangé.', true)
     refreshClient(src, xPlayer)
 end)

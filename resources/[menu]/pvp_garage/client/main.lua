@@ -295,26 +295,42 @@ local function OpenDealerMenu()
         end
     end
 
-    -- Items véhicules dans l'inventaire (pour la vente)
+    -- Set marché-only (épique/légendaire) — jamais listés à la vente garagiste
+    local marketOnly = {}
+    for _, m in ipairs(Config.MarketOnlyVehicles or {}) do
+        marketOnly[m] = true
+    end
+
+    -- Items véhicules dans l'inventaire (pour la vente).
+    -- N'affiche que ce qui est réellement rachetable ici : modèle au catalogue
+    -- garagiste ET sellPrice > 0. Le reste (marché-only, invendable explicite,
+    -- modèle hors catalogue) est masqué — le serveur refuserait la vente.
     local sellItems = {}
     if playerData and playerData.inventory then
         for _, item in ipairs(playerData.inventory) do
             if item.name:sub(1, 8) == 'vehicle_' and item.count > 0 then
-                -- Cherche le prix dans le catalogue
                 local model = item.name:sub(9)  -- retire 'vehicle_'
-                local sellPrice = 500
-                for _, v in ipairs(Config.Vehicles) do
-                    if v.model == model then
-                        sellPrice = math.floor(v.price * 0.5)
-                        break
+                if not marketOnly[model] then
+                    local sellPrice = nil
+                    for _, v in ipairs(Config.Vehicles) do
+                        if v.model == model then
+                            if v.sellPrice ~= nil then
+                                sellPrice = v.sellPrice
+                            else
+                                sellPrice = math.floor(v.price * 0.5)
+                            end
+                            break
+                        end
+                    end
+                    if sellPrice and sellPrice > 0 then
+                        table.insert(sellItems, {
+                            name      = item.name,
+                            label     = item.label or item.name,
+                            count     = item.count,
+                            sellPrice = sellPrice,
+                        })
                     end
                 end
-                table.insert(sellItems, {
-                    name      = item.name,
-                    label     = item.label or item.name,
-                    count     = item.count,
-                    sellPrice = sellPrice,
-                })
             end
         end
     end

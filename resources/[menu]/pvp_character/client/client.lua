@@ -16,17 +16,11 @@ local PREVIEW_HEADING = 160.0
 -- GAUCHE de l'écran. Inverser le signe s'il part du mauvais côté.
 local LATERAL_YAW = -13.3
 
--- ── Whitelists (mirroir des whitelists serveur — cohérence des bornes) ──
--- Volontairement restreint (décision produit) : pas de bras/torse, sac,
--- decal — et un seul emplacement "HAUTS" unifié (composant 11 uniquement,
--- sous-vêtement/gilet non exposés, ils gardent la valeur par défaut du jeu).
-local COMPONENT_SLOTS = {
-    { id = 1,  label = 'MASQUE' },
-    { id = 4,  label = 'JAMBES' },
-    { id = 6,  label = 'CHAUSSURES' },
-    { id = 7,  label = 'ACCESSOIRE COU' },
-    { id = 11, label = 'HAUTS' },
-}
+-- ── Emplacements exposés au joueur ──────────────────────────────────────
+-- Il n'y a AUCUN emplacement vêtement : le corps est imposé en sous-vêtement
+-- pour tout le monde (voir shared/body.lua). Seuls les accessoires portés
+-- (props) restent au choix — ils n'ont pas le couplage 3/8/11 qui rendait
+-- les vêtements ingérables.
 local PROP_SLOTS = {
     { id = 0, label = 'COUVRE-CHEF' },
     { id = 1, label = 'LUNETTES' },
@@ -68,12 +62,12 @@ local function freshCreationState(gender)
         beard    = { index = 255, opacity = 100 },
         eyebrows = { index = 0,   opacity = 100 },
         eye      = 0,
-        comps    = {},  -- [componentId] = { drawable, texture }
-        props    = {},  -- [propId]      = { drawable, texture }  (drawable -1 = aucun)
+        props    = {},  -- [propId] = { drawable, texture }  (drawable -1 = aucun)
         camMode  = 'body',
         heading  = PREVIEW_HEADING,
     }
 end
+
 
 -- ── Helpers modèle ──────────────────────────────────────────────────────
 local function loadModel(model)
@@ -138,11 +132,11 @@ local function applyHair()
     SetPedHairColor(ped, hr.color, hr.highlight)
 end
 
-local function applyComponent(compId)
-    local ped = PlayerPedId()
-    local c = creation.comps[compId]
-    if not c then return end
-    SetPedComponentVariation(ped, compId, c.drawable, c.texture, 0)
+-- Corps imposé : le triplet torse/sous-vêtement/haut est posé d'un bloc par
+-- shared/body.lua, jamais composant par composant. C'est ce couplage qui
+-- produisait les bras invisibles et les trous quand on le cassait.
+local function applyBody()
+    VantaBody.apply(PlayerPedId(), creation.gender)
 end
 
 local function applyProp(propId)
@@ -162,25 +156,19 @@ local function applyAll()
     applyHead()
     applyOverlays()
     applyHair()
-    for _, slot in ipairs(COMPONENT_SLOTS) do applyComponent(slot.id) end
+    applyBody()
     for _, slot in ipairs(PROP_SLOTS) do applyProp(slot.id) end
 end
 
--- Capture l'apparence "par défaut du jeu" après un SetPedDefaultComponentVariation
--- (plus robuste que deviner des index à la main — toujours une tenue valide).
--- Appelle explicitement SetPedDefaultComponentVariation d'abord : ensureModel()
--- ne le fait QUE quand le modèle change réellement, ce qui laisserait une
--- apparence non déterministe si le ped était déjà sur le bon modèle.
+-- Remet le ped à son état de départ : coiffure par défaut du jeu, aucun
+-- accessoire, et le corps en sous-vêtement. SetPedDefaultComponentVariation
+-- est appelé explicitement — ensureModel() ne le fait QUE quand le modèle
+-- change réellement, ce qui laisserait une apparence non déterministe si le
+-- ped était déjà sur le bon modèle — puis applyBody() le rhabille aussitôt.
 local function captureDefaultOutfit()
     local ped = PlayerPedId()
     SetPedDefaultComponentVariation(ped)
-    creation.comps = {}
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        creation.comps[slot.id] = {
-            drawable = GetPedDrawableVariation(ped, slot.id),
-            texture  = GetPedTextureVariation(ped, slot.id),
-        }
-    end
+    applyBody()
     creation.props = {}
     for _, slot in ipairs(PROP_SLOTS) do
         creation.props[slot.id] = { drawable = -1, texture = 0 }
@@ -197,26 +185,6 @@ local function wrap(v, dir, maxV, minV)
     local nv = (v - minV + dir) % span
     if nv < 0 then nv = nv + span end
     return minV + nv
-end
-
-local function cycleComponent(compId, field, dir)
-    local ped = PlayerPedId()
-    local c = creation.comps[compId] or { drawable = 0, texture = 0 }
-    local drawMax = math.max(0, GetNumberOfPedDrawableVariations(ped, compId) - 1)
-
-    if field == 'drawable' then
-        c.drawable = wrap(c.drawable, dir, drawMax)
-        c.texture  = 0
-    else
-        local texMax = math.max(0, GetNumberOfPedTextureVariations(ped, compId, c.drawable) - 1)
-        c.texture = wrap(c.texture, dir, texMax)
-    end
-
-    creation.comps[compId] = c
-    applyComponent(compId)
-
-    local texMax = math.max(0, GetNumberOfPedTextureVariations(ped, compId, c.drawable) - 1)
-    return { drawable = c.drawable, drawableMax = drawMax, texture = c.texture, textureMax = texMax }
 end
 
 local function cycleProp(propId, field, dir)
@@ -328,22 +296,6 @@ local function setSkin(index)
 end
 
 -- ── Snapshot pour le NUI ─────────────────────────────────────────────────
-local function componentSnapshot()
-    local ped = PlayerPedId()
-    local out = {}
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        local c = creation.comps[slot.id] or { drawable = 0, texture = 0 }
-        out[#out + 1] = {
-            id = slot.id, label = slot.label,
-            drawable = c.drawable,
-            drawableMax = math.max(0, GetNumberOfPedDrawableVariations(ped, slot.id) - 1),
-            texture = c.texture,
-            textureMax = math.max(0, GetNumberOfPedTextureVariations(ped, slot.id, c.drawable) - 1),
-        }
-    end
-    return out
-end
-
 local function propSnapshot()
     local ped = PlayerPedId()
     local out = {}
@@ -382,7 +334,6 @@ local function buildSnapshot()
             color = creation.hair.color,
             highlight = creation.hair.highlight,
         },
-        comps   = componentSnapshot(),
         props   = propSnapshot(),
         camMode = creation.camMode,
     }
@@ -543,12 +494,6 @@ local function applyStoredAppearanceInternal(model, appearance)
                 if entry[1] == OVL_EYEBROWS then creation.eyebrows = { index = entry[2], opacity = entry[3] } end
             end
         end
-        creation.comps = {}
-        if type(appearance.comps) == 'table' then
-            for _, c in ipairs(appearance.comps) do
-                creation.comps[c[1]] = { drawable = c[2], texture = c[3] }
-            end
-        end
         creation.props = {}
         if type(appearance.props) == 'table' then
             for _, p in ipairs(appearance.props) do
@@ -671,11 +616,6 @@ RegisterNUICallback('setHairColor', function(data, cb)
     cb({ ok = true })
 end)
 
-RegisterNUICallback('cycleComponent', function(data, cb)
-    if not inCreation then cb({}) return end
-    cb(cycleComponent(tonumber(data and data.comp) or 0, data and data.field, (data and data.dir) or 1))
-end)
-
 RegisterNUICallback('cycleProp', function(data, cb)
     if not inCreation then cb({}) return end
     cb(cycleProp(tonumber(data and data.prop) or 0, data and data.field, (data and data.dir) or 1))
@@ -698,9 +638,6 @@ RegisterNUICallback('randomizeAppearance', function(data, cb)
     creation.head[2] = math.random(0, 45)
     creation.head[7] = math.random(0, 10) / 10.0
     applyHead()
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        cycleComponent(slot.id, 'drawable', math.random(1, 5))
-    end
     cycleHair('drawable', math.random(1, 5))
     cb(buildSnapshot())
 end)
@@ -736,7 +673,9 @@ RegisterNUICallback('confirmCharacter', function(data, cb)
         payload.model = creation.specialModel
     else
         payload.appearance = {
-            v     = 1,
+            -- v3 : plus aucun vêtement stocké — le corps est imposé en
+            -- sous-vêtement pour tout le monde (shared/body.lua).
+            v     = 3,
             head  = creation.head,
             hair  = { creation.hair.drawable, creation.hair.texture, creation.hair.color, creation.hair.highlight },
             eye   = creation.eye,
@@ -745,11 +684,6 @@ RegisterNUICallback('confirmCharacter', function(data, cb)
                 { OVL_EYEBROWS, creation.eyebrows.index, creation.eyebrows.opacity },
             },
             ovlc  = {},
-            comps = (function()
-                local out = {}
-                for id, c in pairs(creation.comps) do out[#out + 1] = { id, c.drawable, c.texture } end
-                return out
-            end)(),
             props = (function()
                 local out = {}
                 for id, p in pairs(creation.props) do out[#out + 1] = { id, p.drawable, p.texture } end
