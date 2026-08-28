@@ -403,9 +403,20 @@ qu'un bonus du même type est actif) :
   - **Standard (freemode)** : personnalisation complète — 12 teintes de peau, morphologie
     (père/mère/mix), barbe, sourcils, couleur des yeux, coiffure + 64 couleurs, et 5
     emplacements de vêtements (masque, jambes, chaussures, accessoire cou, hauts —
-    volontairement pas de bras/torse, sac, decal, ni de sous-vêtement/gilet séparés du
-    haut) + 5 accessoires (navigation flèches, bornée par les variantes réellement dispo
-    sur le modèle via `GetNumberOfPedDrawableVariations`/`...TextureVariations`)
+    volontairement pas de sac ni de decal) + 5 accessoires (navigation flèches, bornée
+    par les variantes réellement dispo sur le modèle via
+    `GetNumberOfPedDrawableVariations`/`...TextureVariations`)
+  - **Slot « HAUTS » = table de tenues, pas un drawable** : un haut freemode est le
+    triplet composant 11 (vêtement) + 3 (torse/bras) + 8 (sous-vêtement). Les flèches
+    font défiler un index dans `shared/tops_data.lua` (combinaisons validées), et
+    `appearance_json` v2 stocke cet index (`top = { idx, teinte }`), jamais un drawable
+    brut — le serveur ne peut donc plus recevoir de combinaison incohérente. La table
+    est construite en jeu par la commande admin `/topbuilder [male|female]`
+    (`client/topbuilder.lua` + `server/topbuilder.lua`), qui récolte des tenues
+    cohérentes via `SetPedRandomComponentVariation` puis écrit le fichier via
+    `SaveResourceFile` — un `restart pvp_character` est nécessaire ensuite.
+    ⚠️ Ne jamais réordonner ni supprimer une entrée existante de la table : l'index est
+    persisté en base. On ajoute uniquement en fin de liste.
   - **Ped spécial** : choix libre dans le catalogue de peds de `pvp_inventory`
     (`ped_catalog.js`, partagé via `nui://pvp_inventory/html/ped_catalog.js` — pas de
     duplication), catégorie "animaux" exclue. Accessible à tous sans condition
@@ -546,6 +557,11 @@ restrictions ni le nettoyage du monde.
 - `SetNuiFocusKeepInput(true)` passe TOUT l'input → `DisableControlAction` nécessaire pour la caméra
 - Pas de colonne `last_position` dans `users` → ne pas requêter dessus
 - HTML5 drag & drop cassé dans FiveM CEF → utiliser mousedown/mousemove/mouseup custom
+- **Ped freemode : un « haut » = 3 composants, pas 1** (11 vêtement + 3 torse/bras + 8
+  sous-vêtement). Chaque drawable du 11 est authoré pour une valeur précise du 3 ;
+  aucune native n'expose la correspondance (elle est dans les `.meta` DLC). Faire
+  défiler le 11 seul → bras invisibles, trous, mélange veste/t-shirt. Toujours passer
+  par une table de combinaisons validées (cf. `pvp_character/shared/tops_data.lua`)
 - Web Audio autoplay peut ne pas fonctionner → sons désactivés dans pvp_inventory
 
 ---

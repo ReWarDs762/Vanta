@@ -204,16 +204,26 @@ function renderOutfitCyclers() {
     container.innerHTML = st.comps.map(renderComponentRow).join('');
 }
 
+function escHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (ch) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+}
+
 function renderComponentRow(c) {
     const dLabel = (c.drawable + 1) + '/' + (c.drawableMax + 1);
     const tLabel = (c.texture + 1) + '/' + (c.textureMax + 1);
+    // valueLabel : le slot HAUTS fait défiler des tenues nommées (composants
+    // 11 + 3 + 8 validés ensemble), pas un drawable brut — on affiche le nom
+    // de la tenue au lieu du générique « Variante ».
+    const vLabel = escHtml(c.valueLabel || 'Variante');
     return `
         <div class="cycler-row">
             <div class="cycler-label">${c.label}</div>
             <div class="cycler-fields">
                 <div class="cycler-line">
                     <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'drawable',-1)">◀</button>
-                    <span class="cycler-value">Variante</span>
+                    <span class="cycler-value">${vLabel}</span>
                     <button class="cycler-arrow" onclick="onCycleComponent(${c.id},'drawable',1)">▶</button>
                     <span class="cycler-count">${dLabel}</span>
                 </div>
