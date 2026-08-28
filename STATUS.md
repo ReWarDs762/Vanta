@@ -118,6 +118,31 @@ doc fiable — hors périmètre de la session actuelle.
 
 ---
 
+## Audit images items (28/08/2026)
+
+Vérification de toutes les images d'items utilisées en jeu (armes, véhicules) dans
+`pvp_inventory/html/img/`, résolues via `img/{nom sans préfixe vehicle_}.png` (voir
+`pvp_inventory/html/app.js`).
+
+- **Armes** : toutes les armes de la whitelist (`pvp_inventory/server/server.lua`,
+  table `WEAPONS`) ont leur image (`weapon_*.png`) — rien à corriger.
+- **Véhicules concessionnaire (`pvp_garage`, 34 modèles)** et **véhicules custom
+  avant-postes (`pvp_outposts`)** : toutes les images étaient déjà présentes.
+- **Véhicules loot zombies/drops (`pvp_zombies` + `pvp_drops`, 26 items rare→légendaire)** :
+  16 images manquantes ajoutées (`ztype`, `mule`, `blazer5`, `revolter`, `speedo2`,
+  `xls2`, `voltic2`, `cerberus`, `cog552`, `thruster`, `buzzard2`, `maverick`, `havok`,
+  `deluxo`, `insurgent3`, `dukes2`) — récupérées transparentes (fond alpha) depuis un
+  dépôt GitHub public de renders GTA V.
+  - **2 images toujours manquantes** : `ultralight.png` (Nagasaki Ultralight,
+    `vehicle_ultralight`) et `sasquatch.png` (Bravado Sasquatch, `vehicle_sasquatch`).
+    Introuvables dans les 3 collections d'images publiques vérifiées (véhicules trop
+    récents/peu communs). Le réseau de cette session bloque l'accès direct aux sources
+    habituelles (wikis GTA, galeries d'images FiveM) — seul GitHub était accessible.
+    **À fournir manuellement** (capture en jeu ou export CodeWalker/OpenIV avec fond
+    transparent) puis à déposer dans `pvp_inventory/html/img/`.
+
+---
+
 ## Roadmap
 
 ### Priorité actuelle : rendre toutes les features existantes fonctionnelles et cohérentes avant d'en ajouter de nouvelles.
