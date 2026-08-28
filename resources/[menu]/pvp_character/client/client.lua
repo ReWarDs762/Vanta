@@ -16,26 +16,11 @@ local PREVIEW_HEADING = 160.0
 -- GAUCHE de l'écran. Inverser le signe s'il part du mauvais côté.
 local LATERAL_YAW = -13.3
 
--- ── Whitelists (mirroir des whitelists serveur — cohérence des bornes) ──
--- Volontairement restreint (décision produit) : pas de sac ni de decal, et un
--- seul emplacement "HAUTS" côté joueur.
---
--- ⚠️ "HAUTS" n'est PAS le composant 11 seul. Sur un ped freemode un haut est
--- un triplet 11 (vêtement) + 3 (torse/bras) + 8 (sous-vêtement) : chaque
--- drawable du 11 est authoré pour une valeur précise du 3, et le 8 comble ce
--- que le 11 laisse ouvert. Faire défiler le 11 en laissant 3 et 8 sur les
--- valeurs par défaut donne des bras invisibles, des trous et des mélanges
--- veste/t-shirt. Le slot `isTop` ne fait donc pas défiler un drawable brut
--- mais un index dans la table de tenues validées (shared/tops.lua) qui
--- applique les trois composants ensemble.
-local COMPONENT_SLOTS = {
-    { id = 1,  label = 'MASQUE' },
-    { id = 4,  label = 'JAMBES' },
-    { id = 6,  label = 'CHAUSSURES' },
-    { id = 7,  label = 'ACCESSOIRE COU' },
-    { id = 11, label = 'HAUTS', isTop = true },
-}
-local TOP_SLOT_ID = 11
+-- ── Emplacements exposés au joueur ──────────────────────────────────────
+-- Il n'y a AUCUN emplacement vêtement : le corps est imposé en sous-vêtement
+-- pour tout le monde (voir shared/body.lua). Seuls les accessoires portés
+-- (props) restent au choix — ils n'ont pas le couplage 3/8/11 qui rendait
+-- les vêtements ingérables.
 local PROP_SLOTS = {
     { id = 0, label = 'COUVRE-CHEF' },
     { id = 1, label = 'LUNETTES' },
@@ -77,32 +62,12 @@ local function freshCreationState(gender)
         beard    = { index = 255, opacity = 100 },
         eyebrows = { index = 0,   opacity = 100 },
         eye      = 0,
-        comps    = {},  -- [componentId] = { drawable, texture }  (jamais l'id 11, voir `top`)
-        props    = {},  -- [propId]      = { drawable, texture }  (drawable -1 = aucun)
-        top      = { idx = 0, texture = 0 },  -- index dans la table de tenues + teinte du haut
-        topFallback = nil,                    -- tenue de repli si la table est vide
+        props    = {},  -- [propId] = { drawable, texture }  (drawable -1 = aucun)
         camMode  = 'body',
         heading  = PREVIEW_HEADING,
     }
 end
 
--- Liste des tenues disponibles pour le genre courant.
--- Tant que shared/tops_data.lua n'a pas été généré (commande admin
--- /topbuilder), on retombe sur la seule combinaison garantie valide : celle
--- que le jeu applique lui-même via SetPedDefaultComponentVariation.
-local function topsList()
-    local list = VantaTops.list(creation.gender)
-    if #list > 0 then return list end
-    return { creation.topFallback or {
-        top = 0, topTex = 0, torso = 0, torsoTex = 0, under = 0, underTex = 0,
-        label = 'TENUE PAR DÉFAUT',
-    } }
-end
-
-local function currentTop()
-    local list = topsList()
-    return list[creation.top.idx + 1] or list[1]
-end
 
 -- ── Helpers modèle ──────────────────────────────────────────────────────
 local function loadModel(model)
@@ -167,27 +132,11 @@ local function applyHair()
     SetPedHairColor(ped, hr.color, hr.highlight)
 end
 
--- Applique les 3 composants d'une tenue d'un bloc. La teinte choisie par le
--- joueur ne porte que sur le vêtement extérieur : torse et sous-vêtement
--- gardent la teinte figée dans la table, c'est elle qui garantit la cohérence.
-local function applyTop()
-    local ped = PlayerPedId()
-    local t = currentTop()
-    if not t then return end
-    SetPedComponentVariation(ped, VantaTops.COMP_TORSO, t.torso, t.torsoTex or 0, 0)
-    SetPedComponentVariation(ped, VantaTops.COMP_UNDER, t.under, t.underTex or 0, 0)
-    SetPedComponentVariation(ped, VantaTops.COMP_TOP,   t.top,   creation.top.texture, 0)
-    -- Le gilet pare-balles vit sur le même haut du corps et n'est jamais
-    -- exposé au joueur : SetPedDefaultComponentVariation l'a posé, on l'enlève.
-    VantaTops.clearArmor(ped)
-end
-
-local function applyComponent(compId)
-    if compId == TOP_SLOT_ID then return applyTop() end
-    local ped = PlayerPedId()
-    local c = creation.comps[compId]
-    if not c then return end
-    SetPedComponentVariation(ped, compId, c.drawable, c.texture, 0)
+-- Corps imposé : le triplet torse/sous-vêtement/haut est posé d'un bloc par
+-- shared/body.lua, jamais composant par composant. C'est ce couplage qui
+-- produisait les bras invisibles et les trous quand on le cassait.
+local function applyBody()
+    VantaBody.apply(PlayerPedId(), creation.gender)
 end
 
 local function applyProp(propId)
@@ -207,46 +156,19 @@ local function applyAll()
     applyHead()
     applyOverlays()
     applyHair()
-    for _, slot in ipairs(COMPONENT_SLOTS) do applyComponent(slot.id) end
+    applyBody()
     for _, slot in ipairs(PROP_SLOTS) do applyProp(slot.id) end
 end
 
--- Tenue de repli, lue sur le ped juste après SetPedDefaultComponentVariation :
--- c'est le triplet 11/3/8 que le jeu compose lui-même, donc valide par
--- construction. Sert uniquement tant que shared/tops_data.lua est vide.
-local function captureTopFallback()
-    local ped = PlayerPedId()
-    creation.topFallback = {
-        top      = GetPedDrawableVariation(ped, VantaTops.COMP_TOP),
-        topTex   = GetPedTextureVariation(ped, VantaTops.COMP_TOP),
-        torso    = GetPedDrawableVariation(ped, VantaTops.COMP_TORSO),
-        torsoTex = GetPedTextureVariation(ped, VantaTops.COMP_TORSO),
-        under    = GetPedDrawableVariation(ped, VantaTops.COMP_UNDER),
-        underTex = GetPedTextureVariation(ped, VantaTops.COMP_UNDER),
-        label    = 'TENUE PAR DÉFAUT',
-    }
-end
-
--- Capture l'apparence "par défaut du jeu" après un SetPedDefaultComponentVariation
--- (plus robuste que deviner des index à la main — toujours une tenue valide).
--- Appelle explicitement SetPedDefaultComponentVariation d'abord : ensureModel()
--- ne le fait QUE quand le modèle change réellement, ce qui laisserait une
--- apparence non déterministe si le ped était déjà sur le bon modèle.
+-- Remet le ped à son état de départ : coiffure par défaut du jeu, aucun
+-- accessoire, et le corps en sous-vêtement. SetPedDefaultComponentVariation
+-- est appelé explicitement — ensureModel() ne le fait QUE quand le modèle
+-- change réellement, ce qui laisserait une apparence non déterministe si le
+-- ped était déjà sur le bon modèle — puis applyBody() le rhabille aussitôt.
 local function captureDefaultOutfit()
     local ped = PlayerPedId()
     SetPedDefaultComponentVariation(ped)
-    captureTopFallback()
-    creation.top = { idx = 0, texture = 0 }
-    creation.comps = {}
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        -- Le haut n'a pas d'entrée dans `comps` : il est piloté par `creation.top`.
-        if not slot.isTop then
-            creation.comps[slot.id] = {
-                drawable = GetPedDrawableVariation(ped, slot.id),
-                texture  = GetPedTextureVariation(ped, slot.id),
-            }
-        end
-    end
+    applyBody()
     creation.props = {}
     for _, slot in ipairs(PROP_SLOTS) do
         creation.props[slot.id] = { drawable = -1, texture = 0 }
@@ -263,58 +185,6 @@ local function wrap(v, dir, maxV, minV)
     local nv = (v - minV + dir) % span
     if nv < 0 then nv = nv + span end
     return minV + nv
-end
-
--- Snapshot d'une ligne "HAUTS" au format attendu par le NUI : `drawable` y
--- porte l'index de tenue et non un drawable GTA, le NUI n'a pas à le savoir.
-local function topSnapshot()
-    local list = topsList()
-    local t = currentTop()
-    local texMax = math.max(0, GetNumberOfPedTextureVariations(PlayerPedId(), VantaTops.COMP_TOP, t and t.top or 0) - 1)
-    return {
-        id = TOP_SLOT_ID, label = 'HAUTS',
-        valueLabel  = t and t.label or 'TENUE',
-        drawable    = creation.top.idx,
-        drawableMax = math.max(0, #list - 1),
-        texture     = creation.top.texture,
-        textureMax  = texMax,
-    }
-end
-
-local function cycleTop(field, dir)
-    local list = topsList()
-    if field == 'drawable' then
-        creation.top.idx     = wrap(creation.top.idx, dir, math.max(0, #list - 1))
-        creation.top.texture = 0
-    else
-        local t = list[creation.top.idx + 1]
-        local texMax = math.max(0, GetNumberOfPedTextureVariations(PlayerPedId(), VantaTops.COMP_TOP, t and t.top or 0) - 1)
-        creation.top.texture = wrap(creation.top.texture, dir, texMax)
-    end
-    applyTop()
-    return topSnapshot()
-end
-
-local function cycleComponent(compId, field, dir)
-    if compId == TOP_SLOT_ID then return cycleTop(field, dir) end
-
-    local ped = PlayerPedId()
-    local c = creation.comps[compId] or { drawable = 0, texture = 0 }
-    local drawMax = math.max(0, GetNumberOfPedDrawableVariations(ped, compId) - 1)
-
-    if field == 'drawable' then
-        c.drawable = wrap(c.drawable, dir, drawMax)
-        c.texture  = 0
-    else
-        local texMax = math.max(0, GetNumberOfPedTextureVariations(ped, compId, c.drawable) - 1)
-        c.texture = wrap(c.texture, dir, texMax)
-    end
-
-    creation.comps[compId] = c
-    applyComponent(compId)
-
-    local texMax = math.max(0, GetNumberOfPedTextureVariations(ped, compId, c.drawable) - 1)
-    return { drawable = c.drawable, drawableMax = drawMax, texture = c.texture, textureMax = texMax }
 end
 
 local function cycleProp(propId, field, dir)
@@ -426,26 +296,6 @@ local function setSkin(index)
 end
 
 -- ── Snapshot pour le NUI ─────────────────────────────────────────────────
-local function componentSnapshot()
-    local ped = PlayerPedId()
-    local out = {}
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        if slot.isTop then
-            out[#out + 1] = topSnapshot()
-        else
-            local c = creation.comps[slot.id] or { drawable = 0, texture = 0 }
-            out[#out + 1] = {
-                id = slot.id, label = slot.label,
-                drawable = c.drawable,
-                drawableMax = math.max(0, GetNumberOfPedDrawableVariations(ped, slot.id) - 1),
-                texture = c.texture,
-                textureMax = math.max(0, GetNumberOfPedTextureVariations(ped, slot.id, c.drawable) - 1),
-            }
-        end
-    end
-    return out
-end
-
 local function propSnapshot()
     local ped = PlayerPedId()
     local out = {}
@@ -484,7 +334,6 @@ local function buildSnapshot()
             color = creation.hair.color,
             highlight = creation.hair.highlight,
         },
-        comps   = componentSnapshot(),
         props   = propSnapshot(),
         camMode = creation.camMode,
     }
@@ -645,35 +494,6 @@ local function applyStoredAppearanceInternal(model, appearance)
                 if entry[1] == OVL_EYEBROWS then creation.eyebrows = { index = entry[2], opacity = entry[3] } end
             end
         end
-        creation.comps = {}
-        local legacyTop = nil
-        if type(appearance.comps) == 'table' then
-            for _, c in ipairs(appearance.comps) do
-                -- Une apparence v1 stockait le haut comme un composant 11 brut.
-                if c[1] == TOP_SLOT_ID then
-                    legacyTop = c[2]
-                else
-                    creation.comps[c[1]] = { drawable = c[2], texture = c[3] }
-                end
-            end
-        end
-
-        -- Tenue : `top` (v2) prioritaire, sinon reprise de l'ancien drawable 11.
-        if type(appearance.top) == 'table' then
-            creation.top = {
-                idx     = VantaTops.clampIndex(creation.gender, appearance.top[1]),
-                texture = tonumber(appearance.top[2]) or 0,
-            }
-        elseif legacyTop then
-            creation.top = { idx = VantaTops.findByTop(creation.gender, legacyTop), texture = 0 }
-        end
-        -- Table de tenues pas encore générée : on capture la tenue par défaut
-        -- du jeu comme repli, sinon applyTop n'aurait rien de valide à poser.
-        if VantaTops.count(creation.gender) == 0 then
-            SetPedDefaultComponentVariation(PlayerPedId())
-            captureTopFallback()
-            creation.top = { idx = 0, texture = 0 }
-        end
         creation.props = {}
         if type(appearance.props) == 'table' then
             for _, p in ipairs(appearance.props) do
@@ -796,11 +616,6 @@ RegisterNUICallback('setHairColor', function(data, cb)
     cb({ ok = true })
 end)
 
-RegisterNUICallback('cycleComponent', function(data, cb)
-    if not inCreation then cb({}) return end
-    cb(cycleComponent(tonumber(data and data.comp) or 0, data and data.field, (data and data.dir) or 1))
-end)
-
 RegisterNUICallback('cycleProp', function(data, cb)
     if not inCreation then cb({}) return end
     cb(cycleProp(tonumber(data and data.prop) or 0, data and data.field, (data and data.dir) or 1))
@@ -823,17 +638,6 @@ RegisterNUICallback('randomizeAppearance', function(data, cb)
     creation.head[2] = math.random(0, 45)
     creation.head[7] = math.random(0, 10) / 10.0
     applyHead()
-    for _, slot in ipairs(COMPONENT_SLOTS) do
-        if slot.isTop then
-            -- Tirage sur toute la table de tenues (et non un pas de 1 à 5
-            -- depuis l'index courant, qui ne sortait jamais des 5 premières).
-            creation.top.idx     = math.random(0, math.max(0, #topsList() - 1))
-            creation.top.texture = 0
-            applyTop()
-        else
-            cycleComponent(slot.id, 'drawable', math.random(1, 5))
-        end
-    end
     cycleHair('drawable', math.random(1, 5))
     cb(buildSnapshot())
 end)
@@ -869,9 +673,9 @@ RegisterNUICallback('confirmCharacter', function(data, cb)
         payload.model = creation.specialModel
     else
         payload.appearance = {
-            -- v2 : le haut n'est plus un composant brut mais un index de tenue.
-            v     = 2,
-            top   = { creation.top.idx, creation.top.texture },
+            -- v3 : plus aucun vêtement stocké — le corps est imposé en
+            -- sous-vêtement pour tout le monde (shared/body.lua).
+            v     = 3,
             head  = creation.head,
             hair  = { creation.hair.drawable, creation.hair.texture, creation.hair.color, creation.hair.highlight },
             eye   = creation.eye,
@@ -880,11 +684,6 @@ RegisterNUICallback('confirmCharacter', function(data, cb)
                 { OVL_EYEBROWS, creation.eyebrows.index, creation.eyebrows.opacity },
             },
             ovlc  = {},
-            comps = (function()
-                local out = {}
-                for id, c in pairs(creation.comps) do out[#out + 1] = { id, c.drawable, c.texture } end
-                return out
-            end)(),
             props = (function()
                 local out = {}
                 for id, p in pairs(creation.props) do out[#out + 1] = { id, p.drawable, p.texture } end

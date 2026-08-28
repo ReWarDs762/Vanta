@@ -400,23 +400,21 @@ qu'un bonus du même type est actif) :
   rotation + bascule caméra corps/visage, toutes les modifications s'appliquent en direct sur le ped
 - NUI bloquant : `pvp_spawn` attend l'événement de fin de création avant de faire apparaître le joueur
 - **Deux types de personnage, choisis une seule fois à la création** :
-  - **Standard (freemode)** : personnalisation complète — 12 teintes de peau, morphologie
-    (père/mère/mix), barbe, sourcils, couleur des yeux, coiffure + 64 couleurs, et 5
-    emplacements de vêtements (masque, jambes, chaussures, accessoire cou, hauts —
-    volontairement pas de sac ni de decal) + 5 accessoires (navigation flèches, bornée
-    par les variantes réellement dispo sur le modèle via
+  - **Standard (freemode)** : 12 teintes de peau, morphologie (père/mère/mix), barbe,
+    sourcils, couleur des yeux, coiffure + 64 couleurs, et 5 accessoires portés
+    (couvre-chef, lunettes, oreilles, montre, bracelet — navigation flèches, bornée par
+    les variantes réellement dispo sur le modèle via
     `GetNumberOfPedDrawableVariations`/`...TextureVariations`)
-  - **Slot « HAUTS » = table de tenues, pas un drawable** : un haut freemode est le
-    triplet composant 11 (vêtement) + 3 (torse/bras) + 8 (sous-vêtement). Les flèches
-    font défiler un index dans `shared/tops_data.lua` (combinaisons validées), et
-    `appearance_json` v2 stocke cet index (`top = { idx, teinte }`), jamais un drawable
-    brut — le serveur ne peut donc plus recevoir de combinaison incohérente. La table
-    est construite en jeu par la commande admin `/topbuilder [male|female]`
-    (`client/topbuilder.lua` + `server/topbuilder.lua`), qui récolte des tenues
-    cohérentes via `SetPedRandomComponentVariation` puis écrit le fichier via
-    `SaveResourceFile` — un `restart pvp_character` est nécessaire ensuite.
-    ⚠️ Ne jamais réordonner ni supprimer une entrée existante de la table : l'index est
-    persisté en base. On ajoute uniquement en fin de liste.
+  - **AUCUN vêtement — tout le monde est en sous-vêtement** (décision produit) : il n'y
+    a pas de tenues sur VANTA. Le corps entier est imposé à l'identique par
+    `shared/body.lua` (`VantaBody.apply`), qui pose d'un bloc les composants 3
+    (torse/bras), 8 (sous-vêtement), 11 (haut), 4 (jambes), 6 (chaussures), plus 1 et 7
+    à « aucun » et 9 (gilet) nettoyé. Cohérent avec l'univers survie — on arrive
+    dépouillé, l'équipement vient du loot — et surtout ça supprime toute la classe de
+    bugs de couplage vestimentaire (voir Pièges Techniques). `appearance_json` est en
+    **v3** : plus aucun champ `comps` ni `top`, les anciennes valeurs v1/v2 sont
+    ignorées sans migration. Le serveur ne valide plus aucun composant vêtement, un
+    client ne peut donc structurellement plus en demander.
   - **Ped spécial** : choix libre dans le catalogue de peds de `pvp_inventory`
     (`ped_catalog.js`, partagé via `nui://pvp_inventory/html/ped_catalog.js` — pas de
     duplication), catégorie "animaux" exclue. Accessible à tous sans condition
@@ -560,8 +558,13 @@ restrictions ni le nettoyage du monde.
 - **Ped freemode : un « haut » = 3 composants, pas 1** (11 vêtement + 3 torse/bras + 8
   sous-vêtement). Chaque drawable du 11 est authoré pour une valeur précise du 3 ;
   aucune native n'expose la correspondance (elle est dans les `.meta` DLC). Faire
-  défiler le 11 seul → bras invisibles, trous, mélange veste/t-shirt. Toujours passer
-  par une table de combinaisons validées (cf. `pvp_character/shared/tops_data.lua`)
+  défiler le 11 seul → bras invisibles, trous, mélange veste/t-shirt. C'est la raison
+  pour laquelle VANTA a supprimé les vêtements (cf. `pvp_character/shared/body.lua`) :
+  si l'idée revient un jour, ne jamais poser ces composants séparément
+- **Composant 9 (gilet pare-balles) : le drawable 0 est un VRAI gilet, pas « aucun »**.
+  `SetPedDefaultComponentVariation` le pose donc sur tout ped freemode → kevlar
+  permanent sur tous les joueurs. Toujours le remettre à `-1` derrière
+  (`VantaBody.ARMOR_NONE`)
 - Web Audio autoplay peut ne pas fonctionner → sons désactivés dans pvp_inventory
 
 ---
