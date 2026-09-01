@@ -27,15 +27,6 @@ function ESX.Streaming.RequestModel(modelHash, cb)
 
 end
 
-print('')
-print('^2Créateur : WayZe (WayZe#0001)')
-print('^6Base de SW Développement : discord.gg/DVtHZZ')
-print('')
-
--- Imagine tu veux enlever les crédits alors que ça montre le créateur de la base ?
--- Non jrigole ;)
--- Mais imagine quand même frère
-
 
 function ESX.Streaming.RequestStreamedTextureDict(textureDict, cb)
 

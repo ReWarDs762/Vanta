@@ -25,6 +25,15 @@ local INSTANT_ITEMS = {
 -- Items qui forcent l'accroupissement + blocage mouvement
 local HEAL_FREEZE = { kevlar = true, medkit = true }
 
+-- ══ Notification joueur ═══════════════════════════════════════════════════
+-- Pendant client de notify() cote serveur : affiche le message via la pile
+-- partagee de vanta_ui ET relache le verrou de transfert du NUI.
+-- Voir le commentaire detaille dans server/server.lua.
+local function notify(msg, kind)
+    exports['vanta_ui']:notify(msg, kind)
+    SendNUIMessage({ type = 'unlock' })
+end
+
 Citizen.CreateThread(function()
     while ESX == nil do
         TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
@@ -108,7 +117,7 @@ for i = 1, 8 do
         -- Si c'est une arme → toggle equip/unequip
         if WEAPON_HASHES[slot.name] then
             if isHealing then
-                SendNUIMessage({ type = 'notify', msg = 'Impossible pendant le soin !', success = false })
+                notify('Impossible pendant le soin !', 'warning')
                 return
             end
             local ped  = PlayerPedId()
@@ -207,6 +216,16 @@ Citizen.CreateThread(function()
 end)
 
 -- ── Callbacks NUI → Lua ───────────────────────────────────────────────────
+-- Relais du toast interne du NUI vers la pile partagee de vanta_ui.
+-- Volontairement SANS liberation du verrou de transfert : l ancien toast
+-- local du NUI n y touchait pas non plus.
+RegisterNUICallback('notify', function(data, cb)
+    if type(data) == 'table' and type(data.msg) == 'string' and data.msg ~= '' then
+        exports['vanta_ui']:notify(data.msg, data.kind)
+    end
+    cb('ok')
+end)
+
 RegisterNUICallback('close', function(_, cb)
     closeInventory()
     cb('ok')
@@ -268,7 +287,7 @@ end)
 
 RegisterNUICallback('createListing', function(data, cb)
     if not isInSafeZone() then
-        SendNUIMessage({ type = 'notify', msg = 'Achats/ventes uniquement en zone safe !', success = false })
+        notify('Achats/ventes uniquement en zone safe !', 'warning')
         cb('ok')
         return
     end
@@ -279,7 +298,7 @@ end)
 
 RegisterNUICallback('buyListing', function(data, cb)
     if not isInSafeZone() then
-        SendNUIMessage({ type = 'notify', msg = 'Achats/ventes uniquement en zone safe !', success = false })
+        notify('Achats/ventes uniquement en zone safe !', 'warning')
         cb('ok')
         return
     end
@@ -315,7 +334,7 @@ end)
 
 RegisterNetEvent('pvp_inventory:toastMsg')
 AddEventHandler('pvp_inventory:toastMsg', function(msg)
-    SendNUIMessage({ type = 'notify', msg = msg, success = true })
+    notify(msg, 'info')
 end)
 
 -- ── Coffre Avant-Poste ─────────────────────────────────────────────────
@@ -405,16 +424,16 @@ AddEventHandler('pvp_inventory:applyItem', function(item)
                 end
             end
         end
-        SendNUIMessage({ type = 'notify', msg = killed .. ' zombies repoussés !', success = true })
+        notify(killed .. ' zombies repoussés !', 'success')
 
     -- ── Shot Attracteur : force le spawn de 6 zombies supplémentaires ──
     elseif item == 'shot_attract' then
         TriggerServerEvent('pvp_zombies:forceSpawn', 6)
-        SendNUIMessage({ type = 'notify', msg = 'Les zombies arrivent...', success = true })
+        notify('Les zombies arrivent...', 'info')
 
     -- ── Shot de Vitesse : sprint boosté pendant 30s ────────────────────
     elseif item == 'shot_speed' then
-        SendNUIMessage({ type = 'notify', msg = 'Vitesse boostée 30s !', success = true })
+        notify('Vitesse boostée 30s !', 'success')
         Citizen.CreateThread(function()
             local endTime = GetGameTimer() + 30000
             while GetGameTimer() < endTime do
@@ -431,7 +450,7 @@ AddEventHandler('pvp_inventory:applyItem', function(item)
         local newHp  = math.min(maxHp + bonus, GetEntityHealth(ped) + bonus)
         SetEntityMaxHealth(ped, maxHp + bonus)
         SetEntityHealth(ped, newHp)
-        SendNUIMessage({ type = 'notify', msg = 'Boost de santé 30s !', success = true })
+        notify('Boost de santé 30s !', 'success')
         Citizen.CreateThread(function()
             Citizen.Wait(30000)
             local p = PlayerPedId()
@@ -530,7 +549,7 @@ RegisterNetEvent('pvp_inventory:spawnVehicle')
 AddEventHandler('pvp_inventory:spawnVehicle', function(model, itemName, itemLabel)
     -- Si ce joueur a déjà un véhicule sorti, empêcher
     if mySpawnedVehicle and DoesEntityExist(mySpawnedVehicle) then
-        TriggerEvent('pvp_market:notify', 'Range ton véhicule actuel d\'abord ! (K)', false)
+        notify('Range ton véhicule actuel d\'abord ! (K)', 'warning')
         TriggerServerEvent('pvp_inventory:storeVehicle', itemName, itemLabel)
         return
     end
@@ -544,7 +563,7 @@ AddEventHandler('pvp_inventory:spawnVehicle', function(model, itemName, itemLabe
     end
 
     if not HasModelLoaded(hash) then
-        TriggerEvent('pvp_market:notify', 'Modèle introuvable : ' .. model, false)
+        notify('Modèle introuvable : ' .. model, 'error')
         TriggerServerEvent('pvp_inventory:storeVehicle', itemName, itemLabel)
         return
     end
@@ -597,7 +616,7 @@ RegisterCommand('pvp_store_vehicle', function()
 
     -- Le joueur doit être le CONDUCTEUR (seat -1)
     if GetPedInVehicleSeat(veh, -1) ~= ped then
-        SendNUIMessage({ type = 'notify', msg = 'Tu dois être conducteur pour ranger ce véhicule !', success = false })
+        notify('Tu dois être conducteur pour ranger ce véhicule !', 'warning')
         return
     end
 
@@ -605,13 +624,13 @@ RegisterCommand('pvp_store_vehicle', function()
     local itemName  = Entity(veh).state.pvp_itemName
     local itemLabel = Entity(veh).state.pvp_itemLabel
     if not itemName or not itemLabel then
-        SendNUIMessage({ type = 'notify', msg = 'Ce véhicule ne peut pas être rangé.', success = false })
+        notify('Ce véhicule ne peut pas être rangé.', 'warning')
         return
     end
 
     -- Le véhicule doit être quasiment à l'arrêt pour être rangé
     if GetEntitySpeed(veh) > STORE_MAX_SPEED then
-        SendNUIMessage({ type = 'notify', msg = 'Arrête-toi pour ranger le véhicule !', success = false })
+        notify('Arrête-toi pour ranger le véhicule !', 'warning')
         return
     end
 
@@ -641,9 +660,12 @@ RegisterCommand('pvp_store_vehicle', function()
 end, false)
 RegisterKeyMapping('pvp_store_vehicle', 'Ranger le véhicule', 'keyboard', 'k')
 
-RegisterNetEvent('pvp_market:notify')
-AddEventHandler('pvp_market:notify', function(msg, success)
-    SendNUIMessage({ type = 'notify', msg = msg, success = success })
+-- Le texte des notifications est desormais affiche par vanta_ui ; cet event
+-- ne porte plus que la liberation du verrou de transfert du NUI, que le
+-- serveur emet a chaque notification (voir notify() dans server/server.lua).
+RegisterNetEvent('pvp_inventory:unlockTransfer')
+AddEventHandler('pvp_inventory:unlockTransfer', function()
+    SendNUIMessage({ type = 'unlock' })
 end)
 
 RegisterNetEvent('pvp_inventory:refresh')
@@ -938,7 +960,7 @@ function startHeal(itemName)
     if not duration then return false end
 
     if isHealing then
-        SendNUIMessage({ type = 'notify', msg = 'Déjà en train de se soigner !', success = false })
+        notify('Déjà en train de se soigner !', 'warning')
         return false
     end
 

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <link rel="stylesheet" href="nui://vanta_ui/html/vanta.css"/>
+  <!-- Police d'affichage des insignes (chiffre de saison, listel) — voir vanta_ui/BADGES.md -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&display=swap"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -418,53 +420,95 @@
     <!-- ─ VCOINS ─ -->
     <section id="view-vcoins" class="view">
 
-      <!-- Carte statut abonnement -->
-      <div class="vc-status-card" id="vc-status-card">
-        <div class="vc-status-left">
-          <div class="vc-tier-badge" id="vc-tier-badge">AUCUN ABONNEMENT</div>
-          <div class="vc-expiry" id="vc-expiry"></div>
+      <!-- ═ Bandeau de statut ═ -->
+      <div class="vc-statut" id="vc-status-card">
+        <div class="vc-statut-gauche">
+          <div class="vc-statut-insigne" id="vc-statut-insigne"></div>
+          <div class="vc-statut-txt">
+            <div class="vc-lbl">Ton statut</div>
+            <div class="vc-statut-ligne">
+              <span class="vc-statut-tier" id="vc-tier-badge">SANS GRADE</span>
+              <span class="vc-statut-exp" id="vc-expiry">— aucun avantage actif</span>
+            </div>
+          </div>
         </div>
-        <div class="vc-balance-block">
-          <div class="vc-balance-label">SOLDE</div>
-          <div class="vc-balance-val" id="vc-balance">0 VC</div>
+        <div class="vc-statut-droite">
+          <button class="vc-cta vc-cta-court" id="vc-btn-prolonger" style="display:none">PROLONGER</button>
+          <div class="vc-statut-solde">
+            <div class="vc-lbl">Solde</div>
+            <div class="vc-solde" id="vc-balance">0 <span class="vc-solde-u">VC</span></div>
+          </div>
         </div>
       </div>
 
-      <!-- Offres d'abonnement -->
+      <!-- ═ Choix du grade ═ -->
       <div class="vc-sub-section">
-        <div class="sec-sub">CHOISIR UN ABONNEMENT</div>
-        <div class="vc-sub-cards">
+        <div class="vc-sec">
+          <div class="vc-sec-titre" id="vc-sec-titre">CHOISIR UN GRADE</div>
+          <div class="vc-sec-note">30 jours · renouvellement manuel · aucune reconduction automatique</div>
+        </div>
+        <div class="vc-grades">
 
-          <div class="vc-sub-card vc-gold">
-            <div class="vc-sub-header">
-              <span class="vc-sub-tier">GOLD</span>
-              <span class="vc-sub-price">800 VC / mois</span>
+          <!-- ── GOLD ── -->
+          <div class="vc-grade vc-gold" id="vc-carte-gold" onclick="vcArmer('gold')">
+            <div class="vc-listel" id="vc-listel-gold"></div>
+            <div class="vc-grade-corps">
+              <div class="vc-grade-tete">
+                <div class="vc-insigne" id="vc-insigne-gold"></div>
+                <div class="vc-grade-nom">GOLD</div>
+                <div class="vc-grade-promesse">Ton nom sort du lot, partout où on te voit.</div>
+              </div>
+              <hr class="vc-filet vc-filet-teint">
+              <div class="vc-perks">
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>Ton pseudo en <b>doré dans le killfeed</b> — tout le serveur voit qui a tiré.</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>L'insigne <b>Abonné Gold</b> sur ton profil, monture dorée.</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>Les <b>teintes d'armes Gold</b>, introuvables autrement.</div></div>
+              </div>
+              <div class="vc-sousec"><span class="vc-lbl">Confort de jeu</span><hr class="vc-filet"></div>
+              <div class="vc-perks">
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Coffre protégé <b>+5 kg</b></div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Changement de personnage — <b>catalogue de base</b></div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Changement de pseudo <b>1×/semaine</b></div></div>
+              </div>
+              <div class="vc-espace"></div>
+              <div class="vc-prix-ligne">
+                <div class="vc-prix">800 <span class="vc-prix-u">VC</span></div>
+                <div class="vc-prix-note">pour 30 jours</div>
+              </div>
+              <button class="vc-cta" id="vc-btn-gold" onclick="event.stopPropagation(); vcCliqueBouton('gold')">SOUSCRIRE GOLD</button>
             </div>
-            <ul class="vc-sub-perks">
-              <li>Custom ped — catalogue de base</li>
-              <li>Conteneur protégé +5 kg</li>
-              <li>Rename 1×/semaine (au lieu de 1×/saison)</li>
-              <li>Teintes armes exclusives Gold</li>
-              <li>Badge <b>gold_member</b> + nom doré en killfeed</li>
-            </ul>
-            <button class="vc-sub-btn vc-btn-gold" onclick="vcSubscribe('gold')">SOUSCRIRE — 800 VC</button>
           </div>
 
-          <div class="vc-sub-card vc-diamond">
-            <div class="vc-diamond-badge">PREMIUM</div>
-            <div class="vc-sub-header">
-              <span class="vc-sub-tier">DIAMOND</span>
-              <span class="vc-sub-price">1500 VC / mois</span>
+          <!-- ── DIAMOND ── -->
+          <div class="vc-grade vc-diamond" id="vc-carte-diamond" onclick="vcArmer('diamond')">
+            <div class="vc-listel" id="vc-listel-diamond">LE PALIER SUPÉRIEUR</div>
+            <div class="vc-grade-corps">
+              <div class="vc-grade-tete">
+                <div class="vc-insigne vc-insigne-xl" id="vc-insigne-diamond"></div>
+                <div class="vc-grade-nom">DIAMOND</div>
+                <div class="vc-grade-promesse">Le seul rang qu'aucune heure de farm ne donne.</div>
+              </div>
+              <hr class="vc-filet vc-filet-teint">
+              <div class="vc-sousec"><span class="vc-lbl vc-lbl-teint">Tout ce que Gold donne, et&nbsp;:</span><hr class="vc-filet vc-filet-doux"></div>
+              <div class="vc-perks">
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>Ton pseudo en <b>cyan dans le killfeed</b> — la couleur la plus rare du serveur.</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>L'insigne <b>Abonné Diamond</b>, seule monture <b>rayonnante</b> du catalogue.</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div>Les <b>teintes d'armes Diamond</b>, au-dessus des teintes Gold.</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-plein"></span><div><b>Customisation véhicule</b> — exclusivité Diamond, personne d'autre n'y touche.</div></div>
+              </div>
+              <div class="vc-sousec"><span class="vc-lbl">Confort de jeu</span><hr class="vc-filet"></div>
+              <div class="vc-perks">
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Coffre protégé <b>+10 kg</b> — le double de Gold</div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Changement de personnage — <b>catalogue complet</b></div></div>
+                <div class="vc-perk"><span class="vc-m vc-m-creux"></span><div>Changement de pseudo <b>illimité</b></div></div>
+              </div>
+              <div class="vc-espace"></div>
+              <div class="vc-prix-ligne">
+                <div class="vc-prix">1 500 <span class="vc-prix-u">VC</span></div>
+                <div class="vc-prix-note">pour 30 jours</div>
+              </div>
+              <button class="vc-cta" id="vc-btn-diamond" onclick="event.stopPropagation(); vcCliqueBouton('diamond')">SOUSCRIRE DIAMOND</button>
             </div>
-            <ul class="vc-sub-perks">
-              <li>Custom ped — catalogue complet</li>
-              <li>Conteneur protégé +10 kg</li>
-              <li>Rename illimité</li>
-              <li>Accès <b>customisation véhicule</b> (exclusif)</li>
-              <li>Teintes armes exclusives Diamond</li>
-              <li>Badge <b>diamond_member</b> + nom cyan en killfeed</li>
-            </ul>
-            <button class="vc-sub-btn vc-btn-diamond" onclick="vcSubscribe('diamond')">SOUSCRIRE — 1500 VC</button>
           </div>
 
         </div>
@@ -674,9 +718,6 @@
   </div>
 </div>
 
-<!-- ══ TOAST ══ -->
-<div id="toast"></div>
-
 <!-- ══ PED SELECTOR OVERLAY ══ -->
 <div id="ped-selector-overlay" style="display:none;">
   <div id="ped-selector-panel">
@@ -698,6 +739,7 @@
 </div>
 
 <script src="ped_catalog.js"></script>
+<script src="badges.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

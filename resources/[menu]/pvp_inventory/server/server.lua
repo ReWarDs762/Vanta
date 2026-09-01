@@ -14,6 +14,21 @@ local playerStreaks = {} -- [identifier] = streak actuel
 -- ══ Lock anti-spam changement de ped ═══════════════════════════════════════
 local pedChangeLocks = {} -- [identifier] = true pendant une sauvegarde de ped
 
+-- ══ Notification joueur ═══════════════════════════════════════════════════
+-- Affiche le message via la pile partagee de vanta_ui ET libere le verrou de
+-- transfert du NUI (transferLocked).
+--
+-- ⚠️ Les deux roles sont indissociables : sur tous les chemins d erreur d un
+-- transfert (poids depasse, stock insuffisant, mode combat...), le serveur
+-- repond UNIQUEMENT par une notification, sans refresh. C est donc elle qui
+-- doit relacher le verrou, sinon le joueur ne peut plus rien deplacer dans
+-- son inventaire jusqu a le fermer et le rouvrir.
+-- Toute notification emise depuis pvp_inventory doit passer par cette fonction.
+local function notify(src, msg, kind)
+    exports['vanta_ui']:notify(src, msg, kind)
+    TriggerClientEvent('pvp_inventory:unlockTransfer', src)
+end
+
 -- ══ Utilitaire : trouver le source d'un joueur par identifier ═════════════
 local function getSourceByIdentifier(identifier)
     for _, src in ipairs(GetPlayers()) do
@@ -921,7 +936,7 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
 
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < 1 then
-        TriggerClientEvent('pvp_market:notify', src, 'Item indisponible.', false)
+        notify(src, 'Item indisponible.', 'error')
         return
     end
 
@@ -933,7 +948,7 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
     -- Armes → équiper sans consommer (toutes avec munitions infinies)
     elseif WEAPONS[itemName] then
         TriggerClientEvent('pvp_inventory:equipWeapon', src, itemName)
-        TriggerClientEvent('pvp_market:notify', src, item.label .. ' équipé.', true)
+        notify(src, item.label .. ' équipé.', 'success')
 
     -- Véhicules → spawn (consomme l'item, le joueur le récupère avec K)
     elseif string.sub(itemName, 1, 8) == 'vehicle_' then
@@ -941,8 +956,8 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
         local readyAt = vehicleSpawnCooldown[src]
         if readyAt and GetGameTimer() < readyAt then
             local remain = math.ceil((readyAt - GetGameTimer()) / 1000)
-            TriggerClientEvent('pvp_market:notify', src,
-                'Attends ' .. remain .. 's avant de ressortir un véhicule.', false)
+            notify(src,
+                'Attends ' .. remain .. 's avant de ressortir un véhicule.', 'warning')
             return
         end
 
@@ -950,7 +965,7 @@ AddEventHandler('pvp_inventory:useItem', function(itemName)
         xPlayer.removeInventoryItem(itemName, 1)
         registerVehicleSpawn(itemName)
         TriggerClientEvent('pvp_inventory:spawnVehicle', src, model, itemName, item.label)
-        TriggerClientEvent('pvp_market:notify', src, item.label .. ' spawn !', true)
+        notify(src, item.label .. ' spawn !', 'success')
         refreshClient(src, xPlayer)
     end
 end)
@@ -968,13 +983,13 @@ AddEventHandler('pvp_inventory:useItemConfirmed', function(itemName)
 
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < 1 then
-        TriggerClientEvent('pvp_market:notify', src, 'Item indisponible.', false)
+        notify(src, 'Item indisponible.', 'error')
         return
     end
 
     xPlayer.removeInventoryItem(itemName, 1)
     TriggerClientEvent('pvp_inventory:applyItem', src, itemName)
-    TriggerClientEvent('pvp_market:notify', src, item.label .. ' appliqué !', true)
+    notify(src, item.label .. ' appliqué !', 'success')
     refreshClient(src, xPlayer)
 end)
 
@@ -991,12 +1006,27 @@ AddEventHandler('pvp_inventory:dropItem', function(itemName, qty)
     if not item or item.count < qty then return end
 
     xPlayer.removeInventoryItem(itemName, qty)
-    TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' déposé.', true)
+    notify(src, item.label .. ' x' .. qty .. ' déposé.', 'success')
     refreshClient(src, xPlayer)
 end)
 
 -- ── Anti race condition : verrouillage par joueur sur les opérations coffre ──
-local stashLocks = {}  -- [identifier] = true pendant une opération
+-- [identifier] = os.time() du début de l'opération. Horodaté (et non plus un
+-- simple booléen) pour qu'un lock ne puisse pas rester posé indéfiniment si un
+-- callback MySQL ne revient jamais : sinon le joueur ne peut plus rien déposer
+-- ni retirer de son coffre jusqu'à sa reconnexion.
+local stashLocks = {}
+local STASH_LOCK_TIMEOUT = 10  -- secondes
+
+local function isStashLocked(identifier)
+    local startedAt = stashLocks[identifier]
+    if not startedAt then return false end
+    if os.time() - startedAt >= STASH_LOCK_TIMEOUT then
+        stashLocks[identifier] = nil
+        return false
+    end
+    return true
+end
 
 -- ── Coffre protégé : déposer ─────────────────────────────────────────────
 local STASH_MAX_WEIGHT = 20.0
@@ -1013,22 +1043,22 @@ AddEventHandler('pvp_inventory:stashDeposit', function(itemName, qty)
     -- fuite pendant un fight.
     local ok, inCombat = pcall(function() return exports['pvp_combat']:isInCombat(src) end)
     if ok and inCombat then
-        TriggerClientEvent('pvp_market:notify', src, 'Impossible en mode combat !', false)
+        notify(src, 'Impossible en mode combat !', 'warning')
         return
     end
 
     -- Anti race condition : une seule opération coffre à la fois par joueur
-    if stashLocks[xPlayer.identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+    if isStashLocked(xPlayer.identifier) then
+        notify(src, 'Opération en cours...', 'info')
         return
     end
-    stashLocks[xPlayer.identifier] = true
+    stashLocks[xPlayer.identifier] = os.time()
 
     qty = math.max(1, math.floor(tonumber(qty) or 1))
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < qty then
         stashLocks[xPlayer.identifier] = nil
-        TriggerClientEvent('pvp_market:notify', src, 'Item indisponible.', false)
+        notify(src, 'Item indisponible.', 'error')
         return
     end
 
@@ -1042,7 +1072,7 @@ AddEventHandler('pvp_inventory:stashDeposit', function(itemName, qty)
         local effectiveStashMax = getEffectiveStashWeight(xPlayer.identifier)
         if currentWeight + addWeight > effectiveStashMax then
             stashLocks[xPlayer.identifier] = nil
-            TriggerClientEvent('pvp_market:notify', src, 'Coffre trop lourd ! ('..effectiveStashMax..' kg max)', false)
+            notify(src, 'Coffre trop lourd ! ('..effectiveStashMax..' kg max)', 'warning')
             return
         end
 
@@ -1058,7 +1088,7 @@ AddEventHandler('pvp_inventory:stashDeposit', function(itemName, qty)
               ON DUPLICATE KEY UPDATE count = count + @qty]],
             { ['@id'] = xPlayer.identifier, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty },
             function()
-                TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre.', true)
+                notify(src, item.label .. ' x' .. qty .. ' → coffre.', 'success')
                 refreshStash(src, xPlayer, function()
                     stashLocks[xPlayer.identifier] = nil
                 end)
@@ -1076,11 +1106,11 @@ AddEventHandler('pvp_inventory:stashWithdraw', function(itemName, qty)
     if not isValidItemName(itemName) then return end
 
     -- Anti race condition
-    if stashLocks[xPlayer.identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+    if isStashLocked(xPlayer.identifier) then
+        notify(src, 'Opération en cours...', 'info')
         return
     end
-    stashLocks[xPlayer.identifier] = true
+    stashLocks[xPlayer.identifier] = os.time()
 
     qty = math.max(1, math.floor(tonumber(qty) or 1))
 
@@ -1090,7 +1120,7 @@ AddEventHandler('pvp_inventory:stashWithdraw', function(itemName, qty)
         function(rows)
             if not rows[1] or rows[1].count < qty then
                 stashLocks[xPlayer.identifier] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Pas assez dans le coffre.', false)
+                notify(src, 'Pas assez dans le coffre.', 'error')
                 return
             end
 
@@ -1102,14 +1132,14 @@ AddEventHandler('pvp_inventory:stashWithdraw', function(itemName, qty)
             local effBagMax = getEffectiveBagWeight(xPlayer.identifier)
             if getBagWeight(xPlayer) + addWeight > effBagMax then
                 stashLocks[xPlayer.identifier] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd ! (' .. effBagMax .. ' kg max)', false)
+                notify(src, 'Sac trop lourd ! (' .. effBagMax .. ' kg max)', 'warning')
                 return
             end
 
             xPlayer.addInventoryItem(itemName, qty)
 
             local function afterDbWrite()
-                TriggerClientEvent('pvp_market:notify', src, label .. ' x' .. qty .. ' ← coffre.', true)
+                notify(src, label .. ' x' .. qty .. ' ← coffre.', 'success')
                 refreshStash(src, xPlayer, function()
                     stashLocks[xPlayer.identifier] = nil
                 end)
@@ -1467,7 +1497,7 @@ local function createDeathBagFromInventory(src, xPlayer, deathCoords)
                 local dy = deathCoords.y - op.coords.y
                 local dz = deathCoords.z - op.coords.z
                 if (dx*dx + dy*dy + dz*dz) < (radius * radius) then
-                    TriggerClientEvent('pvp_market:notify', src, 'Mort en zone safe — inventaire préservé.', false)
+                    notify(src, 'Mort en zone safe — inventaire préservé.', 'info')
                     return
                 end
             end
@@ -1486,7 +1516,7 @@ local function createDeathBagFromInventory(src, xPlayer, deathCoords)
     end
 
     if #cleared > 0 then
-        TriggerClientEvent('pvp_market:notify', src, 'Inventaire perdu ! (' .. #cleared .. ' items)', false)
+        notify(src, 'Inventaire perdu ! (' .. #cleared .. ' items)', 'error')
     end
 
     -- Créer le sac de loot si le joueur avait des items
@@ -1537,7 +1567,7 @@ AddEventHandler('pvp_inventory:requestDeathBag', function(bagId)
 
     local bag = deathBags[bagId]
     if not bag then
-        TriggerClientEvent('pvp_market:notify', src, 'Ce sac a disparu.', false)
+        notify(src, 'Ce sac a disparu.', 'warning')
         return
     end
 
@@ -1579,7 +1609,7 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
 
     local bag = deathBags[bagId]
     if not bag then
-        TriggerClientEvent('pvp_market:notify', src, 'Ce sac a disparu.', false)
+        notify(src, 'Ce sac a disparu.', 'warning')
         return
     end
 
@@ -1593,7 +1623,7 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
         local dy = pCoords.y - bCoords.y
         local dz = pCoords.z - bCoords.z
         if (dx * dx + dy * dy + dz * dz) > 25.0 then -- >5m
-            TriggerClientEvent('pvp_market:notify', src, 'Trop loin du sac.', false)
+            notify(src, 'Trop loin du sac.', 'warning')
             return
         end
     end
@@ -1607,7 +1637,7 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
     local addWeight = getItemWeight(itemName) * qty
     local maxWeight = getEffectiveBagWeight(xPlayer.identifier)
     if currentWeight + addWeight > maxWeight then
-        TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd ! (' .. maxWeight .. ' kg max)', false)
+        notify(src, 'Sac trop lourd ! (' .. maxWeight .. ' kg max)', 'warning')
         deathBagLocks[bagId] = nil
         return
     end
@@ -1630,7 +1660,7 @@ AddEventHandler('pvp_inventory:deathBagWithdraw', function(bagId, itemName, qty)
     deathBagLocks[bagId] = nil
 
     if not found then
-        TriggerClientEvent('pvp_market:notify', src, 'Item introuvable dans le sac.', false)
+        notify(src, 'Item introuvable dans le sac.', 'error')
         return
     end
 
@@ -1740,18 +1770,18 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
     if not isValidItemName(itemName) then return end
 
     -- Anti race : même lock que le coffre protégé (une seule op coffre à la fois)
-    if stashLocks[xPlayer.identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+    if isStashLocked(xPlayer.identifier) then
+        notify(src, 'Opération en cours...', 'info')
         return
     end
-    stashLocks[xPlayer.identifier] = true
+    stashLocks[xPlayer.identifier] = os.time()
 
     local GLOBAL_ID = 'global'
     qty = math.max(1, math.floor(tonumber(qty) or 1))
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < qty then
         stashLocks[xPlayer.identifier] = nil
-        TriggerClientEvent('pvp_market:notify', src, 'Item indisponible.', false)
+        notify(src, 'Item indisponible.', 'error')
         return
     end
 
@@ -1767,7 +1797,7 @@ AddEventHandler('pvp_inventory:outpostStashDeposit', function(_, itemName, qty)
           ON DUPLICATE KEY UPDATE count = count + @qty]],
         { ['@id'] = xPlayer.identifier, ['@op'] = GLOBAL_ID, ['@item'] = itemName, ['@label'] = item.label, ['@qty'] = qty },
         function()
-            TriggerClientEvent('pvp_market:notify', src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', true)
+            notify(src, item.label .. ' x' .. qty .. ' → coffre avant-poste.', 'success')
             refreshStash(src, xPlayer)
             loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
                 TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
@@ -1787,11 +1817,11 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
 
     -- Anti race : empêche un double-clic de retirer 2x la même quantité
     -- (race classique : 2 fetchAll vus count=10 → 2 UPDATE → -20 au lieu de -10 → count<0)
-    if stashLocks[xPlayer.identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Opération en cours...', false)
+    if isStashLocked(xPlayer.identifier) then
+        notify(src, 'Opération en cours...', 'info')
         return
     end
-    stashLocks[xPlayer.identifier] = true
+    stashLocks[xPlayer.identifier] = os.time()
 
     local GLOBAL_ID = 'global'
     qty = math.max(1, math.floor(tonumber(qty) or 1))
@@ -1802,7 +1832,7 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
         function(rows)
             if not rows[1] or rows[1].count < qty then
                 stashLocks[xPlayer.identifier] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Pas assez dans le coffre.', false)
+                notify(src, 'Pas assez dans le coffre.', 'error')
                 return
             end
 
@@ -1814,7 +1844,7 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
             local effBagMax2 = getEffectiveBagWeight(xPlayer.identifier)
             if getBagWeight(xPlayer) + addWeight > effBagMax2 then
                 stashLocks[xPlayer.identifier] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd ! (' .. effBagMax2 .. ' kg max)', false)
+                notify(src, 'Sac trop lourd ! (' .. effBagMax2 .. ' kg max)', 'warning')
                 return
             end
 
@@ -1831,11 +1861,11 @@ AddEventHandler('pvp_inventory:outpostStashWithdraw', function(_, itemName, qty)
             MySQL.Async.execute(sql, params, function(affected)
                 if not affected or affected < 1 then
                     stashLocks[xPlayer.identifier] = nil
-                    TriggerClientEvent('pvp_market:notify', src, 'Erreur : stock modifié.', false)
+                    notify(src, 'Erreur : stock modifié.', 'error')
                     return
                 end
                 xPlayer.addInventoryItem(itemName, qty)
-                TriggerClientEvent('pvp_market:notify', src, label .. ' x' .. qty .. ' ← coffre avant-poste.', true)
+                notify(src, label .. ' x' .. qty .. ' ← coffre avant-poste.', 'success')
                 refreshStash(src, xPlayer)
                 loadOutpostStash(xPlayer.identifier, GLOBAL_ID, function(items)
                     TriggerClientEvent('pvp_inventory:refreshOutpostStash', src, items)
@@ -1868,7 +1898,7 @@ RegisterCommand('kitstart', function(source)
     local identifier = xPlayer.identifier
 
     if kitStartDone[identifier] or kitStartInProgress[identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Tu as déjà utilisé ton kit de départ.', false)
+        notify(src, 'Tu as déjà utilisé ton kit de départ.', 'warning')
         return
     end
     kitStartInProgress[identifier] = true
@@ -1880,7 +1910,7 @@ RegisterCommand('kitstart', function(source)
             if (tonumber(used) or 0) == 1 then
                 kitStartInProgress[identifier] = nil
                 kitStartDone[identifier] = true
-                TriggerClientEvent('pvp_market:notify', src, 'Tu as déjà utilisé ton kit de départ.', false)
+                notify(src, 'Tu as déjà utilisé ton kit de départ.', 'warning')
                 return
             end
 
@@ -1896,7 +1926,7 @@ RegisterCommand('kitstart', function(source)
 
             kitStartInProgress[identifier] = nil
             kitStartDone[identifier] = true
-            TriggerClientEvent('pvp_market:notify', src, 'Kit de départ reçu : 5x Carabine Spéciale, 5x Revolter, 5x Shot Attracteur !', true)
+            notify(src, 'Kit de départ reçu : 5x Carabine Spéciale, 5x Revolter, 5x Shot Attracteur !', 'success')
         end
     )
 end, false)
@@ -1935,7 +1965,7 @@ AddEventHandler('pvp_inventory:storeVehicle', function(itemName, itemLabel)
 
     xPlayer.addInventoryItem(itemName, 1)
     vehicleSpawnCooldown[src] = GetGameTimer() + VEHICLE_RESPAWN_COOLDOWN_MS
-    TriggerClientEvent('pvp_market:notify', src, label .. ' rangé.', true)
+    notify(src, label .. ' rangé.', 'success')
     refreshClient(src, xPlayer)
 end)
 

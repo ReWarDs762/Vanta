@@ -415,35 +415,10 @@ end, false)
 --   COMMANDES ADMIN
 -- ══════════════════════════════════════════════════════════════════════════
 
--- /givexp [id] [amount]
-RegisterCommand('givexp', function(src, args, rawCommand)
-    local xPlayer = ESX.GetPlayerFromId(src)
-    if not xPlayer then return end
-    if not VantaXP.AdminGroups[xPlayer.getGroup()] then
-        TriggerClientEvent('chat:addMessage', src, { args = { '^1ERREUR', 'Permission refusée.' } })
-        return
-    end
-
-    local targetId = tonumber(args[1])
-    local amount   = tonumber(args[2])
-    if not targetId or not amount or amount <= 0 then
-        TriggerClientEvent('chat:addMessage', src, { args = { '^3USAGE', '/givexp [id] [amount]' } })
-        return
-    end
-    -- SÉCURITÉ : borner l'amount pour éviter overflow INT
-    amount = math.min(math.floor(amount), 10000000)
-
-    local targetXP = ESX.GetPlayerFromId(targetId)
-    if not targetXP then
-        TriggerClientEvent('chat:addMessage', src, { args = { '^1ERREUR', 'Joueur #' .. targetId .. ' introuvable.' } })
-        return
-    end
-
-    addXP(targetXP.identifier, amount, 'admin_givexp')
-    TriggerClientEvent('chat:addMessage', src, {
-        args = { '^2VANTA XP', '+' .. amount .. ' XP donné à #' .. targetId }
-    })
-end, false)
+-- /givexp : PAS enregistrée ici — la commande vit dans pvp_admin (permissions +
+-- logs admin) et relaie vers l'export addXP de cette resource. Deux
+-- RegisterCommand('givexp') provoquaient une collision : FiveM ne garde que la
+-- dernière enregistrée (pvp_admin, chargé après), l'autre était du code mort.
 
 -- /setlevel [id] [level]
 RegisterCommand('setlevel', function(src, args, rawCommand)

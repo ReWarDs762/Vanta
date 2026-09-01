@@ -6,7 +6,7 @@ description 'PVP Extinction — Panel d\'administration complet'
 author 'PVP Extinction'
 version '2.0.0'
 
-dependencies { 'vanta_ui' }
+dependencies { 'vanta_ui', 'vanta_xp' }
 
 shared_scripts { 'config.lua' }
 server_scripts {

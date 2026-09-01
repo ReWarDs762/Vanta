@@ -76,7 +76,7 @@ passer une valeur `source` explicite lors d'un nouvel appel.
 |--------------------------------|------------|--------------------------------|
 | `/xp`                          | Joueur     | Toggle NUI profil XP           |
 | `/prestige`                    | Joueur     | Passer au prestige (si LVL100) |
-| `/givexp [id] [amount]`        | Admin      | Donner de l'XP                 |
+| `/givexp [id] [amount]`        | Admin      | Donner de l'XP — commande enregistrée par `pvp_admin`, qui relaie vers l'export `addXP` d'ici |
 | `/setlevel [id] [level]`       | Admin      | Définir le niveau              |
 | `/setprestige [id] [prestige]` | Admin      | Définir le prestige            |
 

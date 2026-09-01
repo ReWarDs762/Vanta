@@ -18,13 +18,17 @@
     font-family: var(--v-font);
   }
 
+  /* Ancrage bas-centre : reprend la position historique du toast de
+     pvp_inventory (bottom 16px, centre horizontal). La pile grandit vers le
+     haut : le message le plus recent reste au plus pres du bas de l ecran. */
   #notify-stack {
     position: fixed;
-    top: 96px;
-    right: 24px;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: var(--v-space-2);
     pointer-events: none;
     z-index: 99999;
@@ -92,12 +96,12 @@
 
   /* Animations : fade + glissement court, pas de bounce ni de scale */
   @keyframes notifIn {
-    from { opacity: 0; transform: translateX(12px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes notifOut {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(12px); }
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(6px); }
   }
 </style>
 </head>

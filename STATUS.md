@@ -14,7 +14,7 @@ roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — b
 |---|---|---|
 | `pvp_combat` | **Nouveau (23/08/2026), jamais testé** | Mode combat / anti combat-log : voir CLAUDE.md → « Mode combat (pvp_combat) ». Dépend de `pvp_outposts` (déclenche le mode combat) et `pvp_inventory` (délègue la mort par combat-log). À tester en priorité : déconnexion en plein fight (le stuff doit tomber), blocage du dépôt au coffre protégé en combat, expiration du mode combat 5s après le dernier coup. |
 | `pvp_character` | Refondu (22/08/2026), **non testé en jeu** | Écran de création revu en profondeur : cadrage caméra corrigé (le perso était mal visible derrière le panel), personnalisation étendue (peau, morphologie, cheveux, 10 emplacements vêtements + 5 accessoires en freemode, ou choix d'un ped spécial du catalogue `pvp_inventory`). Fix du bug de timing qui empêchait l'écran de s'afficher (`Wait(400)` fixe → retry loop). Voir CLAUDE.md pour le détail. À valider intégralement en jeu avant de considérer ce chantier terminé. |
-| `pvp_drops` | Audité + corrigé (24/08/2026) + revu (25/08/2026), **non testé en jeu** | Audit du 24/08 : 3 bugs de fiabilité corrigés (failover du contrôleur, expiration du drop, dépendances implicites), notifications migrées vers `vanta_ui`, fusées éclairantes (son + particules) à l'atterrissage. Revu le 25/08 (import du travail cloud, fusionné à la main avec l'audit du 24/08 car les deux touchaient les mêmes fonctions) : trajectoire passée de flèches-blips clignotantes à des flèches-sprite défilantes sur la minimap (`Config.Trail`, `html/img/arrow.png`), atterrissage désormais au premier contact par raycast (toit, relief...) au lieu du Z fixe de zone, contrôleur choisi par proximité (pas premier connecté), commande `/droptest` pour tester chaque étape sans attendre les timers. Reste : validation manette en main — priorité sur le raycast d'atterrissage et le failover de contrôleur, jamais testés ensemble. |
+| `pvp_drops` | Audité + corrigé (24/08/2026), **non testé en jeu** | Audit complet : 3 bugs de fiabilité corrigés (failover du contrôleur, expiration du drop, dépendances implicites), notifications migrées vers `vanta_ui`, fusées éclairantes (son + particules) à l'atterrissage, trajectoire en flèches rouges clignotantes. Reste : validation manette en main. |
 | `vanta_ui` | Étendu (24/08/2026), **non testé en jeu** | Ajout d'un système de notifications générique (`ui_page` + exports `notify`/`notifyAll`). Seul `pvp_drops` l'utilise pour l'instant — les autres resources passent toujours par `pvp_market:notify` (voir Écarts). |
 | `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
 | `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous. Annonces chat de série de kills retirées (23/08/2026, trop bruyantes à plusieurs joueurs) — le killfeed NUI et les leaders de session restent inchangés. |
@@ -34,54 +34,55 @@ architecture.
 
 ## Bugs actifs connus
 
-### `/givexp` — collision de commande, non corrigé
-
-`vanta_xp/server.lua` et `pvp_admin/server/server.lua` déclarent chacun une commande
-`/givexp`. FiveM ne garde que la dernière enregistrée sous un nom donné — `pvp_admin`
-étant `ensure`d après `vanta_xp` dans `server.cfg`, **c'est la sienne qui gagne
-aujourd'hui**. Elle écrit dans la colonne morte `pvp_player_stats.xp` au lieu d'appeler
-l'export `addXP()` de `vanta_xp` (la vraie table de progression).
-
-**Conséquence :** `/givexp` ne fait rien d'observable pour le joueur.
-
-**Non corrigé** — nécessite une décision : garder la version de `vanta_xp` (supprimer
-celle de `pvp_admin`), ou faire relayer `pvp_admin` vers l'export `addXP` de `vanta_xp`.
-
-### `vehicle_sasquatch` — modèle inexistant dans le loot
-
-`pvp_zombies/config.lua` (palier `epic`), `pvp_drops/config.lua` et le catalogue marché de
-`pvp_inventory` référencent `vehicle_sasquatch`. **Aucun véhicule GTA V n'a ce spawn code**
-(absent des packs d'images exhaustifs, non enregistrable comme item). Il ne pourra jamais
-être looté ni spawné. **Non corrigé** — nécessite de choisir un modèle de remplacement (ex.
-`monster` / `marshall` pour rester dans le thème) ou de le retirer des trois listes. Tant
-que ce n'est pas tranché, il occupe un slot mort dans les tables de loot epic.
+*Aucun bug actif documenté pour l'instant.*
 
 ---
 
 ## Bugs corrigés
 
-### `pvp_garage` — refonte concessionnaire + images véhicules (27/08/2026)
+### `pvp_inventory` — inventaire figé en spammant le clic droit sur un coffre plein (corrigé 01/09/2026, validé en jeu)
 
-- **Design** : le panneau concessionnaire est passé au style de l'armurerie/boutique des
-  avant-postes (`pvp_outposts/html/shop.css`) — boutons ghost, 0 radius, panneau droit
-  opaque. Le CSS inline mort de `index.html` a été remplacé par un `<link>` vers
-  `html/dealer.css` (qui était listé au manifest mais jamais chargé).
-- **Catalogue** : `Config.Vehicles` réduit aux 7 véhicules du palier « rare » du loot
-  zombie ; épique/légendaire (`Config.MarketOnlyVehicles`, liste étendue aux 19 modèles des
-  paliers `epic`+`legendaire`) bloqués à l'achat ET à la revente. `sellVehicleItem` ne
-  retombe plus sur le forfait 500 $ pour un modèle hors catalogue.
-- **`vehicle_ultralight` → `vehicle_microlight`** : le spawn code GTA V de l'« Ultralight »
-  est `microlight`. L'ancien `vehicle_ultralight` était un item mort (jamais enregistré,
-  jamais spawnable). Corrigé dans `pvp_zombies`, `pvp_garage`, `pvp_inventory` (catalogue +
-  map de rareté).
-- **Items véhicule manquants** : `speedo2`, `cerberus`, `cog552`, `thruster` étaient
-  référencés en loot/dealer sans être enregistrés dans la table `items` de `pvp_inventory` →
-  ajoutés à la liste `registerVehicleItems()`.
-- **Images** : 17 PNG véhicules ajoutés dans `pvp_inventory/html/img/` (source :
-  `github.com/MericcaN41/gta5carimages`, PNG transparents nommés par spawn code) — couvre
-  désormais tous les véhicules lootables/achetables sauf `sasquatch` (voir bug actif
-  ci-dessus). Fallback NUI du concessionnaire : emoji 🚗 remplacé par une silhouette SVG
-  monochrome. **Armes : déjà 100 % couvertes**, aucun ajout nécessaire.
+Signalé en test : spam de clic droit pour déposer un item dans le conteneur protégé
+**plein** → l'inventaire ne répond plus (ni fermeture, ni déplacement d'item).
+
+Cause principale : seules les cartes d'items annulaient l'événement `contextmenu`
+(attribut `oncontextmenu`). Un clic droit qui tombe à côté (gouttière de 8 px de la
+grille, panneau, fond) laissait CEF ouvrir son **menu contextuel natif**, qui se dessine
+par-dessus le NUI et avale clics et touches. Coffre plein = les cartes ne bougent pas, on
+continue de spammer au même endroit → cas de déclenchement idéal. `pvp_garage` avait déjà
+la garde globale, pas `pvp_inventory`.
+
+Corrections (`html/app.js` + `server/server.lua`) :
+- `document.addEventListener('contextmenu', e => e.preventDefault())` global.
+- Test de capacité **côté client** avant l'envoi (clic droit ET drag & drop) : coffre plein
+  → toast immédiat (throttlé à 1 par 1,5 s), aucun event serveur. Le serveur refait le
+  calcul, il reste seul juge.
+- `transferLocked` passe par `lockTransfer()`/`unlockTransfer()` avec libération
+  automatique au bout de 3 s. Avant, une réponse serveur perdue bloquait l'inventaire
+  définitivement (rouvrir l'UI ne relâchait pas le verrou : la page NUI n'est pas
+  rechargée). Verrou aussi relâché à la fermeture.
+- `stashLocks` côté serveur est horodaté (`os.time()`) avec expiration à 10 s au lieu d'un
+  booléen : un callback MySQL perdu ne condamne plus le coffre du joueur jusqu'à sa
+  reconnexion.
+
+### `/givexp` — collision de commande (corrigé 30/08/2026, non testé en jeu)
+
+`vanta_xp/server.lua` et `pvp_admin/server/server.lua` déclaraient chacun une commande
+`/givexp`. FiveM ne garde que la dernière enregistrée sous un nom donné — `pvp_admin`
+étant `ensure`d après `vanta_xp` dans `server.cfg`, c'est la sienne qui gagnait, et elle
+écrivait dans la colonne morte `pvp_player_stats.xp` au lieu de la vraie table de
+progression. Résultat : `/givexp` ne faisait rien d'observable pour le joueur.
+
+**Décision retenue :** relais. La commande reste dans `pvp_admin` (permissions `hasPerm`,
+logs `pvp_admin_logs`, panel NUI) mais passe désormais par un helper `awardXP()` qui
+appelle `exports['vanta_xp']:addXP(identifier, amount, 'admin_givexp')` — niveaux,
+prestige, table `vanta_xp` et notification client compris. Le `RegisterCommand('givexp')`
+de `vanta_xp` a été supprimé (code mort), `vanta_xp` ajouté aux `dependencies` de
+`pvp_admin`. Si l'export est indisponible, l'admin reçoit une erreur explicite et aucun
+log de succès n'est écrit.
+
+**À tester en jeu :** `/givexp [id] [montant]` et le bouton XP du panel F7 → la barre
+d'XP/niveau doit bouger côté joueur.
 
 ### `pvp_inventory` — bonus de coffre protégé écrasé entre sources (corrigé 24/08/2026)
 
@@ -186,14 +187,10 @@ suit n'a été validé manette en main :
       bonus de coffre prestige/abonnement (fix multi-sources ci-dessus)
 - [ ] `pvp_drops` — avion, parachute, ouverture de caisse : jamais validés. Depuis les
       correctifs du 24/08/2026, à tester en plus : la déconnexion du contrôleur en plein
-      vol ET en pleine chute (l'avion/la caisse doivent continuer chez les autres joueurs,
-      la recherche de surface d'impact doit reprendre côté nouveau contrôleur),
-      l'expiration d'un drop non récupéré (`Config.DropLifetime`, 1h), les fusées
-      éclairantes (`prop_flare_01` + son `Flare`/`FBI_05_SOUNDS`). Depuis la revue du
-      25/08/2026, à tester en plus : les flèches-sprite de trajectoire sur la minimap
-      (`Config.Trail`, en particulier en bigmap et sur écrans ultra-larges), l'atterrissage
-      par raycast au premier contact (toit de bâtiment en particulier — c'est le cas que le
-      Z fixe des zones ne couvrait pas), et la commande `/droptest`
+      vol (l'avion doit continuer sa trajectoire chez les autres joueurs), l'expiration
+      d'un drop non récupéré (`Config.DropLifetime`, 1h), les fusées éclairantes
+      (`prop_flare_01` + son `Flare`/`FBI_05_SOUNDS`), et les flèches rouges clignotantes
+      de trajectoire sur la minimap
 - [ ] `vanta_ui` — système de notifications générique : jamais affiché en jeu
 - [ ] `pvp_redzones` — rotation horaire, loot ×2 : jamais validés
 - [ ] `pvp_zombies` — spawn, IA, loot pondéré : jamais validés
@@ -246,24 +243,14 @@ systèmes coexistent (deux styles de toast possibles à l'écran).
 
 ### `pvp_drops` — loot annoncé « légendaire », majoritairement épic
 
-`Config.LootTable` pondère ~81 % d'épic pour ~19 % de légendaire (mis à jour le 25/08/2026 :
-7 véhicules épic retirés de la table — voir ci-dessous — ratio auparavant ~86/14). Les
-libellés en jeu ont été neutralisés le 24/08/2026 (« DROP DE RAVITAILLEMENT », plus de
-mention de rareté), mais **la pondération elle-même n'a pas été revue en profondeur** — à
-trancher : soit augmenter encore la part de légendaire, soit assumer le ratio actuel.
-Rééquilibrage du 25/08/2026 : `Config.LootCount` passé de 3 à 1 item par caisse, et 7
-véhicules épic retirés (`vehicle_maverick`, `vehicle_schafter5`, `vehicle_baller6`,
-`vehicle_buzzard2`, `vehicle_xls2`, `vehicle_cog552`, `vehicle_havok`) — toujours
-disponibles via zombies/marché, juste plus tirables en airdrop. Annonce chat ajoutée à la
-prise d'un item (`★ DROP ★ <joueur> a récupéré <item> dans le airdrop.`), en plus du toast
-`vanta_ui` existant à la fermeture du drop — pas encore testé en jeu.
+`Config.LootTable` pondère ~86 % d'épic pour ~14 % de légendaire. Les libellés en jeu ont
+été neutralisés le 24/08/2026 (« DROP DE RAVITAILLEMENT », plus de mention de rareté),
+mais **la table de loot elle-même n'a pas été rééquilibrée** — à trancher : soit augmenter
+la part de légendaire, soit assumer le ratio actuel.
 
 ---
 
 ## Roadmap
-
-> Vue d'ensemble phasée, priorités et check-list de sortie : `ROADMAP.md`.
-> Ci-dessous = suivi fin, à jour session par session.
 
 ### Priorité actuelle : rendre toutes les features existantes fonctionnelles et cohérentes avant d'en ajouter de nouvelles.
 
@@ -272,16 +259,15 @@ prise d'un item (`★ DROP ★ <joueur> a récupéré <item> dans le airdrop.`),
 - [x] Phase 2.5 — Inventaire NUI complet + armes + véhicules
 - [x] Phase 3 — Avant-postes, garage, admin, profil, badges, XP/prestige
 - [ ] **En cours — Polish & consolidation** :
-  - [x] pvp_drops : correctifs de fiabilité + sons/flares (24/08/2026), puis atterrissage
-        par raycast + trajectoire en flèches-sprite + `/droptest` (25/08/2026, import
-        cloud fusionné à la main avec les correctifs du 24/08 — à tester)
+  - [x] pvp_drops : correctifs de fiabilité + sons/flares + trajectoire clignotante (24/08/2026, à tester)
   - [ ] pvp_drops : rééquilibrer la table de loot (voir Écarts) et tester en jeu
   - [ ] Migrer `pvp_market`, `pvp_zombies` et `pvp_inventory` vers `exports['vanta_ui']:notify`
   - [ ] pvp_redzones : polish visuel, notifications rotation, timer
   - [ ] pvp_killfeed : tester et finaliser
   - [ ] pvp_crew : tester, corriger, brainstormer la vision long terme
   - [ ] pvp_market : refonte design (plus lisible/visible)
-  - [ ] `/givexp` : trancher la collision de commande (voir Bugs actifs)
+  - [x] `/givexp` : collision tranchée — relais `pvp_admin` → export `addXP` de `vanta_xp`
+        (30/08/2026, à tester)
 - [x] Phase 4a — Crew : hiérarchie, coffre partagé, contrat quotidien, trésorerie/monnaie
       collective, boutique de bonus temporaires, historique (24/08/2026, non testé en jeu)
 - [ ] Phase 4b — Crew : système d'affrontement entre crews (à brainstormer)

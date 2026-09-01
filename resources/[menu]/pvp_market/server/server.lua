@@ -109,7 +109,7 @@ AddEventHandler('pvp_market:createListing', function(itemName, itemLabel, qty, p
 
     -- SÉCURITÉ : validation format item
     if not isValidItemName(itemName) then
-        TriggerClientEvent('pvp_market:notify', src, 'Nom d\'item invalide.', false)
+        exports['vanta_ui']:notify(src, 'Nom d\'item invalide.', 'error')
         return
     end
 
@@ -121,7 +121,7 @@ AddEventHandler('pvp_market:createListing', function(itemName, itemLabel, qty, p
 
     -- Vérifie la zone safe
     if not isPlayerInSafeZone(src) then
-        TriggerClientEvent('pvp_market:notify', src, 'Ventes uniquement en zone safe !', false)
+        exports['vanta_ui']:notify(src, 'Ventes uniquement en zone safe !', 'warning')
         return
     end
 
@@ -133,14 +133,14 @@ AddEventHandler('pvp_market:createListing', function(itemName, itemLabel, qty, p
             { ['@sid'] = xPlayer.identifier })
     end)
     if ok and currentCount and currentCount >= maxListings then
-        TriggerClientEvent('pvp_market:notify', src, 'Limite d\'annonces atteinte (' .. maxListings .. ' max).', false)
+        exports['vanta_ui']:notify(src, 'Limite d\'annonces atteinte (' .. maxListings .. ' max).', 'warning')
         return
     end
 
     -- Vérifie le stock
     local item = xPlayer.getInventoryItem(itemName)
     if not item or item.count < qty then
-        TriggerClientEvent('pvp_market:notify', src, 'Stock insuffisant.', false)
+        exports['vanta_ui']:notify(src, 'Stock insuffisant.', 'error')
         return
     end
 
@@ -166,8 +166,8 @@ AddEventHandler('pvp_market:createListing', function(itemName, itemLabel, qty, p
             ['@price'] = price,
         },
         function()
-            TriggerClientEvent('pvp_market:notify', src,
-                itemLabel .. ' x' .. qty .. ' mis en vente pour ' .. price .. ' $.', true)
+            exports['vanta_ui']:notify(src,
+                itemLabel .. ' x' .. qty .. ' mis en vente pour ' .. price .. ' $.', 'success')
             -- Rafraîchir l'inventaire du joueur pour que le NUI soit à jour
             TriggerEvent('pvp_inventory:refreshClient', src)
         end
@@ -188,7 +188,7 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
 
     -- Anti-spam : verrouillage par listing
     if buyLocks[listingId] then
-        TriggerClientEvent('pvp_market:notify', src, 'Achat en cours de traitement...', false)
+        exports['vanta_ui']:notify(src, 'Achat en cours de traitement...', 'info')
         return
     end
     buyLocks[listingId] = true
@@ -196,7 +196,7 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
     -- Vérifie la zone safe
     if not isPlayerInSafeZone(src) then
         buyLocks[listingId] = nil
-        TriggerClientEvent('pvp_market:notify', src, 'Achats uniquement en zone safe !', false)
+        exports['vanta_ui']:notify(src, 'Achats uniquement en zone safe !', 'warning')
         return
     end
 
@@ -207,7 +207,7 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
         function(rows)
             if not rows[1] then
                 buyLocks[listingId] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Annonce introuvable ou déjà vendue.', false)
+                exports['vanta_ui']:notify(src, 'Annonce introuvable ou déjà vendue.', 'warning')
                 return
             end
 
@@ -215,14 +215,14 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
 
             if listing.seller_identifier == xPlayer.identifier then
                 buyLocks[listingId] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Tu ne peux pas acheter ta propre annonce.', false)
+                exports['vanta_ui']:notify(src, 'Tu ne peux pas acheter ta propre annonce.', 'warning')
                 return
             end
 
             local account = xPlayer.getAccount('bank')
             if not account or account.money < listing.price then
                 buyLocks[listingId] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Fonds insuffisants.', false)
+                exports['vanta_ui']:notify(src, 'Fonds insuffisants.', 'error')
                 return
             end
 
@@ -234,7 +234,7 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
                     buyLocks[listingId] = nil
 
                     if rowsAffected == 0 then
-                        TriggerClientEvent('pvp_market:notify', src, 'Annonce déjà vendue.', false)
+                        exports['vanta_ui']:notify(src, 'Annonce déjà vendue.', 'warning')
                         return
                     end
 
@@ -264,7 +264,7 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
                                 ['@cur']    = listing.currency or 'bank',
                             }
                         )
-                        TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd pour cet achat !', false)
+                        exports['vanta_ui']:notify(src, 'Sac trop lourd pour cet achat !', 'warning')
                         return
                     end
 
@@ -279,9 +279,9 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
                     local seller = ESX.GetPlayerFromIdentifier(listing.seller_identifier)
                     if seller then
                         seller.addAccountMoney('bank', netAmount)
-                        TriggerClientEvent('pvp_market:notify', seller.source,
+                        exports['vanta_ui']:notify(seller.source,
                             listing.item_label .. ' x' .. listing.quantity
-                            .. ' vendu ! +' .. netAmount .. ' $ (taxe ' .. tax .. ' $)', true)
+                            .. ' vendu ! +' .. netAmount .. ' $ (taxe ' .. tax .. ' $)', 'success')
                     else
                         -- Vendeur hors ligne
                         MySQL.Async.execute(
@@ -293,9 +293,9 @@ AddEventHandler('pvp_market:buyListing', function(listingId)
                         )
                     end
 
-                    TriggerClientEvent('pvp_market:notify', src,
+                    exports['vanta_ui']:notify(src,
                         listing.item_label .. ' x' .. listing.quantity
-                        .. ' acheté pour ' .. listing.price .. ' $.', true)
+                        .. ' acheté pour ' .. listing.price .. ' $.', 'success')
                 end
             )
         end
@@ -314,7 +314,7 @@ AddEventHandler('pvp_market:cancelListing', function(listingId)
         { ['@id'] = listingId, ['@sid'] = xPlayer.identifier },
         function(rows)
             if not rows[1] then
-                TriggerClientEvent('pvp_market:notify', src, 'Annonce introuvable.', false)
+                exports['vanta_ui']:notify(src, 'Annonce introuvable.', 'warning')
                 return
             end
             local listing = rows[1]
@@ -324,9 +324,9 @@ AddEventHandler('pvp_market:cancelListing', function(listingId)
                 { ['@id'] = listingId },
                 function()
                     xPlayer.addInventoryItem(listing.item_name, listing.quantity)
-                    TriggerClientEvent('pvp_market:notify', src,
+                    exports['vanta_ui']:notify(src,
                         'Annonce annulée — ' .. listing.item_label
-                        .. ' x' .. listing.quantity .. ' restitué.', true)
+                        .. ' x' .. listing.quantity .. ' restitué.', 'info')
                 end
             )
         end
@@ -354,8 +354,8 @@ AddEventHandler('esx:playerLoaded', function(playerId)
             end
             if total > 0 then
                 xPlayer.addAccountMoney('bank', total)
-                TriggerClientEvent('pvp_market:notify', xPlayer.source,
-                    'Ventes encaissées pendant ton absence : +' .. total .. ' $', true)
+                exports['vanta_ui']:notify(xPlayer.source,
+                    'Ventes encaissées pendant ton absence : +' .. total .. ' $', 'success')
             end
             -- Supprimer uniquement les lignes récupérées (par ID)
             if #ids > 0 then
@@ -379,27 +379,27 @@ AddEventHandler('pvp_market:requestTrade', function(targetServerId)
     local xPlayer = ESX.GetPlayerFromId(src)
     local target  = ESX.GetPlayerFromId(targetServerId)
     if not xPlayer or not target then
-        TriggerClientEvent('pvp_market:notify', src, 'Joueur introuvable.', false)
+        exports['vanta_ui']:notify(src, 'Joueur introuvable.', 'error')
         return
     end
     if src == targetServerId then
-        TriggerClientEvent('pvp_market:notify', src, 'Tu ne peux pas échanger avec toi-même.', false)
+        exports['vanta_ui']:notify(src, 'Tu ne peux pas échanger avec toi-même.', 'warning')
         return
     end
 
     -- Vérifier que les deux joueurs sont en zone safe
     if not isPlayerInSafeZone(src) then
-        TriggerClientEvent('pvp_market:notify', src, 'Échange uniquement en zone safe !', false)
+        exports['vanta_ui']:notify(src, 'Échange uniquement en zone safe !', 'warning')
         return
     end
     if not isPlayerInSafeZone(targetServerId) then
-        TriggerClientEvent('pvp_market:notify', src, 'L\'autre joueur n\'est pas en zone safe.', false)
+        exports['vanta_ui']:notify(src, 'L\'autre joueur n\'est pas en zone safe.', 'warning')
         return
     end
 
     -- Stocker la demande (avec timestamp pour timeout)
     pendingTrades[targetServerId] = { from = src, fromName = getPlayerName(xPlayer), timestamp = os.time() }
-    TriggerClientEvent('pvp_market:notify', src, 'Demande d\'échange envoyée à ' .. getPlayerName(target), true)
+    exports['vanta_ui']:notify(src, 'Demande d\'échange envoyée à ' .. getPlayerName(target), 'info')
     TriggerClientEvent('pvp_market:tradeRequest', targetServerId, src, getPlayerName(xPlayer))
 end)
 
@@ -417,7 +417,7 @@ AddEventHandler('pvp_market:respondTrade', function(accepted)
     if not xFrom or not xTo then return end
 
     if not accepted then
-        TriggerClientEvent('pvp_market:notify', fromSrc, getPlayerName(xTo) .. ' a refusé l\'échange.', false)
+        exports['vanta_ui']:notify(fromSrc, getPlayerName(xTo) .. ' a refusé l\'échange.', 'info')
         return
     end
 
@@ -542,8 +542,8 @@ AddEventHandler('pvp_market:cancelTrade', function()
 
     TriggerClientEvent('pvp_market:tradeClosed', src)
     TriggerClientEvent('pvp_market:tradeClosed', partner)
-    TriggerClientEvent('pvp_market:notify', src, 'Échange annulé.', false)
-    TriggerClientEvent('pvp_market:notify', partner, 'Échange annulé par l\'autre joueur.', false)
+    exports['vanta_ui']:notify(src, 'Échange annulé.', 'info')
+    exports['vanta_ui']:notify(partner, 'Échange annulé par l\'autre joueur.', 'info')
 end)
 
 -- Exécuter l'échange (les deux ont confirmé)
@@ -560,8 +560,8 @@ function executeTrade(srcA, srcB)
     for _, offer in ipairs(tradeA.myOffer.items) do
         local item = xA.getInventoryItem(offer.name)
         if not item or item.count < offer.count then
-            TriggerClientEvent('pvp_market:notify', srcA, 'Stock insuffisant pour l\'échange.', false)
-            TriggerClientEvent('pvp_market:notify', srcB, 'Échange échoué.', false)
+            exports['vanta_ui']:notify(srcA, 'Stock insuffisant pour l\'échange.', 'error')
+            exports['vanta_ui']:notify(srcB, 'Échange échoué.', 'error')
             activeTrades[srcA] = nil
             activeTrades[srcB] = nil
             TriggerClientEvent('pvp_market:tradeClosed', srcA)
@@ -574,8 +574,8 @@ function executeTrade(srcA, srcB)
     for _, offer in ipairs(tradeB.myOffer.items) do
         local item = xB.getInventoryItem(offer.name)
         if not item or item.count < offer.count then
-            TriggerClientEvent('pvp_market:notify', srcB, 'Stock insuffisant pour l\'échange.', false)
-            TriggerClientEvent('pvp_market:notify', srcA, 'Échange échoué.', false)
+            exports['vanta_ui']:notify(srcB, 'Stock insuffisant pour l\'échange.', 'error')
+            exports['vanta_ui']:notify(srcA, 'Échange échoué.', 'error')
             activeTrades[srcA] = nil
             activeTrades[srcB] = nil
             TriggerClientEvent('pvp_market:tradeClosed', srcA)
@@ -588,7 +588,7 @@ function executeTrade(srcA, srcB)
     local bankA = xA.getAccount('bank')
     local bankB = xB.getAccount('bank')
     if tradeA.myOffer.money > 0 and (not bankA or bankA.money < tradeA.myOffer.money) then
-        TriggerClientEvent('pvp_market:notify', srcA, 'Pas assez d\'argent.', false)
+        exports['vanta_ui']:notify(srcA, 'Pas assez d\'argent.', 'error')
         activeTrades[srcA] = nil
         activeTrades[srcB] = nil
         TriggerClientEvent('pvp_market:tradeClosed', srcA)
@@ -596,7 +596,7 @@ function executeTrade(srcA, srcB)
         return
     end
     if tradeB.myOffer.money > 0 and (not bankB or bankB.money < tradeB.myOffer.money) then
-        TriggerClientEvent('pvp_market:notify', srcB, 'Pas assez d\'argent.', false)
+        exports['vanta_ui']:notify(srcB, 'Pas assez d\'argent.', 'error')
         activeTrades[srcA] = nil
         activeTrades[srcB] = nil
         TriggerClientEvent('pvp_market:tradeClosed', srcA)
@@ -629,8 +629,8 @@ function executeTrade(srcA, srcB)
 
     TriggerClientEvent('pvp_market:tradeClosed', srcA)
     TriggerClientEvent('pvp_market:tradeClosed', srcB)
-    TriggerClientEvent('pvp_market:notify', srcA, 'Échange réussi !', true)
-    TriggerClientEvent('pvp_market:notify', srcB, 'Échange réussi !', true)
+    exports['vanta_ui']:notify(srcA, 'Échange réussi !', 'success')
+    exports['vanta_ui']:notify(srcB, 'Échange réussi !', 'success')
 end
 
 -- Cleanup si un joueur se déconnecte pendant un échange
@@ -643,7 +643,7 @@ AddEventHandler('playerDropped', function()
         if activeTrades[partner] then
             activeTrades[partner] = nil
             TriggerClientEvent('pvp_market:tradeClosed', partner)
-            TriggerClientEvent('pvp_market:notify', partner, 'L\'autre joueur s\'est déconnecté.', false)
+            exports['vanta_ui']:notify(partner, 'L\'autre joueur s\'est déconnecté.', 'warning')
         end
     end
     pendingTrades[src] = nil
@@ -659,7 +659,7 @@ AddEventHandler('pvp_market:claimSales', function()
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
     if claimLocks[xPlayer.identifier] then
-        TriggerClientEvent('pvp_market:notify', src, 'Traitement en cours...', false)
+        exports['vanta_ui']:notify(src, 'Traitement en cours...', 'info')
         return
     end
     claimLocks[xPlayer.identifier] = true
@@ -669,7 +669,7 @@ AddEventHandler('pvp_market:claimSales', function()
         function(rows)
             if not rows or #rows == 0 then
                 claimLocks[xPlayer.identifier] = nil
-                TriggerClientEvent('pvp_market:notify', src, 'Aucun paiement en attente.', false)
+                exports['vanta_ui']:notify(src, 'Aucun paiement en attente.', 'info')
                 return
             end
             local ids = {}
@@ -691,7 +691,7 @@ AddEventHandler('pvp_market:claimSales', function()
             else
                 claimLocks[xPlayer.identifier] = nil
             end
-            TriggerClientEvent('pvp_market:notify', src, 'Paiements réclamés !', true)
+            exports['vanta_ui']:notify(src, 'Paiements réclamés !', 'success')
         end
     )
 end)
@@ -706,7 +706,7 @@ CreateThread(function()
                 -- Notifier l'expéditeur si encore connecté
                 local xFrom = ESX.GetPlayerFromId(pending.from)
                 if xFrom then
-                    TriggerClientEvent('pvp_market:notify', pending.from, 'Demande d\'échange expirée.', false)
+                    exports['vanta_ui']:notify(pending.from, 'Demande d\'échange expirée.', 'info')
                 end
                 pendingTrades[targetSrc] = nil
             end
@@ -719,10 +719,10 @@ CreateThread(function()
                 if activeTrades[partner] then
                     activeTrades[partner] = nil
                     TriggerClientEvent('pvp_market:tradeClosed', partner)
-                    TriggerClientEvent('pvp_market:notify', partner, 'Échange expiré (inactivité).', false)
+                    exports['vanta_ui']:notify(partner, 'Échange expiré (inactivité).', 'warning')
                 end
                 TriggerClientEvent('pvp_market:tradeClosed', src)
-                TriggerClientEvent('pvp_market:notify', src, 'Échange expiré (inactivité).', false)
+                exports['vanta_ui']:notify(src, 'Échange expiré (inactivité).', 'warning')
             end
         end
     end

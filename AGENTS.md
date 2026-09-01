@@ -169,7 +169,9 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
   `getBagBonus(identifier)`, `getContainerBonus(identifier)` — utilisés par `pvp_inventory`
   pour les bonus de poids
 
-> ⚠️ Bug actif connu sur la commande `/givexp` (collision avec `pvp_admin`) : voir `STATUS.md`.
+> `/givexp` est enregistrée **uniquement par `pvp_admin`** (permissions + logs admin) et
+> relaie vers l'export `addXP` de `vanta_xp` — `vanta_xp` ne déclare plus la commande
+> (ancienne collision, voir `STATUS.md`). Ne jamais la ré-enregistrer ailleurs.
 
 ### Mort
 - Perd tout l'inventaire sac

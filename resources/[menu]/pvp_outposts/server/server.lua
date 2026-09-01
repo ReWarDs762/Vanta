@@ -47,7 +47,7 @@ AddEventHandler('pvp_outposts:teleport', function(targetId)
     if not isValidOutpostId(targetId) then return end
     -- Le joueur doit être en zone safe pour utiliser le NPC de téléportation
     if not isPlayerInSafeZone(src) then
-        TriggerClientEvent('pvp_market:notify', src, 'Téléportation uniquement en zone safe !', false)
+        exports['vanta_ui']:notify(src, 'Téléportation uniquement en zone safe !', 'warning')
         return
     end
     -- Trouve les coordonnées de la destination
@@ -483,6 +483,17 @@ local function playerIsInSafeZoneByPed(ped)
     return false
 end
 
+-- ── Molotov : ne blesse QUE les zombies ─────────────────────────────────
+-- Dégâts refusés côté serveur dès qu'un joueur est la victime, que la
+-- source soit l'explosion du cocktail (WEAPON_MOLOTOV) ou le feu laissé au
+-- sol (WEAPON_FIRE). Barrière anti-triche uniquement : la protection
+-- réellement appliquée en jeu vit côté client (pvp_hud), seul endroit où
+-- l'auto-brûlure est visible (elle n'émet aucun weaponDamageEvent réseau).
+local MOLOTOV_DAMAGE_HASHES = {
+    [GetHashKey('WEAPON_MOLOTOV')] = true,
+    [GetHashKey('WEAPON_FIRE')]    = true,
+}
+
 AddEventHandler('weaponDamageEvent', function(sender, data)
     -- data.victimGlobalId peut être un player ou une entité. On ne bloque
     -- que les dégâts PVP ped-vs-ped.
@@ -490,6 +501,12 @@ AddEventHandler('weaponDamageEvent', function(sender, data)
     local victimEntity = NetworkGetEntityFromNetworkId(data.hitGlobalId)
     if not victimEntity or victimEntity == 0 or not DoesEntityExist(victimEntity) then return end
     if not IsPedAPlayer(victimEntity) then return end  -- on laisse les zombies/PNJs
+
+    -- Molotov / feu : jamais de dégât sur un joueur (soi-même inclus)
+    if data.weaponType and MOLOTOV_DAMAGE_HASHES[data.weaponType] then
+        CancelEvent()
+        return
+    end
 
     local attackerPed = GetPlayerPed(sender)
     local inSafeVictim = playerIsInSafeZoneByPed(victimEntity)

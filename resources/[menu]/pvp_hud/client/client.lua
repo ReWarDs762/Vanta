@@ -306,3 +306,65 @@ Citizen.CreateThread(function()
         end
     end
 end)
+
+-- ── Molotov : aucun dégât sur les joueurs (ni sur soi-même) ─────────────
+-- Le molotov ne doit blesser QUE les zombies. Deux sources de dégâts côté
+-- joueur : l'explosion du cocktail (WEAPON_MOLOTOV) et le feu qu'il laisse
+-- au sol (WEAPON_FIRE). Les deux sont appliqués sur le client PROPRIÉTAIRE
+-- du ped touché — y compris quand on se brûle avec son propre molotov, cas
+-- où aucun weaponDamageEvent réseau n'est émis : la protection doit donc
+-- vivre ici, chez chaque joueur. Le filtre côté serveur (pvp_outposts,
+-- weaponDamageEvent) n'est qu'une 2e barrière anti-triche.
+-- Ce code ne touche que le ped du joueur local : les zombies continuent de
+-- brûler et de mourir normalement.
+-- Limite assumée : l'ignifugation vaut pour TOUT feu (ex. le souffle d'un
+-- RPG n'enflamme plus le joueur) — aucun natif ne distingue la source d'un
+-- incendie une fois le ped en train de brûler.
+local MOLOTOV_HASH = GetHashKey("WEAPON_MOLOTOV")
+local FIRE_HASH    = GetHashKey("WEAPON_FIRE")
+
+Citizen.CreateThread(function()
+    local lastPed    = 0
+    local lastHealth = 0
+    local lastArmour = 0
+
+    while true do
+        Citizen.Wait(0)
+
+        local ped = PlayerPedId()
+
+        -- Ignifugé : le feu au sol laissé par le molotov ne prend plus et ne
+        -- retire plus de vie. Réappliqué à chaque changement de ped (respawn,
+        -- changement de modèle depuis l'inventaire).
+        if ped ~= lastPed then
+            SetEntityProofs(ped, false, true, false, false, false, false, false, false)
+            lastPed    = ped
+            lastHealth = GetEntityHealth(ped)
+            lastArmour = GetPedArmour(ped)
+        end
+
+        local health = GetEntityHealth(ped)
+        local armour = GetPedArmour(ped)
+
+        -- Filet de sécurité pour l'explosion du cocktail elle-même, que
+        -- l'ignifugation ne couvre pas : on restaure ce qu'elle a retiré.
+        if HasEntityBeenDamagedByWeapon(ped, MOLOTOV_HASH, 0)
+            or HasEntityBeenDamagedByWeapon(ped, FIRE_HASH, 0) then
+            if IsEntityOnFire(ped) then
+                StopEntityFire(ped)
+            end
+            if health > 0 and health < lastHealth then
+                SetEntityHealth(ped, lastHealth)
+            end
+            if armour < lastArmour then
+                SetPedArmour(ped, lastArmour)
+            end
+            ClearEntityLastWeaponDamage(ped)
+            health = GetEntityHealth(ped)
+            armour = GetPedArmour(ped)
+        end
+
+        lastHealth = health
+        lastArmour = armour
+    end
+end)

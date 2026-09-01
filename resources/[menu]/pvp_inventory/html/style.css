@@ -997,28 +997,38 @@ body {
 }
 
 /* ─ Badges ─ */
-.badges-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Insigne complet à 96px : 5 colonnes dans les 660px du profil. C'est le
+   listel qui lâche en premier quand on descend, pas l'ornement — en dessous
+   de ~84px son texte devient illisible. */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+}
 .badges-empty {
   font-family: var(--v-font); font-size: 10px;
   color: var(--v-text-tertiary); padding: 6px 0;
 }
+/* Carte volontairement muette : c'est l'insigne qui porte tout, le cadre ne
+   sert plus qu'à la zone de clic et à l'état actif. */
 .badge-card {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  width: 76px; padding: 10px 6px 8px;
-  background: var(--v-surface-2); border: 1px solid var(--v-border);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 10px 6px 8px;
+  background: transparent; border: 1px solid transparent;
   border-radius: 4px; cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
   position: relative; user-select: none;
 }
-.badge-card:hover { border-color: var(--v-border-hover); background: var(--v-surface-3); }
-.badge-card.badge-active { border-color: var(--v-warning); }
+.badge-card:hover { background: var(--v-surface-2); border-color: var(--v-border); }
+.badge-card.badge-active { background: var(--v-surface-2); border-color: var(--v-warning); }
 .badge-icon { font-size: 22px; line-height: 1; }
-.badge-icon-svg { display: flex; align-items: center; justify-content: center; }
-.badge-icon-svg .rank-svg { width: 44px; height: 52px; display: block; }
+.badge-icon-svg { display: flex; align-items: center; justify-content: center; width: 100%; }
+.badge-icon-svg .rank-svg  { width: 44px; height: 46px; display: block; }
+.badge-icon-svg .rank-full { width: 100%; max-width: 96px; height: auto; display: block; }
 .active-badge-svg { display: inline-flex; align-items: center; margin-right: 4px; }
-.active-badge-svg .rank-svg { width: 14px; height: 16px; display: block; }
+.active-badge-svg .rank-mini { width: 12px; height: 12px; display: block; }
 .badge-label {
-  font-family: var(--v-font); font-size: 8px; letter-spacing: 0.04em;
+  font-family: var(--v-font); font-size: 9px; letter-spacing: 0.04em;
   color: var(--v-text-secondary); text-align: center; line-height: 1.3;
 }
 .badge-active-dot {
@@ -1308,20 +1318,8 @@ body {
 #ctx button:hover { background: var(--v-separator); }
 #ctx .ctx-close { color: var(--accent-dim); font-size: 9px; }
 
-/* ══ TOAST ══ */
-#toast {
-  position: fixed;
-  bottom: calc(var(--hotbar-h) + 16px);
-  left: 50%; transform: translateX(-50%);
-  background: var(--v-surface-2); border: 1px solid var(--v-border);
-  padding: 10px 24px; font-size: var(--v-size-sm); font-weight: 500; letter-spacing: 0.02em;
-  border-radius: var(--v-radius-md); opacity: 0; transition: opacity 0.2s var(--v-ease);
-  pointer-events: none; white-space: nowrap; z-index: 9999;
-  color: var(--v-text);
-}
-#toast.show { opacity: 1; }
-#toast.ok   { border-left: 3px solid var(--v-success); color: var(--v-success); }
-#toast.fail { border-left: 3px solid var(--v-danger);  color: var(--v-danger); }
+/* Le toast local a ete remplace par la pile partagee de vanta_ui
+   (nui://vanta_ui/html/notify.html, ancree en bas au centre). */
 
 /* ══ DRAG GHOST ══ */
 .drag-ghost {
@@ -1990,72 +1988,148 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 .tab-vcoins.active { border-color: #c8a840 !important; color: #e8c860 !important; }
 
-/* Carte statut */
-.vc-status-card {
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 16px 20px; margin-bottom: 18px;
-}
-.vc-status-left { display: flex; flex-direction: column; gap: 4px; }
-.vc-tier-badge {
-  font-family: var(--fh); font-size: 14px; letter-spacing: 2px;
-  color: var(--text-dim); padding: 3px 10px; border: 1px solid var(--border);
-  border-radius: var(--rs); display: inline-block; width: fit-content;
-}
-.vc-tier-badge.vc-tier-gold {
-  color: #e8c860; border-color: rgba(200,168,64,0.5);
-  background: rgba(200,168,64,0.08);
-}
-.vc-tier-badge.vc-tier-diamond {
-  color: #64d2ff; border-color: rgba(100,210,255,0.5);
-  background: rgba(100,210,255,0.08);
-}
-.vc-expiry { font-size: 11px; color: var(--text-dim); }
-.vc-balance-block { text-align: right; }
-.vc-balance-label { font-size: 10px; color: var(--text-dim); font-family: var(--fh); letter-spacing: 1px; }
-.vc-balance-val { font-size: 22px; font-family: var(--fh); letter-spacing: 2px; color: #e8c860; }
+/* ─────────────────────────────────────────────────────────────────────────
+   L'insigne est le produit : c'est la seule chose que les autres joueurs
+   verront de l'abonnement, donc il est pose en vitrine au centre de la carte.
+   Le reste de l'ecran ne fait que le cadrer.
 
-/* Section abonnements */
-.vc-sub-section { margin-bottom: 20px; }
-.vc-sub-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-.vc-sub-card {
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 16px; position: relative; overflow: hidden;
+   Deux emprunts aux insignes, et deux seulement :
+     · l'encoche haut-gauche / bas-droite = le biseau de la plaque ;
+     · le listel = le bandeau du bas des insignes, remonte en tete de carte.
+   Tout le reste reste plat, 1px, sans ombre — cf. vanta.css.
+   ───────────────────────────────────────────────────────────────────────── */
+.vc-statut-tier, .vc-solde, .vc-sec-titre, .vc-grade-nom, .vc-prix,
+.vc-listel, .vc-cta {
+  font-family: 'Big Shoulders Display', 'Arial Narrow', var(--fh);
 }
-.vc-gold  { border-color: rgba(200,168,64,0.3); }
-.vc-diamond { border-color: rgba(100,210,255,0.3); }
-.vc-diamond-badge {
-  position: absolute; top: 10px; right: 10px;
-  font-size: 9px; font-family: var(--fh); letter-spacing: 2px;
-  color: #64d2ff; background: rgba(100,210,255,0.1);
-  border: 1px solid rgba(100,210,255,0.3); padding: 2px 6px;
-  border-radius: 2px;
+.vc-lbl {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--v-text-tertiary);
 }
-.vc-sub-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
-.vc-sub-tier { font-family: var(--fh); font-size: 18px; letter-spacing: 3px; }
-.vc-gold .vc-sub-tier  { color: #e8c860; }
-.vc-diamond .vc-sub-tier { color: #64d2ff; }
-.vc-sub-price { font-size: 12px; color: var(--text-dim); }
-.vc-sub-perks {
-  list-style: none; margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px;
+.vc-lbl-teint { color: rgba(100,210,255,0.75); }
+.vc-filet { height: 1px; border: 0; background: rgba(255,255,255,0.08); margin: 0; }
+.vc-espace { flex-grow: 1; }
+
+/* ── Bandeau de statut ── */
+.vc-statut {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 18px 24px; background: var(--v-surface); border: 1px solid var(--v-border);
+  margin-bottom: 26px;
+  clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
 }
-.vc-sub-perks li {
-  font-size: 12px; color: var(--text); padding-left: 12px; position: relative;
+.vc-statut-gauche { display: flex; align-items: center; gap: 14px; }
+.vc-statut-insigne { display: none; width: 34px; height: 34px; }
+.vc-statut-insigne .rank-mini { width: 34px; height: 34px; display: block; }
+.vc-statut-txt { display: flex; flex-direction: column; gap: 7px; }
+.vc-statut-ligne { display: flex; align-items: center; gap: 10px; }
+.vc-statut-tier {
+  font-size: 21px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.42);
 }
-.vc-sub-perks li::before { content: '—'; position: absolute; left: 0; color: var(--text-dim); }
-.vc-sub-btn {
-  width: 100%; padding: 9px; border: 1px solid; border-radius: var(--rs);
-  font-family: var(--fh); font-size: 12px; letter-spacing: 1.5px; cursor: pointer;
-  transition: background 0.15s;
+.vc-statut-exp { font-size: 11.5px; color: var(--v-text-tertiary); }
+.vc-statut-exp b { color: rgba(255,255,255,0.75); font-weight: 600; }
+.vc-statut-droite { display: flex; align-items: center; gap: 22px; }
+.vc-statut-solde { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+.vc-solde { font-size: 27px; font-weight: 700; letter-spacing: 0.06em; color: #e9c66d; line-height: 1; }
+.vc-solde-u { font-size: 15px; letter-spacing: 0.14em; color: rgba(233,198,109,0.55); }
+
+/* ── Titre de section ── */
+.vc-sec { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+.vc-sec-titre { font-size: 26px; font-weight: 700; letter-spacing: 0.2em; color: rgba(255,255,255,0.9); }
+.vc-sec-note { font-size: 11px; color: var(--v-text-tertiary); }
+
+/* ── Les deux cartes ── */
+.vc-sub-section { margin-bottom: 26px; }
+.vc-grades { display: grid; grid-template-columns: 1fr 1.1fr; gap: 20px; align-items: start; }
+.vc-grade {
+  display: flex; flex-direction: column; cursor: pointer;
+  background: var(--v-surface); border: 1px solid;
+  clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.vc-btn-gold {
-  color: #e8c860; border-color: rgba(200,168,64,0.5); background: rgba(200,168,64,0.08);
+.vc-gold    { border-color: rgba(233,198,109,0.22); }
+.vc-diamond { border-color: rgba(100,210,255,0.22); }
+.vc-gold:hover    { border-color: rgba(233,198,109,0.45); }
+.vc-diamond:hover { border-color: rgba(100,210,255,0.45); }
+/* Carte armee (un clic l'a designee) ou grade deja pris : meme mise en avant. */
+.vc-gold.vc-arme,    .vc-gold.vc-actuel    { border-color: rgba(233,198,109,0.75); background: rgba(233,198,109,0.045); }
+.vc-diamond.vc-arme, .vc-diamond.vc-actuel { border-color: rgba(100,210,255,0.75); background: rgba(100,210,255,0.045); }
+
+.vc-listel {
+  display: none; text-align: center; padding: 9px 0 7px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.28em; margin-right: -0.28em;
 }
-.vc-btn-gold:hover { background: rgba(200,168,64,0.18); }
-.vc-btn-diamond {
-  color: #64d2ff; border-color: rgba(100,210,255,0.5); background: rgba(100,210,255,0.08);
+.vc-grade.a-listel .vc-listel { display: block; }
+.vc-gold    .vc-listel { color: #e9c66d; background: rgba(233,198,109,0.09); border-bottom: 1px solid rgba(233,198,109,0.24); }
+.vc-diamond .vc-listel { color: #64d2ff; background: rgba(100,210,255,0.08); border-bottom: 1px solid rgba(100,210,255,0.22); }
+
+.vc-grade-corps { padding: 30px 28px 26px; display: flex; flex-direction: column; gap: 18px; flex: 1; }
+.vc-grade.a-listel .vc-grade-corps { padding-top: 16px; }
+.vc-grade-tete { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.vc-insigne { width: 146px; }
+.vc-insigne-xl { width: 176px; }
+.vc-insigne .rank-full { width: 100%; height: auto; display: block; }
+.vc-grade-nom { font-size: 40px; font-weight: 900; letter-spacing: 0.2em; margin-right: -0.2em; line-height: 0.9; }
+.vc-gold    .vc-grade-nom { color: #e9c66d; }
+.vc-diamond .vc-grade-nom { color: #64d2ff; font-size: 46px; }
+.vc-grade-promesse { font-size: 12.5px; color: rgba(255,255,255,0.45); text-align: center; }
+
+.vc-gold    .vc-filet-teint { background: linear-gradient(90deg, transparent, rgba(233,198,109,0.35), transparent); }
+.vc-diamond .vc-filet-teint { background: linear-gradient(90deg, transparent, rgba(100,210,255,0.4), transparent); }
+.vc-diamond .vc-filet-doux  { background: rgba(100,210,255,0.18); }
+
+.vc-sousec { display: flex; align-items: center; gap: 10px; }
+.vc-sousec .vc-lbl { white-space: nowrap; }
+.vc-sousec .vc-filet { flex: 1; }
+
+.vc-perks { display: flex; flex-direction: column; gap: 11px; }
+.vc-perk { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,0.72); }
+.vc-perk b { color: #fff; font-weight: 600; }
+/* Losange plein = ce qui se voit ; losange creux = confort de jeu. */
+.vc-m { flex: none; width: 7px; height: 7px; margin-top: 5px; transform: rotate(45deg); }
+.vc-gold    .vc-m-plein { background: #e9c66d; }
+.vc-diamond .vc-m-plein { background: #64d2ff; }
+.vc-gold    .vc-m-creux { border: 1px solid rgba(233,198,109,0.6); }
+.vc-diamond .vc-m-creux { border: 1px solid rgba(100,210,255,0.6); }
+
+.vc-prix-ligne { display: flex; align-items: flex-end; justify-content: space-between; padding-top: 6px; }
+.vc-prix { font-size: 44px; font-weight: 700; letter-spacing: 0.02em; line-height: 0.85; }
+.vc-gold    .vc-prix { color: #e9c66d; }
+.vc-diamond .vc-prix { color: #64d2ff; }
+.vc-prix-u { font-size: 20px; letter-spacing: 0.12em; }
+.vc-gold    .vc-prix-u { color: rgba(233,198,109,0.5); }
+.vc-diamond .vc-prix-u { color: rgba(100,210,255,0.5); }
+.vc-prix-note { font-size: 11px; color: var(--v-text-tertiary); padding-bottom: 3px; }
+
+/* ── Bouton ── */
+.vc-cta {
+  width: 100%; border: 1px solid; cursor: pointer;
+  font-size: 19px; font-weight: 700; letter-spacing: 0.16em; padding: 13px 0 11px;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.vc-btn-diamond:hover { background: rgba(100,210,255,0.18); }
+.vc-cta-court { width: auto; padding: 10px 22px 8px; font-size: 15px; }
+.vc-gold .vc-cta, .vc-cta.vc-pour-gold {
+  background: rgba(233,198,109,0.08); border-color: rgba(233,198,109,0.45); color: #e9c66d;
+}
+.vc-diamond .vc-cta, .vc-cta.vc-pour-diamond {
+  background: rgba(100,210,255,0.08); border-color: rgba(100,210,255,0.45); color: #64d2ff;
+}
+.vc-gold .vc-cta:hover, .vc-cta.vc-pour-gold:hover {
+  background: rgba(233,198,109,0.18); color: #f6dd9c;
+}
+.vc-diamond .vc-cta:hover, .vc-cta.vc-pour-diamond:hover {
+  background: rgba(100,210,255,0.18); color: #a5e6ff;
+}
+/* Confirmation : le bouton passe en plein, on ne peut plus le rater. */
+.vc-gold    .vc-cta.vc-plein { background: #e9c66d; border-color: #e9c66d; color: #0a0a0a; }
+.vc-diamond .vc-cta.vc-plein { background: #64d2ff; border-color: #64d2ff; color: #06121a; }
+.vc-gold    .vc-cta.vc-plein:hover { background: #f6dd9c; color: #0a0a0a; }
+.vc-diamond .vc-cta.vc-plein:hover { background: #a5e6ff; color: #06121a; }
+/* Solde insuffisant : le manque se dit dans le bouton, pas en notification. */
+.vc-cta.vc-inerte, .vc-cta.vc-inerte:hover {
+  background: rgba(255,255,255,0.02); border-color: var(--v-border);
+  color: var(--v-text-tertiary); cursor: not-allowed;
+}
 
 /* Section marché */
 .vc-market-section { margin-bottom: 20px; }

@@ -21,6 +21,7 @@ files {
     'html/index.html',
     'html/style.css',
     'html/ped_catalog.js',
+    'html/badges.js',
     'html/app.js',
     'html/img/*.png'
 }

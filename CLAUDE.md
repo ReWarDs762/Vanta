@@ -129,12 +129,21 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - **Stats** : Kills, Morts, K/D, Zombies tués total (table `pvp_player_stats`)
 - **Records** : Kill streak record (suivi en mémoire serveur, persisté dans `pvp_player_stats.kill_streak_record`)
 - **Classement personnel** : rang #X en kills, zombies, K/D
-- **15 badges déblocables** (`pvp_player_stats.badges_unlocked`, JSON) :
-  - Saison : `survivor_s1`
+- **19 badges** (`pvp_player_stats.badges_unlocked`, JSON ; whitelist serveur
+  `VALID_BADGES` dans `pvp_inventory/server/server.lua`) :
+  - Saison : `survivor_s1` à `survivor_s3`
   - Kills PVP : `first_blood` (1), `killer_10` (10), `killer_50` (50), `predator_100` (100)
   - Zombies : `zombie_hunter` (100), `exterminator` (500), `annihilator` (1000)
   - Streak : `streak_5` (5), `unstoppable` (10)
+  - Abonnements : `gold_member`, `diamond_member`
   - Prestige : `prestige_1` à `prestige_5`
+
+> **Design des badges** : les insignes (patte artistique, anatomie, règle d'ornement,
+> procédure pour en ajouter un) sont documentés dans
+> [resources/[menu]/vanta_ui/BADGES.md](resources/[menu]/vanta_ui/BADGES.md).
+> Le système vit dans `pvp_inventory/html/badges.js`, chargé avant `app.js`.
+> C'est la **seule exception ornementale** du serveur : les insignes s'autorisent
+> dégradés et matière, que `vanta.css` interdit partout ailleurs.
 - Saison en cours : `CURRENT_SEASON = 1`
 
 > **Piège** : `pvp_player_stats` a aussi des colonnes `xp` et `prestige` — ce sont des
@@ -191,7 +200,9 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
   `getBagBonus(identifier)`, `getContainerBonus(identifier)` — utilisés par `pvp_inventory`
   pour les bonus de poids
 
-> ⚠️ Bug actif connu sur la commande `/givexp` (collision avec `pvp_admin`) : voir `STATUS.md`.
+> `/givexp` est enregistrée **uniquement par `pvp_admin`** (permissions + logs admin) et
+> relaie vers l'export `addXP` de `vanta_xp` — `vanta_xp` ne déclare plus la commande
+> (ancienne collision, voir `STATUS.md`). Ne jamais la ré-enregistrer ailleurs.
 
 ### Mort
 - Perd tout l'inventaire sac
@@ -385,30 +396,20 @@ qu'un bonus du même type est actif) :
 - **Config** : `Config.WeaponComponents` et `Config.WeaponsTintEnabled` dans `pvp_outposts/config.lua`
 
 ### Garage (pvp_garage) — style VANTA v2
-- NUI HTML/CSS/JS. Le panneau **concessionnaire** (`html/dealer.css`, lié par `index.html`)
-  reprend exactement le design de l'armurerie/boutique des avant-postes
-  (`pvp_outposts/html/shop.css`) : boutons « ghost » (fond transparent + bordure fine),
-  0 border-radius, titre discret, panneau droit opaque `#0a0a0a` bordé à gauche. Le panneau
-  **personnalisation** garde son style propre (`html/style.css`).
+- NUI HTML/CSS/JS, importé depuis `vanta_ui`
 - Déclenché depuis `pvp_outposts` via `TriggerEvent('pvp_garage:openMechanic')` et `TriggerEvent('pvp_garage:openDealer')`
 - **Personnalisation** (12 catégories) : Peinture, Roues, Moteur, Freins, Transmission, Blindage, Turbo, Suspension, Livrée, Néons, Teinte vitres, Phares Xenon
 - **Mods Spéciaux** (véhicules Apocalypse) : Saut, Tourelle, Propulseurs, Bélier, Boost
-- **Concessionnaire** : grille de véhicules (`Config.Vehicles`), **payant** (achat → item
-  inventaire → hotbar pour spawn, comme les armes). Le catalogue ne contient QUE les 7
-  véhicules du palier « rare » de la table de loot zombie (`pvp_zombies` → `Config.LootTable`)
-  — `ztype`, `mule`, `blazer5`, `dominator4`, `revolter`, `microlight` (libellé « Ultralight »),
-  `speedo2` (15 000 $ / 30 000 $). Revente au garagiste = `prix / 2` par défaut, sauf override `sellPrice` par
-  entrée : `dominator4` → 2 250 $, `revolter` / `ultralight` → `0` (invendables au garagiste,
-  marché/trade uniquement). `pvp_garage:sellVehicleItem` refuse désormais tout modèle absent
-  du catalogue (plus de forfait 500 $). Seul point de vente véhicule du serveur —
-  `pvp_outposts` n'a pas son propre catalogue.
-- **Véhicules épique/légendaire** : `Config.MarketOnlyVehicles` (aligné sur les paliers
-  `epic` + `legendaire` de `pvp_zombies/config.lua` : schafter5, baller6, xls2, voltic2,
-  cerberus, zr380, cog552, sasquatch, thruster, vigilante, buzzard2, maverick, havok,
-  deluxo, oppressor2, nightshark, scarab, insurgent3, dukes2). Absents de `Config.Vehicles`,
-  bloqués à l'achat ET à la revente côté serveur (`buyVehicleCart` + `sellVehicleItem`).
-  Trouvables uniquement en loot zombie/caisse, échangeables uniquement via `pvp_market`
-  (annonce ou trade direct) — jamais de prix NPC.
+- **Concessionnaire** : grille de véhicules (`Config.Vehicles`, ~35 entrées, catégories dont
+  « Butin Rare »), **payant** (achat → item inventaire → hotbar pour spawn, comme les
+  armes ; PAS un spawn gratuit malgré l'ancien libellé du menu). Revente symétrique au
+  garagiste (`pvp_garage:sellVehicleItem`, 50% du prix catalogue). Seul point de vente
+  véhicule du serveur — `pvp_outposts` n'a pas son propre catalogue.
+- **Véhicules épique/légendaire** (Schafter V12, Baller LE, ZR380, Vigilante, Oppressor MK2,
+  Nightshark, Scarab) : `Config.MarketOnlyVehicles` — absents de `Config.Vehicles`, et
+  explicitement bloqués côté serveur dans `sellVehicleItem` (sinon retombent sur le forfait
+  500$ par défaut). Trouvables uniquement en loot zombie/caisse, échangeables uniquement via
+  `pvp_market` (annonce ou trade direct) — jamais de prix NPC.
 - Annuler = restaure les mods d'origine
 - `Config.ApocalypseVehicles` : hash map pour détection rapide
 - Ordre server.cfg : `pvp_garage` avant `pvp_outposts`
@@ -440,9 +441,12 @@ qu'un bonus du même type est actif) :
     d'abonnement à la création, mais **définitif** : sans Gold/Diamond, plus aucun
     changement de ped possible ensuite (voir pvp_inventory ci-dessous)
 - **Modération pseudo** : liste de mots interdits vérifiée en sous-chaîne, insensible à la casse
-- **Renommage** (`/rename`) : payant (5000$) sauf abonnement VCoins Diamond (gratuit, illimité) —
-  dépend de `pvp_vcoins`, ne touche jamais l'apparence/le ped
-- Saison courante : `CURRENT_SEASON = 1` (indépendante de celle de `pvp_inventory`)
+- **Renommage** (`/rename`) : **réservé aux abonnés VCoins** — Diamond illimité, Gold
+  1× par semaine (fenêtre = numéro de semaine Unix, compteur
+  `pvp_player_stats.rename_last_week`), sans abonnement **jamais**. Il n'y a plus
+  d'option payante ni de rename gratuit saisonnier (l'ancien tarif 5000$ et la colonne
+  `rename_free_season` sont morts). Tier lu côté serveur via
+  `exports['pvp_vcoins']:GetTier`, ne touche jamais l'apparence/le ped.
 - Pas de table `characters` dédiée : le pseudo vit dans `users.firstname`/`sex` (ESX standard)
 - Apparence détaillée stockée en JSON compact dans `pvp_player_stats.appearance_json`
   (tableaux de nombres uniquement — jamais de `null`), le ped choisi dans
@@ -502,7 +506,8 @@ dans `pvp_player_stats` (voir ci-dessous).
   `redzone_deaths`, `redzone_zombies`, `kill_streak_record`, `active_badge`,
   `badges_unlocked` (JSON), `hotbar` (JSON), `hud_type`, `skin_tone`, `hair_style`,
   `rename_free_season`, `rename_last_week`, `ped_model`, `display_name`
-  — ⚠️ contient aussi `xp` et `prestige`, **legacy non utilisés** (voir « Système XP »)
+  — ⚠️ contient aussi `xp` et `prestige`, **legacy non utilisés** (voir « Système XP »),
+  ainsi que `rename_free_season`, legacy depuis que `/rename` est réservé aux abonnés
 - `vanta_xp` — progression réelle : `xp`, `level`, `prestige_level`, `total_xp_earned`
 - `characters` — identité personnage (`pvp_character`) : prénom, nom, date de naissance, sexe, taille
 
@@ -580,9 +585,7 @@ restrictions ni le nettoyage du monde.
 
 ## Roadmap
 
-- **Pilotage vers la sortie** (phases, priorités, check-list Go/No-Go, journal de session) :
-  `ROADMAP.md`
-- Détail court terme et bugs actifs : `STATUS.md`, section « Roadmap ».
+Voir `STATUS.md` — mise à jour plus fréquente, section « Roadmap ».
 
 ---
 

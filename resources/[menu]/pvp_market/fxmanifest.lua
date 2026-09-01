@@ -22,5 +22,6 @@ server_scripts {
 dependencies {
     'es_extended',
     'mysql-async',
-    'pvp_outposts'
+    'pvp_outposts',
+    'vanta_ui'
 }

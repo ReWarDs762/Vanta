@@ -175,6 +175,24 @@ local function logAction(src, action, targetName, targetId, details)
     print(('[pvp_admin] %s: %s → %s #%s (%s)'):format(adminName, action, targetName or '', tostring(targetId or ''), details or ''))
 end
 
+-- ══ XP admin — relais vers vanta_xp ════════════════════════════════════════
+-- vanta_xp est la source unique de progression : on passe par son export addXP
+-- (niveaux, prestige, table `vanta_xp`, notification client) au lieu d'écrire
+-- dans pvp_player_stats.xp, colonne morte que plus rien ne lit.
+local function awardXP(identifier, amount)
+    if not identifier or not amount or amount <= 0 then
+        return false, 'Montant XP invalide.'
+    end
+    local ok = pcall(function()
+        exports['vanta_xp']:addXP(identifier, amount, 'admin_givexp')
+    end)
+    if not ok then
+        print('[pvp_admin] givexp: vanta_xp indisponible, XP non attribuée à ' .. tostring(identifier))
+        return false, 'vanta_xp indisponible — XP non attribuée.'
+    end
+    return true
+end
+
 -- ══ BAN SYSTEM ═════════════════════════════════════════════════════════════
 
 -- Vérification au connect
@@ -559,6 +577,20 @@ AddEventHandler('pvp_admin:addToStorage', function(targetId, storageType, itemNa
     end
 end)
 
+-- ══ Relais vers pvp_drops ═════════════════════════════════════════════════
+-- Passer par l'export et JAMAIS par TriggerEvent('pvp_drops:forceStart') :
+-- `source` est un global PAR RESOURCE dans FXServer, donc côté pvp_drops il
+-- ne vaut pas l'id de l'admin (il peut même être une string, ce qui faisait
+-- planter le handler et empêchait tout drop forcé depuis le F7 / /drop).
+-- La permission 'forcedrop' est déjà vérifiée par les appelants ci-dessous.
+local function forceDrop()
+    local ok, err = pcall(function() exports['pvp_drops']:AdminForceStart() end)
+    if not ok then
+        print('[pvp_admin] Impossible de lancer le drop : ' .. tostring(err))
+    end
+    return ok
+end
+
 -- ══ Actions sécurisées depuis le panel NUI ═════════════════════════════════
 
 -- Whitelist des actions valides depuis le panel NUI
@@ -720,9 +752,13 @@ AddEventHandler('pvp_admin:action', function(action, data)
             if amount < 1 or amount > 10000000 then
                 adminMsg(src, 'Montant XP invalide (1 - 10M)')
             else
-                TriggerEvent('pvp_admin:awardXP', xTarget.identifier, amount)
-                logAction(src, 'givexp', targetName, tid, amount .. ' XP')
-                toast(src, amount .. ' XP donné à ' .. targetName)
+                local ok, err = awardXP(xTarget.identifier, amount)
+                if ok then
+                    logAction(src, 'givexp', targetName, tid, amount .. ' XP')
+                    toast(src, amount .. ' XP donné à ' .. targetName)
+                else
+                    adminMsg(src, err)
+                end
             end
         end
 
@@ -751,7 +787,10 @@ AddEventHandler('pvp_admin:action', function(action, data)
         end
 
     elseif action == 'forcedrop' then
-        exports['pvp_drops']:AdminForceStart()
+        if not forceDrop() then
+            toast(src, 'Impossible de lancer le drop (pvp_drops indisponible).', false)
+            return
+        end
         logAction(src, 'forcedrop', '', 0)
         toast(src, 'Drop de ravitaillement lancé !')
 
@@ -818,18 +857,15 @@ AddEventHandler('pvp_admin:action', function(action, data)
     end
 end)
 
--- ══ XP admin (relais vers pvp_inventory) ═════════════════════════════════
+-- ══ XP admin (relais vers vanta_xp) ══════════════════════════════════════
+-- Conservé pour compat : tout passe par le helper awardXP → export vanta_xp.
 AddEventHandler('pvp_admin:awardXP', function(identifier, amount)
-    if not identifier or not amount or amount <= 0 then return end
-    MySQL.Async.execute(
-        'UPDATE pvp_player_stats SET xp = xp + @xp WHERE identifier = @id',
-        { ['@id'] = identifier, ['@xp'] = amount }
-    )
+    awardXP(identifier, amount)
 end)
 
 -- ══ Force drop (relais vers pvp_drops) ═══════════════════════════════════
 AddEventHandler('pvp_drops:adminForceDrop', function()
-    exports['pvp_drops']:AdminForceStart()
+    forceDrop()
 end)
 
 -- ══ Force rotation redzones (relais vers pvp_redzones) ═══════════════════
@@ -868,7 +904,6 @@ RegisterCommand('ahelp', function(src)
         '/givexp [id] [montant] — Donner de l\'XP',
         '/clearinv [id] — Vider l\'inventaire',
         '/drop — Forcer un drop de ravitaillement',
-        '/droptest — Tester les étapes d\'un drop (voir /droptest sans argument)',
         '/rzrotate — Forcer la rotation des redzones',
         '/killzombies — Tuer les zombies proches',
         '/spawnzombies [n] — Spawn N zombies sur vous',
@@ -1003,7 +1038,8 @@ RegisterCommand('givexp', function(src, args)
     if amount < 1 or amount > 10000000 then adminMsg(src, 'Montant XP invalide (1 - 10M)') return end
     local xTarget = ESX.GetPlayerFromId(tid)
     if not xTarget then adminMsg(src, 'Joueur introuvable.') return end
-    TriggerEvent('pvp_admin:awardXP', xTarget.identifier, amount)
+    local ok, err = awardXP(xTarget.identifier, amount)
+    if not ok then adminMsg(src, err) return end
     logAction(src, 'givexp', GetPlayerName(tid) or '', tid, amount .. ' XP')
     adminMsg(src, amount .. ' XP donné à #' .. tid)
 end, false)
@@ -1023,7 +1059,10 @@ end, false)
 
 RegisterCommand('drop', function(src)
     if src == 0 or not hasPerm(src, 'forcedrop') then if src > 0 then denyAccess(src) end return end
-    exports['pvp_drops']:AdminForceStart()
+    if not forceDrop() then
+        adminMsg(src, 'Impossible de lancer le drop (pvp_drops indisponible).')
+        return
+    end
     logAction(src, 'forcedrop', '', 0)
     adminMsg(src, 'Drop de ravitaillement lancé !')
 end, false)

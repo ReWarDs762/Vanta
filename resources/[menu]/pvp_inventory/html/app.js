@@ -139,104 +139,8 @@ function getRarity(n) { return RARITY[n] || 'common'; }
 const RARITY_LABEL = { common:'', uncommon:'PEU COMMUN', rare:'RARE', epic:'ÉPIQUE', legendary:'LÉGENDAIRE' };
 
 // ══ Badges ════════════════════════════════════════════════════════════════
-// Cadre octogonal VANTA v2 (partagé entre tous les rank badges premium)
-const _rankFrame = (color, inner) => `
-<svg class="rank-svg" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 14 0 L 106 0 L 120 14 L 120 126 L 106 140 L 14 140 L 0 126 L 0 14 Z" fill="#0a0a0a" stroke="${color}" stroke-width="2"/>
-  <path d="M 14 6 L 106 6 L 114 14 L 114 126 L 106 134 L 14 134 L 6 126 L 6 14 Z" fill="none" stroke="${color}" stroke-opacity="0.25" stroke-width="1.5"/>
-  <path d="M 14 4 L 20 4 M 4 14 L 4 20" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
-  <path d="M 100 4 L 106 4 M 116 14 L 116 20" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
-  <path d="M 14 136 L 20 136 M 4 126 L 4 120" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
-  <path d="M 100 136 L 106 136 M 116 126 L 116 120" stroke="${color}" stroke-opacity="0.6" stroke-width="1"/>
-  ${inner}
-</svg>`;
-
-const RANK_SVGS = {
-  gold_member: _rankFrame('#e8c860', `
-    <g transform="translate(60, 70)" stroke-linejoin="miter" stroke-linecap="square">
-      <path d="M -32 12 L 32 12 L 32 24 L -32 24 Z" fill="#e8c860" fill-opacity="0.2" stroke="#e8c860" stroke-width="3"/>
-      <path d="M -32 12 L -32 -14 L -16 4 L 0 -22 L 16 4 L 32 -14 L 32 12 Z" fill="#e8c860" fill-opacity="0.1" stroke="#e8c860" stroke-width="3"/>
-      <circle cx="-32" cy="-14" r="3" fill="#e8c860"/>
-      <circle cx="0" cy="-22" r="4" fill="#e8c860"/>
-      <circle cx="32" cy="-14" r="3" fill="#e8c860"/>
-    </g>
-  `),
-  diamond_member: _rankFrame('#64d2ff', `
-    <g transform="translate(60, 68)">
-      <path d="M 0 -34 L 32 -8 L 0 34 L -32 -8 Z" fill="#64d2ff" fill-opacity="0.12" stroke="#64d2ff" stroke-width="3" stroke-linejoin="miter"/>
-      <path d="M -32 -8 L 32 -8" stroke="#64d2ff" stroke-width="2"/>
-      <path d="M -16 -8 L 0 -34 L 16 -8 L 0 34 Z" fill="none" stroke="#64d2ff" stroke-opacity="0.55" stroke-width="1.5"/>
-      <circle cx="0" cy="-8" r="2.5" fill="#64d2ff"/>
-    </g>
-  `),
-  prestige_1: _rankFrame('#c8cdd4', `
-    <g transform="translate(60, 74)" fill="none" stroke="#c8cdd4" stroke-width="5" stroke-linejoin="miter" stroke-linecap="square">
-      <path d="M -30 10 L 0 -20 L 30 10"/>
-      <path d="M -30 24 L 0 -6 L 30 24" stroke-opacity="0.35" stroke-width="3"/>
-    </g>
-  `),
-  prestige_2: _rankFrame('#d4a017', `
-    <g transform="translate(60, 74)" fill="none" stroke="#d4a017" stroke-width="5" stroke-linejoin="miter" stroke-linecap="square">
-      <path d="M -30 -6 L 0 -32 L 30 -6"/>
-      <path d="M -30 18 L 0 -8 L 30 18"/>
-    </g>
-  `),
-  prestige_3: _rankFrame('#22aacc', `
-    <g transform="translate(60, 74)" fill="none" stroke="#22aacc" stroke-width="4.5" stroke-linejoin="miter" stroke-linecap="square">
-      <path d="M -30 -16 L 0 -42 L 30 -16"/>
-      <path d="M -30 2 L 0 -24 L 30 2"/>
-      <path d="M -30 20 L 0 -6 L 30 20"/>
-    </g>
-  `),
-  prestige_4: _rankFrame('#cc22aa', `
-    <g transform="translate(60, 70)">
-      <path d="M 0 -40 L 40 0 L 0 40 L -40 0 Z" fill="none" stroke="#cc22aa" stroke-opacity="0.3" stroke-width="1.5"/>
-      <path d="M 0 -32 L 8 -8 L 32 0 L 8 8 L 0 32 L -8 8 L -32 0 L -8 -8 Z" fill="#cc22aa" fill-opacity="0.18" stroke="#cc22aa" stroke-width="3" stroke-linejoin="miter"/>
-      <circle cx="0" cy="0" r="4" fill="#cc22aa"/>
-    </g>
-  `),
-  prestige_5: _rankFrame('#ff4400', `
-    <g transform="translate(60, 70)">
-      <g stroke="#ff4400" stroke-opacity="0.55" stroke-width="1.5">
-        <line x1="0" y1="-44" x2="0" y2="-32"/><line x1="0" y1="32" x2="0" y2="44"/>
-        <line x1="-44" y1="0" x2="-32" y2="0"/><line x1="32" y1="0" x2="44" y2="0"/>
-        <line x1="-31" y1="-31" x2="-22" y2="-22"/><line x1="31" y1="-31" x2="22" y2="-22"/>
-        <line x1="-31" y1="31" x2="-22" y2="22"/><line x1="31" y1="31" x2="22" y2="22"/>
-      </g>
-      <path d="M 0 -30 L 8 -8 L 30 0 L 8 8 L 0 30 L -8 8 L -30 0 L -8 -8 Z" fill="#ff4400" fill-opacity="0.28" stroke="#ff4400" stroke-width="3" stroke-linejoin="miter"/>
-      <path d="M 0 -18 L 5 -5 L 18 0 L 5 5 L 0 18 L -5 5 L -18 0 L -5 -5 Z" fill="none" stroke="#ff4400" stroke-opacity="0.7" stroke-width="1.5"/>
-      <circle cx="0" cy="0" r="3.5" fill="#ffffff"/>
-    </g>
-  `),
-};
-
-const BADGE_DEFS = {
-  // Saison
-  survivor_s1:   { label:'Survivant Saison 1', icon:'🏅', color:'#c8a840', tier:'season' },
-  survivor_s2:   { label:'Survivant Saison 2', icon:'🏅', color:'#a0c840', tier:'season' },
-  survivor_s3:   { label:'Survivant Saison 3', icon:'🏅', color:'#40a0c8', tier:'season' },
-  // Kills PVP
-  first_blood:   { label:'Premier Sang',        icon:'🩸', color:'#cc3333', tier:'common' },
-  killer_10:     { label:'Tueur',               icon:'⚔️', color:'#aa7722', tier:'uncommon' },
-  killer_50:     { label:'Chasseur',            icon:'🎯', color:'#4477bb', tier:'rare' },
-  predator_100:  { label:'Prédateur',           icon:'💀', color:'#aa33cc', tier:'legendary' },
-  // Zombies
-  zombie_hunter: { label:'Chasseur Zombie',     icon:'🧟', color:'#4a7a4a', tier:'common' },
-  exterminator:  { label:'Exterminateur',       icon:'☣️', color:'#6a8a3a', tier:'rare' },
-  annihilator:   { label:'Annihilateur',        icon:'💣', color:'#bb4422', tier:'legendary' },
-  // Streak
-  streak_5:      { label:'Sur une Lancée',      icon:'🔥', color:'#cc6600', tier:'uncommon' },
-  unstoppable:   { label:'Inarrêtable',         icon:'⚡', color:'#ddcc00', tier:'rare' },
-  // Abonnements VCoins (SVG)
-  gold_member:   { label:'Abonné Gold',         icon:'👑', svg: RANK_SVGS.gold_member,    color:'#e8c860', tier:'premium' },
-  diamond_member:{ label:'Abonné Diamond',      icon:'💎', svg: RANK_SVGS.diamond_member, color:'#64d2ff', tier:'premium' },
-  // Prestige (SVG)
-  prestige_1:    { label:'Prestige I',          icon:'✦',   svg: RANK_SVGS.prestige_1, color:'#c8cdd4', tier:'prestige' },
-  prestige_2:    { label:'Prestige II',         icon:'✦✦',  svg: RANK_SVGS.prestige_2, color:'#d4a017', tier:'prestige' },
-  prestige_3:    { label:'Prestige III',        icon:'✦✦✦', svg: RANK_SVGS.prestige_3, color:'#22aacc', tier:'prestige' },
-  prestige_4:    { label:'Prestige IV',         icon:'★',   svg: RANK_SVGS.prestige_4, color:'#cc22aa', tier:'prestige' },
-  prestige_5:    { label:'Prestige V — MAÎTRE', icon:'★★',  svg: RANK_SVGS.prestige_5, color:'#ff4400', tier:'prestige' },
-};
+// Le système d'insignes vit dans html/badges.js (chargé avant app.js) et
+// expose BADGE_DEFS + VantaBadges. Patte et règles : vanta_ui/BADGES.md.
 
 const PRESTIGE_ROMAN = ['I','II','III','IV','V'];
 
@@ -371,7 +275,7 @@ let state  = { inventory:[], stash:[], money:{}, profile:{}, market:[], myListin
 let outpostMode   = null; // null | { id, label, items }
 let dropMode      = null; // null | { id, label, items }
 let deathBagMode  = null; // null | { id, label, items }
-let ctxItem = null, ctxSource = 'inv', toastT = null;
+let ctxItem = null, ctxSource = 'inv';
 let marketMode = 'browse'; // 'browse' | 'sell'
 let selectedMarketItem = null; // item_name selected in browse mode
 let selectedSellItem = null;   // {name, label, maxQty} in sell mode
@@ -420,13 +324,15 @@ window.addEventListener('message', e => {
   else if (type==='openDrop')    openDropUI(data);
   else if (type==='close')       forceClose();
   else if (type==='refresh')     onRefresh(data);
-  else if (type==='notify')      { transferLocked = false; toast(e.data.msg, e.data.success); }
+  // Le texte des notifications est affiche par vanta_ui (pile partagee) ;
+  // ce message ne sert plus qu a relacher le verrou de transfert.
+  else if (type==='unlock')      { unlockTransfer(); }
   else if (type==='refreshOutpostStash') {
-    transferLocked = false;
+    unlockTransfer();
     if (outpostMode) { outpostMode.items = data.items; renderInventory(); }
   }
   else if (type==='refreshDrop') {
-    transferLocked = false;
+    unlockTransfer();
     if (dropMode) {
       if (data.dropItems !== undefined) { dropMode.items = data.dropItems; }
       if (data.inventory)  { state = {...state, inventory: data.inventory}; }
@@ -435,7 +341,7 @@ window.addEventListener('message', e => {
   }
   else if (type==='openDeathBag') openDeathBagUI(data);
   else if (type==='refreshDeathBag') {
-    transferLocked = false;
+    unlockTransfer();
     if (deathBagMode) {
       if (data.bagItems !== undefined) { deathBagMode.items = data.bagItems; }
       if (data.inventory) { state = {...state, inventory: data.inventory}; }
@@ -445,7 +351,7 @@ window.addEventListener('message', e => {
   else if (type==='setSafeZone') inSafeZone = data.inSafeZone;
   else if (type==='toastBadge') {
     const b = BADGE_DEFS[e.data.badgeId];
-    if (b) toast('🏆 Badge débloqué : ' + b.icon + ' ' + b.label, true);
+    if (b) toast('Badge débloqué : ' + b.label, true);
     // Rafraîchir les badges si le profil est ouvert
     if (state.profile && state.profile.badgesUnlocked) {
       if (!state.profile.badgesUnlocked.includes(e.data.badgeId))
@@ -535,6 +441,7 @@ function openDeathBagUI(data) {
 }
 
 function closeUI() {
+  unlockTransfer();
   const hadDrop     = !!dropMode;
   const hadDeathBag = !!deathBagMode;
   outpostMode  = null;
@@ -551,7 +458,7 @@ function closeUI() {
   }
 }
 function forceClose() {
-  transferLocked = false;
+  unlockTransfer();
   outpostMode  = null;
   dropMode     = null;
   deathBagMode = null;
@@ -559,7 +466,7 @@ function forceClose() {
   closeCtx();
 }
 function onRefresh(data) {
-  transferLocked = false; // débloquer le verrou de transfert
+  unlockTransfer(); // débloquer le verrou de transfert
   if (data.maxWeight)      MAX_WEIGHT   = data.maxWeight;
   if (data.maxStashWeight) STASH_MAX_KG = data.maxStashWeight;
   const hasMarket = data.market !== undefined;
@@ -713,7 +620,46 @@ function renderGrid(id, items, source) {
 }
 
 // ── Verrou de transfert : bloque les clics rapides jusqu'à la confirmation serveur ──
+// Filet de sécurité : si la réponse serveur ne revient jamais (event droppé,
+// callback DB perdu, resource redémarrée), le verrou se libère seul. Sans lui,
+// l'inventaire reste définitivement bloqué — plus aucun clic droit ni drag ne
+// passe, et rouvrir l'UI ne change rien (la page NUI n'est pas rechargée).
 let transferLocked = false;
+let transferLockTimer = null;
+const TRANSFER_LOCK_TIMEOUT = 3000;
+
+function lockTransfer() {
+  transferLocked = true;
+  if (transferLockTimer) clearTimeout(transferLockTimer);
+  transferLockTimer = setTimeout(() => { transferLocked=false; transferLockTimer=null; }, TRANSFER_LOCK_TIMEOUT);
+}
+
+function unlockTransfer() {
+  transferLocked=false;
+  if (transferLockTimer) { clearTimeout(transferLockTimer); transferLockTimer=null; }
+}
+
+// ── Capacité du conteneur protégé : test côté client avant l'aller-retour ──
+// Le serveur reste seul juge (il refait le calcul avec les mêmes poids), mais
+// envoyer un dépôt voué à l'échec à chaque clic droit ne sert à rien : quand le
+// coffre est plein, le spam de clics devient un spam d'events serveur.
+function stashWeightNow() {
+  let w = 0;
+  (state.stash || []).forEach(i => { w += getWeight(i.name) * i.count; });
+  return w;
+}
+function stashHasRoomFor(name, qty) {
+  return stashWeightNow() + getWeight(name) * qty <= STASH_MAX_KG + 0.0001;
+}
+let stashFullToastAt = 0;
+function stashFullToast() {
+  // Un seul toast par 1,5 s : en spammant le clic droit sur un coffre plein on
+  // enverrait sinon une notification par clic.
+  const now = Date.now();
+  if (now - stashFullToastAt < 1500) return;
+  stashFullToastAt = now;
+  toast('Conteneur protégé plein ! (' + STASH_MAX_KG.toFixed(1) + ' kg max)', false);
+}
 
 function optimisticMove(itemName, from, to) {
   const srcIdx = from.findIndex(i => i.name === itemName);
@@ -1148,9 +1094,9 @@ function renderProfile() {
     const bId = p.activeBadge||'';
     const bDef = bId && BADGE_DEFS[bId];
     if (bDef) {
-      const iconHtml = bDef.svg
-        ? `<span class="active-badge-svg">${bDef.svg}</span>`
-        : (bDef.icon + ' ');
+      // Pastille en ligne : la variante mini (emblème seul). Le dessin 120×140
+      // réduit à 12px n'était plus lisible.
+      const iconHtml = `<span class="active-badge-svg">${bDef.mini}</span>`;
       activeBadgeEl.innerHTML = iconHtml + bDef.label;
       activeBadgeEl.style.borderColor = bDef.color;
       activeBadgeEl.style.color = bDef.color;
@@ -1238,11 +1184,13 @@ function renderBadgesGrid(unlocked, activeBadgeId) {
     return;
   }
   grid.innerHTML = unlocked.map(id => {
-    const b = BADGE_DEFS[id] || { label: id, icon: '🏷️', color: '#666666', tier: 'common' };
+    const b = BADGE_DEFS[id] || VantaBadges.inconnu(id);
     const isActive = id === activeBadgeId;
-    const iconHtml = b.svg ? b.svg : b.icon;
-    const iconClass = b.svg ? 'badge-icon badge-icon-svg' : 'badge-icon';
-    return `<div class="badge-card ${isActive?'badge-active':''}" style="border-color:${b.color}"
+    // Insigne complet : ailes, lames, ronces et listel. La grille est
+    // dimensionnée pour, voir .badges-grid dans style.css.
+    const iconHtml = b.full();
+    const iconClass = 'badge-icon badge-icon-svg';
+    return `<div class="badge-card ${isActive?'badge-active':''}"
                onclick="setActiveBadge('${id}')" title="${b.label}">
       <div class="${iconClass}">${iconHtml}</div>
       <div class="badge-label">${b.label}</div>
@@ -1503,6 +1451,16 @@ function switchTab(name) {
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 
+// ── Menu contextuel natif : toujours annulé ──────────────────────────────
+// Seules les cartes d'items appelaient preventDefault (via oncontextmenu). Un
+// clic droit qui tombe à côté (gouttière de 8px de la grille, panneau, fond)
+// laisse CEF ouvrir son menu contextuel natif : il se dessine par-dessus le
+// NUI, avale clics et touches, et l'inventaire paraît figé — plus moyen de le
+// fermer ni de déplacer un item. Très facile à déclencher en spammant le clic
+// droit sur un conteneur plein (les cartes ne bougent pas, donc on continue de
+// cliquer au même endroit). Même garde que pvp_garage.
+document.addEventListener('contextmenu', e => e.preventDefault());
+
 // ══ Custom Drag & Drop ═══════════════════════════════════════════════════
 function startDrag(e, name, label) {
   if (e.button !== 0) return;
@@ -1566,23 +1524,25 @@ document.addEventListener('mouseup', e => {
       if (dropMode || deathBagMode) {
         // On ne peut pas déposer dans un drop ou un death bag
       } else if (outpostMode) {
-        transferLocked = true;
+        lockTransfer();
         lua('outpostStashDeposit', { outpostId: outpostMode.id, item: dragging.name, qty: 1 });
+      } else if (!stashHasRoomFor(dragging.name, 1)) {
+        stashFullToast();
       } else {
-        transferLocked = true;
+        lockTransfer();
         lua('stashDeposit', { item: dragging.name, qty: 1 });
       }
     } else if (invZone && dragging.source === 'deathbag' && !transferLocked) {
-      transferLocked = true;
+      lockTransfer();
       lua('deathBagWithdraw', { bagId: deathBagMode.id, item: dragging.name, qty: 1 });
     } else if (invZone && dragging.source === 'drop' && !transferLocked) {
-      transferLocked = true;
+      lockTransfer();
       lua('dropWithdraw', { dropId: dropMode.id, item: dragging.name, qty: 1 });
     } else if (invZone && dragging.source === 'outpost' && !transferLocked) {
-      transferLocked = true;
+      lockTransfer();
       lua('outpostStashWithdraw', { outpostId: outpostMode.id, item: dragging.name, qty: 1 });
     } else if (invZone && dragging.source === 'stash' && !transferLocked) {
-      transferLocked = true;
+      lockTransfer();
       lua('stashWithdraw', { item: dragging.name, qty: 1 });
     }
   }
@@ -1625,38 +1585,40 @@ function quickStash(e, name, source) {
   // Bloquer les clics rapides — attendre la confirmation serveur
   if (transferLocked) return;
   if (source === 'deathbag') {
-    transferLocked = true;
+    lockTransfer();
     lua('deathBagWithdraw', { bagId: deathBagMode.id, item: name, qty: 1 });
     return;
   } else if (source === 'drop') {
-    transferLocked = true;
+    lockTransfer();
     lua('dropWithdraw', { dropId: dropMode.id, item: name, qty: 1 });
   } else if (source === 'inv') {
     if (dropMode || deathBagMode) {
       // On ne peut pas déposer dans un drop ou un death bag
     } else if (outpostMode) {
-      transferLocked = true;
+      lockTransfer();
       lua('outpostStashDeposit', { outpostId: outpostMode.id, item: name, qty: 1 });
     } else {
-      transferLocked = true;
+      if (!stashHasRoomFor(name, 1)) { stashFullToast(); return; }
+      lockTransfer();
       lua('stashDeposit', { item: name, qty: 1 });
     }
   } else if (source === 'outpost') {
-    transferLocked = true;
+    lockTransfer();
     lua('outpostStashWithdraw', { outpostId: outpostMode.id, item: name, qty: 1 });
   } else if (source === 'stash') {
-    transferLocked = true;
+    lockTransfer();
     lua('stashWithdraw', { item: name, qty: 1 });
   }
 }
 
 // ══ Toast ════════════════════════════════════════════════════════════════
+// Pont vers la pile de notifications partagee de vanta_ui.
+// Le NUI de pvp_inventory ne peut pas ecrire dans la page NUI d une autre
+// resource : on passe par Lua, qui relaie a exports['vanta_ui']:notify.
+// 2e argument : true -> succes, false -> erreur, omis -> info.
 function toast(msg, ok) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className   = 'show ' + (ok ? 'ok' : 'fail');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => el.className='', 3000);
+  const kind = ok === true ? 'success' : ok === false ? 'error' : 'info';
+  lua('notify', { msg: String(msg == null ? '' : msg), kind });
 }
 
 // ══ Fetch Lua ════════════════════════════════════════════════════════════
@@ -2376,158 +2338,6 @@ window.crewSetEventStatus = (eventId, status) => crewFetch('crewSetEventStatus',
 window.crewBuyShop = key => crewFetch('crewBuyShopItem', { key }).then(r => { toast(r.message, r.ok); if (r.ok) setTimeout(loadCrewTab, 500); });
 // ══════════════════════════════════════════════════════════════════════════
 
-// Syncs depuis pvp_vcoins client (via NUI message relayé par le client Lua)
-window.addEventListener('message', function(e) {
-  if (e.data.type === 'vcSync') {
-    if (e.data.tier    !== undefined) vcData.tier    = e.data.tier;
-    if (e.data.vcoins  !== undefined) vcData.vcoins  = e.data.vcoins;
-    if (e.data.expires !== undefined) vcData.expires = e.data.expires;
-    if (document.getElementById('view-vcoins').classList.contains('active')) {
-      renderVCoinsStatus();
-    }
-    // Rafraîchit le poids stash affiché si le stash est ouvert
-    if (e.data.maxStashWeight) {
-      STASH_MAX_KG = e.data.maxStashWeight;
-      renderInventory();
-    }
-  }
-});
-
-// Charge les données depuis le serveur (à l'ouverture de l'onglet)
-function loadVCoinsTab() {
-  fetch('https://pvp_inventory/vcGetData', { method: 'POST', body: '{}' })
-    .then(r => r.json())
-    .then(data => {
-      if (!data) return;
-      vcData = { ...vcData, ...data };
-      renderVCoinsStatus();
-      renderVCoinsMarket();
-    })
-    .catch(() => {});
-}
-
-// ── Rendu statut abonnement ───────────────────────────────────────────────
-function renderVCoinsStatus() {
-  const badge   = document.getElementById('vc-tier-badge');
-  const balance = document.getElementById('vc-balance');
-  const expiry  = document.getElementById('vc-expiry');
-
-  // Badge tier
-  badge.className = 'vc-tier-badge';
-  if (vcData.tier === 'gold') {
-    badge.className += ' vc-tier-gold';
-    badge.textContent = 'GOLD';
-  } else if (vcData.tier === 'diamond') {
-    badge.className += ' vc-tier-diamond';
-    badge.textContent = 'DIAMOND';
-  } else {
-    badge.textContent = 'AUCUN ABONNEMENT';
-  }
-
-  // Solde
-  balance.textContent = Number(vcData.vcoins || 0).toLocaleString('fr-FR') + ' VC';
-
-  // Expiry
-  if (vcData.expires && vcData.tier !== 'none') {
-    expiry.textContent = 'Expire le ' + vcData.expires;
-    expiry.style.display = '';
-  } else {
-    expiry.style.display = 'none';
-  }
-}
-
-// ── Rendu marché ──────────────────────────────────────────────────────────
-function renderVCoinsMarket() {
-  const list     = document.getElementById('vc-market-list');
-  const mySection = document.getElementById('vc-my-offers-section');
-  const myList   = document.getElementById('vc-my-offers-list');
-
-  // Mes offres
-  if (vcData.myOffers && vcData.myOffers.length > 0) {
-    mySection.style.display = '';
-    myList.innerHTML = vcData.myOffers.map(o => `
-      <div class="vc-offer-row vc-offer-mine">
-        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
-        <span class="vc-offer-arrow">→</span>
-        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
-        <button class="vc-offer-cancel" onclick="vcCancelOffer(${o.id})">ANNULER</button>
-      </div>
-    `).join('');
-  } else {
-    mySection.style.display = 'none';
-  }
-
-  // Marché global
-  if (!vcData.market || vcData.market.length === 0) {
-    list.innerHTML = '<div class="vc-market-empty">Aucune offre disponible</div>';
-    return;
-  }
-  list.innerHTML = vcData.market.map(o => {
-    const rate = o.vcoin_amount > 0 ? Math.round(o.price_ingame / o.vcoin_amount) : 0;
-    return `
-      <div class="vc-offer-row">
-        <span class="vc-offer-seller">${o.seller_name}</span>
-        <span class="vc-offer-amount">${Number(o.vcoin_amount).toLocaleString('fr-FR')} VC</span>
-        <span class="vc-offer-arrow">→</span>
-        <span class="vc-offer-price">${Number(o.price_ingame).toLocaleString('fr-FR')} $</span>
-        <span class="vc-offer-rate">${rate} $/VC</span>
-        <button class="vc-offer-buy" onclick="vcBuyOffer(${o.id})">ACHETER</button>
-      </div>
-    `;
-  }).join('');
-}
-
-// ── Actions ───────────────────────────────────────────────────────────────
-window.vcSubscribe = function(tier) {
-  fetch('https://pvp_inventory/vcSubscribe', {
-    method: 'POST',
-    body: JSON.stringify({ tier })
-  }).then(r => r.json()).then(res => {
-    if (res && res.ok === false) {
-      toast(res.msg || 'Erreur', false);
-    }
-  }).catch(() => {});
-};
-
-window.vcCreateOffer = function() {
-  const amt   = parseInt(document.getElementById('vc-offer-amount').value) || 0;
-  const price = parseInt(document.getElementById('vc-offer-price').value)  || 0;
-  if (amt < 10)   { toast('Minimum 10 VC', false); return; }
-  if (price < 100){ toast('Prix minimum 100$', false); return; }
-  fetch('https://pvp_inventory/vcCreateOffer', {
-    method: 'POST',
-    body: JSON.stringify({ vcoinAmount: amt, priceIngame: price })
-  }).then(() => {
-    document.getElementById('vc-offer-amount').value = '';
-    document.getElementById('vc-offer-price').value  = '';
-    setTimeout(loadVCoinsTab, 500);
-  }).catch(() => {});
-};
-
-window.vcCancelOffer = function(id) {
-  fetch('https://pvp_inventory/vcCancelOffer', {
-    method: 'POST',
-    body: JSON.stringify({ offerId: id })
-  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
-};
-
-window.vcBuyOffer = function(id) {
-  fetch('https://pvp_inventory/vcBuyOffer', {
-    method: 'POST',
-    body: JSON.stringify({ offerId: id })
-  }).then(() => setTimeout(loadVCoinsTab, 500)).catch(() => {});
-};
-
-// Hook sur le clic de l'onglet VCOINS pour charger les données
-document.addEventListener('DOMContentLoaded', function() {
-  const vcTab = document.querySelector('[data-tab="vcoins"]');
-  if (vcTab) {
-    vcTab.addEventListener('click', function() {
-      loadVCoinsTab();
-    });
-  }
-});
-
 // ══════════════════════════════════════════════════════════════════════════
 //   PED SELECTOR
 // ══════════════════════════════════════════════════════════════════════════
@@ -2706,33 +2516,119 @@ function loadVCoinsTab() {
 }
 
 // ── Rendu statut abonnement ───────────────────────────────────────────────
+// Prix et durée : doivent rester alignés sur TIERS / SUB_DURATION_DAYS dans
+// pvp_vcoins/server/server.lua. Le serveur reste seul juge du débit.
+var VC_PRIX  = { gold: 800, diamond: 1500 };
+var VC_NOM   = { gold: 'GOLD', diamond: 'DIAMOND' };
+// Grade désigné par un premier clic. Le second clic (sur le bouton) souscrit.
+var vcArme = null;
+
+function vcFmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+
+// 'YYYY-MM-DD HH:MM:SS' → nombre de jours entiers restants, ou null.
+function vcJoursRestants(s) {
+  if (!s) return null;
+  const d = new Date(String(s).replace(' ', 'T'));
+  if (isNaN(d.getTime())) return null;
+  return Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000));
+}
+
+function vcArmer(tier) {
+  // Le grade déjà pris ne s'arme pas : son bouton prolonge directement.
+  if (vcData.tier === tier) return;
+  vcArme = (vcArme === tier) ? null : tier;
+  renderVCoinsStatus();
+}
+
+function vcCliqueBouton(tier) {
+  const prix = VC_PRIX[tier];
+  if ((vcData.vcoins || 0) < prix) {
+    toast('Il te manque ' + vcFmt(prix - (vcData.vcoins || 0)) + ' VC', false);
+    return;
+  }
+  // Grade déjà actif → prolongation, pas de confirmation à armer.
+  if (vcData.tier === tier || vcArme === tier) { vcArme = null; vcSubscribe(tier); return; }
+  vcArme = tier;
+  renderVCoinsStatus();
+}
+
 function renderVCoinsStatus() {
+  const tier  = vcData.tier || 'none';
+  const solde = vcData.vcoins || 0;
+  const jours = vcJoursRestants(vcData.expires);
+
+  // ── Bandeau ──
   const badge   = document.getElementById('vc-tier-badge');
-  const balance = document.getElementById('vc-balance');
   const expiry  = document.getElementById('vc-expiry');
+  const insigne = document.getElementById('vc-statut-insigne');
+  const prolong = document.getElementById('vc-btn-prolonger');
 
-  // Badge tier
-  badge.className = 'vc-tier-badge';
-  if (vcData.tier === 'gold') {
-    badge.className += ' vc-tier-gold';
-    badge.textContent = 'GOLD';
-  } else if (vcData.tier === 'diamond') {
-    badge.className += ' vc-tier-diamond';
-    badge.textContent = 'DIAMOND';
+  document.getElementById('vc-balance').innerHTML =
+    vcFmt(solde) + ' <span class="vc-solde-u">VC</span>';
+
+  if (tier === 'gold' || tier === 'diamond') {
+    badge.textContent = VC_NOM[tier];
+    badge.style.color = tier === 'gold' ? '#e9c66d' : '#64d2ff';
+    expiry.innerHTML = jours === null
+      ? '— actif'
+      : (jours <= 0 ? '— expire aujourd\'hui' : '— actif, expire dans <b>' + jours + ' jour' + (jours > 1 ? 's' : '') + '</b>');
+    const def = window.BADGE_DEFS && BADGE_DEFS[tier + '_member'];
+    insigne.innerHTML = def ? def.mini : '';
+    insigne.style.display = def ? 'block' : 'none';
+    prolong.style.display = '';
+    prolong.className = 'vc-cta vc-cta-court vc-pour-' + tier;
+    prolong.textContent = 'PROLONGER 30 JOURS — ' + vcFmt(VC_PRIX[tier]) + ' VC';
+    prolong.onclick = function () { vcCliqueBouton(tier); };
   } else {
-    badge.textContent = 'AUCUN ABONNEMENT';
+    badge.textContent = 'SANS GRADE';
+    badge.style.color = '';
+    expiry.textContent = '— aucun avantage actif';
+    insigne.style.display = 'none';
+    insigne.innerHTML = '';
+    prolong.style.display = 'none';
   }
 
-  // Solde
-  balance.textContent = Number(vcData.vcoins || 0).toLocaleString('fr-FR') + ' VC';
+  document.getElementById('vc-sec-titre').textContent =
+    tier === 'none' ? 'CHOISIR UN GRADE' : 'TON GRADE';
 
-  // Expiry
-  if (vcData.expires && vcData.tier !== 'none') {
-    expiry.textContent = 'Expire le ' + vcData.expires;
-    expiry.style.display = '';
-  } else {
-    expiry.style.display = 'none';
-  }
+  // ── Les deux cartes ──
+  ['gold', 'diamond'].forEach(function (t) {
+    const carte  = document.getElementById('vc-carte-' + t);
+    const listel = document.getElementById('vc-listel-' + t);
+    const btn    = document.getElementById('vc-btn-' + t);
+    const ins    = document.getElementById('vc-insigne-' + t);
+    if (!carte) return;
+
+    const def = window.BADGE_DEFS && BADGE_DEFS[t + '_member'];
+    if (def && !ins.firstChild) ins.innerHTML = def.full();
+
+    const actuel = (tier === t);
+    const manque = VC_PRIX[t] - solde;
+
+    // Listel : le grade pris se ferme, l'autre invite à monter d'un cran.
+    let texte = '';
+    if (actuel)              texte = 'TON GRADE ACTUEL';
+    else if (tier !== 'none') texte = t === 'diamond' ? 'MONTER D\'UN CRAN' : 'REDESCENDRE D\'UN CRAN';
+    else if (t === 'diamond') texte = 'LE PALIER SUPÉRIEUR';
+    listel.textContent = texte;
+    carte.classList.toggle('a-listel', texte !== '');
+
+    carte.classList.toggle('vc-actuel', actuel);
+    carte.classList.toggle('vc-arme', vcArme === t && !actuel);
+
+    btn.className = 'vc-cta';
+    if (manque > 0) {
+      btn.classList.add('vc-inerte');
+      btn.textContent = 'IL TE MANQUE ' + vcFmt(manque) + ' VC';
+    } else if (actuel) {
+      btn.textContent = 'PROLONGER — ' + vcFmt(VC_PRIX[t]) + ' VC';
+    } else if (vcArme === t) {
+      btn.classList.add('vc-plein');
+      btn.textContent = 'CONFIRMER — ' + vcFmt(VC_PRIX[t]) + ' VC';
+    } else {
+      btn.textContent = (tier === 'none' ? 'SOUSCRIRE ' : 'PASSER ') + VC_NOM[t];
+    }
+  });
 }
 
 // ── Rendu marché ──────────────────────────────────────────────────────────

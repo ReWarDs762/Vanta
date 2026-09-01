@@ -8,8 +8,8 @@ local ESX = nil
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
 -- ── Config ───────────────────────────────────────────────────────────────
-local CURRENT_SEASON = 1
-local RENAME_PRICE   = 5000
+-- Le rename n'est plus ni payant ni saisonnier : il est réservé aux abonnés
+-- (Gold 1×/semaine, Diamond illimité) — voir la commande /rename plus bas.
 
 -- Mots interdits dans les pseudos (vérifié en substring insensible à la casse)
 local BannedWords = {
@@ -39,6 +39,8 @@ Citizen.CreateThread(function()
     -- pvp_player_stats doit déjà exister (créée par pvp_inventory). On ajoute juste les colonnes manquantes.
     addColumnIfMissing('pvp_player_stats', 'skin_tone',          'TINYINT DEFAULT 0')
     addColumnIfMissing('pvp_player_stats', 'hair_style',         'TINYINT DEFAULT 0')
+    -- rename_free_season : legacy (ancien rename gratuit 1×/saison), plus lu ni écrit.
+    -- Migration conservée pour ne pas casser les bases existantes.
     addColumnIfMissing('pvp_player_stats', 'rename_free_season', 'INT DEFAULT 0')
     addColumnIfMissing('pvp_player_stats', 'rename_last_week',   'INT DEFAULT 0')
     addColumnIfMissing('pvp_player_stats', 'appearance_json',    'TEXT NULL')
@@ -437,9 +439,22 @@ AddEventHandler('pvp_character:saveCharacter', function(data)
 end)
 
 -- ── Commande /rename ─────────────────────────────────────────────────────
--- Gold    : 1× gratuit/semaine (au lieu de 1×/saison), sinon 5000$
--- Diamond : illimité gratuit
--- Autres  : 1× gratuit/saison, sinon 5000$
+-- Diamond : illimité
+-- Gold    : 1× par semaine
+-- Autres  : jamais (réservé aux abonnés)
+local RENAME_WEEK_SECONDS = 7 * 24 * 3600
+
+-- Formate une durée en secondes → "2j 5h" / "5h 12min" / "12min"
+local function formatDelay(seconds)
+    seconds = math.max(0, math.floor(seconds))
+    local days  = math.floor(seconds / 86400)
+    local hours = math.floor((seconds % 86400) / 3600)
+    local mins  = math.floor((seconds % 3600) / 60)
+    if days  > 0 then return ('%dj %dh'):format(days, hours) end
+    if hours > 0 then return ('%dh %dmin'):format(hours, mins) end
+    return ('%dmin'):format(mins)
+end
+
 local renameLocks = {}
 RegisterCommand('rename', function(source, args, raw)
     if source == 0 then return end
@@ -465,6 +480,19 @@ RegisterCommand('rename', function(source, args, raw)
         return
     end
 
+    -- Récupère le tier d'abonnement depuis pvp_vcoins
+    local tier = 'none'
+    pcall(function()
+        tier = exports['pvp_vcoins']:GetTier(xPlayer.identifier) or 'none'
+    end)
+
+    -- Sans abonnement : rename impossible, quel que soit l'argent du joueur
+    if tier ~= 'gold' and tier ~= 'diamond' then
+        renameLocks[xPlayer.identifier] = nil
+        notify(source, '~r~Le changement de pseudo est réservé aux abonnés ~y~Gold~r~ (1×/semaine) et ~b~Diamond~r~ (illimité)')
+        return
+    end
+
     -- Unicité pseudo
     local dupOk, dup = pcall(function()
         return MySQL.Sync.fetchAll(
@@ -477,13 +505,7 @@ RegisterCommand('rename', function(source, args, raw)
         return
     end
 
-    -- Récupère le tier d'abonnement depuis pvp_vcoins
-    local tier = 'none'
-    pcall(function()
-        tier = exports['pvp_vcoins']:GetTier(xPlayer.identifier) or 'none'
-    end)
-
-    -- Diamond = rename illimité gratuit
+    -- Diamond = rename illimité
     if tier == 'diamond' then
         MySQL.Async.execute(
             'UPDATE users SET firstname = @n WHERE identifier = @id',
@@ -497,69 +519,38 @@ RegisterCommand('rename', function(source, args, raw)
         return
     end
 
+    -- Gold = 1× par semaine (fenêtre = numéro de semaine Unix, comme avant)
     MySQL.Async.fetchAll(
-        'SELECT rename_free_season, rename_last_week FROM pvp_player_stats WHERE identifier = @id',
+        'SELECT rename_last_week FROM pvp_player_stats WHERE identifier = @id',
         { ['@id'] = xPlayer.identifier },
         function(result)
-            local row        = result and result[1]
-            local lastSeason = tonumber(row and row.rename_free_season) or 0
-            local lastWeek   = tonumber(row and row.rename_last_week) or 0
-            local nowWeek    = math.floor(os.time() / (7 * 24 * 3600))  -- numéro de semaine Unix
+            local row      = result and result[1]
+            local lastWeek = tonumber(row and row.rename_last_week) or 0
+            local nowWeek  = math.floor(os.time() / RENAME_WEEK_SECONDS)
 
-            local isFree = false
-            local freeReason = ''
-
-            if tier == 'gold' then
-                -- Gold : 1× gratuit par semaine
-                if lastWeek ~= nowWeek then
-                    isFree = true
-                    freeReason = 'Gold — 1×/semaine'
-                end
-            else
-                -- Aucun abonnement : 1× gratuit par saison
-                if lastSeason ~= CURRENT_SEASON then
-                    isFree = true
-                    freeReason = ('saison %d'):format(CURRENT_SEASON)
-                end
-            end
-
-            local bank = xPlayer.getAccount('bank').money
-            if not isFree and bank < RENAME_PRICE then
-                local hint = tier == 'gold'
-                    and '(Gold : 1×/sem gratuit déjà utilisé)'
-                    or  ('(rename gratuit de la saison %d déjà utilisé)'):format(CURRENT_SEASON)
+            if lastWeek == nowWeek then
+                local remaining = ((nowWeek + 1) * RENAME_WEEK_SECONDS) - os.time()
                 renameLocks[xPlayer.identifier] = nil
-                notify(source, ('~r~Il te faut %d$ %s'):format(RENAME_PRICE, hint))
+                notify(source, ('~r~Gold : 1 rename par semaine — prochain disponible dans ~w~%s'):format(formatDelay(remaining)))
                 return
-            end
-
-            if not isFree then
-                xPlayer.removeAccountMoney('bank', RENAME_PRICE)
             end
 
             MySQL.Async.execute(
                 'UPDATE users SET firstname = @n WHERE identifier = @id',
                 { ['@n'] = newPseudo, ['@id'] = xPlayer.identifier },
                 function()
-                    -- Met à jour les compteurs de free rename
+                    -- Consomme le rename hebdomadaire
                     MySQL.Async.execute([[
-                        INSERT INTO pvp_player_stats (identifier, rename_free_season, rename_last_week)
-                        VALUES (@id, @season, @week)
-                        ON DUPLICATE KEY UPDATE
-                            rename_free_season = @season,
-                            rename_last_week   = @week
+                        INSERT INTO pvp_player_stats (identifier, rename_last_week)
+                        VALUES (@id, @week)
+                        ON DUPLICATE KEY UPDATE rename_last_week = @week
                     ]], {
-                        ['@id']     = xPlayer.identifier,
-                        ['@season'] = isFree and (tier ~= 'gold' and CURRENT_SEASON or lastSeason) or lastSeason,
-                        ['@week']   = isFree and (tier == 'gold' and nowWeek or lastWeek) or lastWeek,
+                        ['@id']   = xPlayer.identifier,
+                        ['@week'] = nowWeek,
                     }, function()
                         xPlayer.set('firstName', newPseudo)
                         renameLocks[xPlayer.identifier] = nil
-                        if isFree then
-                            notify(source, ('~g~Pseudo changé pour ~w~%s~g~ (gratuit — %s)'):format(newPseudo, freeReason))
-                        else
-                            notify(source, ('~g~Pseudo changé pour ~w~%s~g~ (-%d$)'):format(newPseudo, RENAME_PRICE))
-                        end
+                        notify(source, ('~g~Pseudo changé pour ~w~%s~g~ ~y~(Gold — 1×/semaine)'):format(newPseudo))
                     end)
                 end
             )
@@ -567,7 +558,7 @@ RegisterCommand('rename', function(source, args, raw)
     )
 end, false)
 
-TriggerEvent('chat:addSuggestion', '/rename', 'Change ton pseudo (1x gratuit/saison, sinon 5000$)', {
+TriggerEvent('chat:addSuggestion', '/rename', 'Change ton pseudo (Gold : 1x/semaine — Diamond : illimité)', {
     { name = 'nouveau_pseudo', help = '2-20 caractères' }
 })
 

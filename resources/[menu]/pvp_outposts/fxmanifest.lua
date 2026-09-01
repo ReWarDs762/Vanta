@@ -39,5 +39,6 @@ exports {
 dependencies {
     'es_extended',
     'mysql-async',
-    'esx_menu_default'
+    'esx_menu_default',
+    'vanta_ui'
 }

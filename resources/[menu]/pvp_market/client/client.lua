@@ -35,7 +35,7 @@ RegisterCommand('pvp_trade', function()
     end
 
     if closestPlayer == -1 then
-        SendNUIMessage({ type = 'notify', msg = 'Aucun joueur proche pour échanger.', success = false })
+        exports['vanta_ui']:notify('Aucun joueur proche pour échanger.', 'warning')
         return
     end
 

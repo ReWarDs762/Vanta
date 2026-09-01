@@ -14,6 +14,20 @@
       user-select: none;
     }
 
+    /* ── COULEURS HUD ──
+       Vert = vie, bleu = kevlar, rouge = critique.
+       Les teintes solides viennent du design system (vanta.css) ; les fonds
+       de piste sont les mêmes teintes à 12%. */
+    :root {
+      --hud-hp:           var(--v-success, #30d158);
+      --hud-hp-track:     rgba(48, 209, 88, 0.12);
+      --hud-armor:        var(--v-info, #64d2ff);
+      --hud-armor-track:  rgba(100, 210, 255, 0.12);
+      --hud-danger:       var(--v-danger, #ff453a);
+      --hud-danger-track: rgba(255, 69, 58, 0.12);
+      --hud-dim:          #3a3d41;
+    }
+
     /* ── CONTENEUR PRINCIPAL ── */
     #hud {
       position: fixed;
@@ -24,16 +38,19 @@
       gap: 4px;
       opacity: 0;
       transition: opacity 0.3s ease;
-      min-width: 210px;
+      min-width: 214px;
     }
     #hud.visible { opacity: 1; }
 
     /* ── BLOC GÉNÉRIQUE ── */
     .hud-block {
-      background: #111111;
-      border: 1px solid #242424;
+      background: #0e0f11;
+      border: 1px solid #1f2124;
       border-radius: 2px;
-      padding: 10px 14px;
+      padding: 11px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
     }
 
     /* ── STATS (HP + ARMOR) ── */
@@ -46,7 +63,7 @@
     .stat-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
     }
 
     .stat-label {
@@ -55,24 +72,28 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: #5a5f66;
-      width: 42px;
+      width: 44px;
       flex-shrink: 0;
     }
 
     .bar-track {
       flex: 1;
-      height: 2px;
+      height: 3px;
       background: #1e1e1e;
       overflow: hidden;
     }
+
+    #hp-row .bar-track             { background: var(--hud-hp-track); }
+    #armor-row .bar-track          { background: var(--hud-armor-track); }
+    #hp-row.hp-critical .bar-track { background: var(--hud-danger-track); }
 
     .bar-fill {
       height: 100%;
       transition: width 0.25s ease, background 0.25s ease;
     }
 
-    .hp-fill   { background: rgba(200, 205, 212, 0.65); }
-    .armor-fill { background: rgba(200, 205, 212, 0.3); }
+    .hp-fill    { background: var(--hud-hp); }
+    .armor-fill { background: var(--hud-armor); }
 
     .stat-value {
       font-size: 11px;
@@ -83,11 +104,19 @@
       color: #c8cdd4;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.02em;
+      transition: color 0.25s ease;
     }
 
-    /* HP critique */
-    .hp-fill.critical   { background: #8b2020; }
-    .stat-value.critical { color: #c0392b; }
+    /* La valeur prend la couleur de sa propre jauge */
+    #hp-val    { color: var(--hud-hp); }
+    #armor-val { color: var(--hud-armor); }
+    /* Kevlar à zéro : plus rien à signaler, donc plus de couleur */
+    #armor-val.zero { color: var(--hud-dim); }
+
+    /* HP critique — selecteur d'ID obligatoire ici : #hp-val ci-dessus est
+       plus specifique que .stat-value.critical et gagnerait sinon */
+    .hp-fill.critical { background: var(--hud-danger); }
+    #hp-val.critical  { color: var(--hud-danger); }
 
     @keyframes hp-pulse {
       0%, 100% { opacity: 1; }
@@ -136,21 +165,21 @@
 
     #ammo-sep {
       font-size: 10px;
-      color: #2a2a2a;
+      color: #2f3134;
       margin: 0 1px;
     }
 
     #ammo-reserve {
       font-size: 11px;
       font-weight: 400;
-      color: #3a3a3a;
+      color: var(--hud-dim);
       font-variant-numeric: tabular-nums;
     }
 
     /* Munitions basses */
     @keyframes ammo-blink {
-      0%, 100% { color: #8b2020; }
-      50%       { color: rgba(139, 32, 32, 0.3); }
+      0%, 100% { color: var(--hud-danger); }
+      50%       { color: rgba(255, 69, 58, 0.30); }
     }
     #ammo-current.ammo-low { animation: ammo-blink 0.75s infinite; }
 
@@ -160,7 +189,7 @@
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.08em;
-      color: #3a3a3a;
+      color: var(--hud-dim);
     }
 
     /* ── FLASH DÉGÂTS ── */
@@ -178,8 +207,8 @@
     .h-sep {
       width: 100%;
       height: 1px;
-      background: #1a1a1a;
-      margin: 2px 0;
+      background: #1a1b1d;
+      margin: 0;
     }
 
     /* ── NOTIFICATION GRÂCE ZONE SAFE ── */
@@ -280,17 +309,17 @@
 
     <!-- Armor -->
     <div class="stat-row" id="armor-row">
-      <span class="stat-label">ARMOR</span>
+      <span class="stat-label">KEVLAR</span>
       <div class="bar-track">
         <div class="bar-fill armor-fill" id="armor-bar" style="width:0%"></div>
       </div>
-      <span class="stat-value" id="armor-val">0</span>
+      <span class="stat-value zero" id="armor-val">0</span>
     </div>
 
     <div class="h-sep"></div>
 
     <!-- Arme + Munitions -->
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:2px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
       <span id="weapon-name">AUCUNE ARME</span>
       <div id="ammo-display">
         <span id="ammo-current">0</span>
@@ -334,6 +363,8 @@
     const pct = Math.max(0, Math.min(100, val));
     armorBar.style.width = pct + '%';
     armorVal.textContent = Math.round(pct);
+    // Kevlar à zéro : on retire le bleu, la valeur n'a plus rien à signaler
+    armorVal.classList.toggle('zero', pct <= 0);
   }
 
   function setWeapon(name, ammo, reserve) {

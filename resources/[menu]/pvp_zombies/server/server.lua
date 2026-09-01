@@ -172,7 +172,7 @@ AddEventHandler('pvp_zombies:claimLoot', function(token)
         end)
         if not ok_bag or not canAdd then
             TriggerClientEvent('pvp_zombies:receiveLoot', src, typeData.label, reward, {})
-            TriggerClientEvent('pvp_market:notify', src, 'Sac trop lourd — +' .. reward .. '$ mais pas de loot !', false)
+            exports['vanta_ui']:notify(src, 'Sac trop lourd — +' .. reward .. '$ mais pas de loot !', 'warning')
             return
         end
         -- Vérifie que l'item existe dans ESX

@@ -710,7 +710,10 @@ end)
 -- pvp_admin, d'où la vérification de groupe ESX ici.
 RegisterNetEvent('pvp_drops:forceStart')
 AddEventHandler('pvp_drops:forceStart', function()
-    local src = source
+    -- `source` n'est pas forcément un nombre : sur un TriggerEvent serveur
+    -- local (autre resource), FXServer laisse une string dans le global, et
+    -- `src <= 0` levait « attempt to compare string with number ».
+    local src = tonumber(source)
     if not src or src <= 0 then return end
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end

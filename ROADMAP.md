@@ -71,41 +71,40 @@ Une resource ne passe à ✅ **testée** qu'après validation manette en main.
 - [ ] Tuer un zombie → loot au corps → item en inventaire  ✅ 
 - [ ] Achat / vente armurerie + customisation arme ✅
 - [ ] Achat / vente / spawn véhicule (garage)✅
-- [ ] Marché joueur : créer une annonce, acheter  ⏸️ mettre une annonce valider, mais besoin de joueur pour acheter 
+- [ ] Marché joueur : créer une annonce, acheter  ✅
 - [ ] Mort → perte du sac → death bag au sol → respawn avant-poste le plus proche ✅ 
 - [ ] Téléportation entre avant-postes (NPC pilote + waypoint) ✅ 
 
 **Fait quand :** le parcours complet tourne sans blocage ni erreur console serveur/client.
 
 ### A2 — Corriger les bugs remontés par A1
-- [ ] Lister ici les bugs trouvés pendant A1, puis les corriger
+- [ ] Lister ici les bugs trouvés pendant A1, puis les corriger✅
   - …
 
 **Fait quand :** A1 rejoué de bout en bout sans régression.
 
 ### A3 — Valider `pvp_combat` (anti combat-log)
-- [ ] Un coup donné/reçu passe attaquant + victime en « EN COMBAT » 5s
-- [ ] Fenêtre glissante : un nouveau coup prolonge le timer
-- [ ] Déconnexion en plein combat → le joueur meurt, sac perdu, death bag créé à la dernière position
-- [ ] Dépôt au coffre protégé refusé tant que le mode combat est actif
-- [ ] Le mode combat ne se déclenche **pas** en zone safe ni entre membres de squad
-
-**Fait quand :** les 5 points validés à 2 joueurs. *Critique — anti combat-log cassé = exploit au lancement.*
+- [ ] Un coup donné/reçu passe attaquant + victime en « EN COMBAT » 5s ✅
+- [ ] Fenêtre glissante : un nouveau coup prolonge le timer ✅
+- [ ] Déconnexion en plein combat → le joueur meurt, sac perdu, death bag créé à la dernière position ✅
+- [ ] Dépôt au coffre protégé refusé tant que le mode combat est actif ✅
+- [ ] Le mode combat ne se déclenche **pas** en zone safe ni entre membres de squad ✅
+ 
+**Fait quand :** les 5 points validés à 2 joueurs. *Critique — anti combat-log cassé = exploit au lancement.* ✅
 
 ### A4 — Trancher la collision `/givexp`
-- [ ] Décision : faire relayer `pvp_admin` vers `exports['vanta_xp']:addXP` (recommandé) **ou** supprimer la commande de `pvp_admin`
-- [ ] Vérifier en jeu : `/givexp <id> <n>` fait bien monter l'XP réelle (`vanta_xp`), niveau/prestige suivent
+- [ ] Décision : faire relayer `pvp_admin` vers `exports['vanta_xp']:addXP` (recommandé) **ou** supprimer la commande de `pvp_admin` ✅
+- [ ] Vérifier en jeu : `/givexp <id> <n>` fait bien monter l'XP réelle (`vanta_xp`), niveau/prestige suivent✅
 
-**Fait quand :** `/givexp` a un effet observable et écrit dans la bonne table.
+**Fait quand :** `/givexp` a un effet observable et écrit dans la bonne table. ✅
 
 ### A5 — Valider `pvp_character` en profondeur
-- [ ] Parcours freemode : peau, morphologie, cheveux + couleur, vêtements, accessoires — tout s'applique en direct sur le ped
-- [ ] Choix d'un ped spécial → définitif sans Gold/Diamond
-- [ ] `/rename` : payant 5000$ (gratuit + illimité si Diamond)
-- [ ] Modération pseudo (mot interdit refusé)
-- [ ] `pvp_inventory` onglet Profil : bouton changement de ped **verrouillé** sans Gold/Diamond, et rejet serveur si forcé
+- [ ] Parcours freemode : peau, morphologie, cheveux + couleur, vêtements, accessoires — tout s'applique en direct sur le ped ✅
+- [ ] Choix d'un ped spécial → définitif sans Gold/Diamond ✅
+- [ ] Modération pseudo (mot interdit refusé) ✅
+- [ ] `pvp_inventory` onglet Profil : bouton changement de ped **verrouillé** sans Gold/Diamond, et rejet serveur si forcé ✅
 
-**Fait quand :** aucun chemin de création ne bloque l'apparition, et la restriction de ped tient côté serveur.
+**Fait quand :** aucun chemin de création ne bloque l'apparition, et la restriction de ped tient côté serveur. ✅
 
 ---
 
@@ -235,4 +234,5 @@ Ne pas ouvrir au public tant que **tout** ci-dessous n'est pas ✅ :
 | Date | Fait | Bloqué par | Prochaine étape |
 |---|---|---|---|
 | 2026-08-27 | Création de ce ROADMAP.md à partir de STATUS.md + historique git | — | Attaquer A1 (session de test parcours joueur) |
+ 2026-08-30 | Give XP migrer, B1 fais unification des notifications vers vanta_ui, B2 fais également création d'une ressource dédié a l'organisation des items, suppresion du /rename
 | | | | |
