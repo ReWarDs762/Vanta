@@ -67,8 +67,11 @@ AddEventHandler('vanta_xp:profileUpdate', function(profile)
 end)
 
 -- Notification XP ajouté (petit toast discret)
+-- Pilote par VantaXP.ShowXPToast (config.lua) : l XP continue d etre gagnee et
+-- enregistree normalement, seul l affichage est coupe.
 RegisterNetEvent('vanta_xp:xpAdded')
 AddEventHandler('vanta_xp:xpAdded', function(amount, source)
+    if not VantaXP.ShowXPToast then return end
     SendNUIMessage({
         action = 'xpAdded',
         amount = amount,

@@ -599,4 +599,10 @@ end)
 TriggerEvent("es:addGroup", "jobmaster", "user", function(group) end)
 
 ESX.StartDBSync()
-ESX.StartPayCheck()
+-- VANTA : ce serveur n a ni jobs ni salaires. StartPayCheck() etait appele
+-- sans tenir compte de Config.EnablePaycheck (= false), ce qui versait une
+-- « aide de l etat » et une « prime d activite » avec leurs notifications
+-- Maze Bank, incoherentes avec un serveur de survie PVP.
+if Config.EnablePaycheck then
+	ESX.StartPayCheck()
+end

@@ -19,6 +19,21 @@ Config.LootMultiplier = 2.0
 -- Multiplicateur de récompense en cash en redzone
 Config.CashMultiplier = 2.5
 
+-- ── Affichage des redzones à l'écran ────────────────────────────────────
+-- Tout l'affichage redzone est coupé depuis le 02/09/2026 (demande du 02/09) :
+-- trop d'éléments permanents à l'écran. Les redzones restent pleinement
+-- actives (loot ×2, cash ×2, contrôle crew, rotation) — seul l'affichage part.
+-- Le repère qui subsiste : le cercle rouge sur la carte et la minimap.
+-- Repasser l'un ou l'autre à true pour le réactiver.
+
+-- Notifications natives à l'entrée et à la sortie d'une redzone.
+Config.ShowEnterExitNotifications = false
+
+-- HUD : bandeau rouge en haut de l'écran quand on est DANS une redzone
+-- (nom de zone, crew qui la contrôle, timer de rotation), et petit timer
+-- discret en haut à droite quand on est en dehors.
+Config.ShowRedzoneHUD = false
+
 -- Contrôle crew des redzones
 Config.ControlPointsPerKill = 10
 Config.ControlThreshold = 50

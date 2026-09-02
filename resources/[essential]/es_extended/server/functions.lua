@@ -107,7 +107,8 @@ ESX.SavePlayers = function(cb)
 		table.insert(asyncTasks, function(cb)
 			local xPlayer = ESX.GetPlayerFromId(xPlayers[i])
 			ESX.SavePlayer(xPlayer, cb)
-			TriggerClientEvent('esx:showColoredNotification', xPlayer.source, "~o~Synchronisation ~w~de votre ~o~personnage.", 17)
+			-- VANTA : notification « Synchronisation de votre personnage » retiree.
+			-- La sauvegarde periodique reste, elle n a simplement plus a s afficher.
 		end)
 	end
 

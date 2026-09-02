@@ -40,30 +40,121 @@ architecture.
 
 ## Bugs corrigés
 
-### `pvp_inventory` — inventaire figé en spammant le clic droit sur un coffre plein (corrigé 01/09/2026, validé en jeu)
+### Retours de la session de test multijoueur Cloudfive (corrigés 02/09/2026, non retestés en jeu)
 
-Signalé en test : spam de clic droit pour déposer un item dans le conteneur protégé
-**plein** → l'inventaire ne répond plus (ni fermeture, ni déplacement d'item).
+Onze remontées d'une session de test en ligne, traitées d'un bloc.
 
-Cause principale : seules les cartes d'items annulaient l'événement `contextmenu`
-(attribut `oncontextmenu`). Un clic droit qui tombe à côté (gouttière de 8 px de la
-grille, panneau, fond) laissait CEF ouvrir son **menu contextuel natif**, qui se dessine
-par-dessus le NUI et avale clics et touches. Coffre plein = les cartes ne bougent pas, on
-continue de spammer au même endroit → cas de déclenchement idéal. `pvp_garage` avait déjà
-la garde globale, pas `pvp_inventory`.
+| Remontée | Correctif | Fichier |
+|---|---|---|
+| Balle dans la tête = one-shot | `SetPedSuffersCriticalHits(ped, false)` sur le ped local (les dégâts s'appliquent chez la victime, donc le réglage vit côté client) | `pvp_hud/client/client.lua` |
+| Étoiles de police disponibles | `SetMaxWantedLevel(0)` + multiplicateur à 0, police ignore le joueur, dispatch et flics aléatoires coupés. Le reset par frame existant ne rattrapait qu'après coup | `pvp_hud/client/client.lua` |
+| Bruit de radio de police | `SetAudioFlag('PoliceScannerDisabled', true)` + `DistantCopCarSirens(false)` — le scanner audio tourne indépendamment du wanted level et des PNJ | `pvp_hud/client/client.lua` |
+| Dégâts lors d'un accident | `collisionProof` **permanent** (véhicule ET à pied) + restauration explicite de la vie/armure dès qu'un véhicule est en cause (`HasEntityBeenDamagedByAnyVehicle`, `WEAPON_RUN_OVER_BY_CAR`, `WEAPON_RAMMED_BY_CAR`) + `SetPedCanBeKnockedOffVehicle(1)`, `SetPedRagdollOnCollision(false)`, `SetPedCanRagdollFromPlayerImpact(false)`. **Corrigé une 2e fois le 02/09** : `collisionProof` seul laissait encore passer les dégâts, et il fallait aussi qu'écraser un joueur ne le blesse ni ne le fasse tomber | `pvp_hud/client/client.lua` |
+| Menu squad sur « A » au lieu de « J » | Le code écoutait le contrôle 44 (INPUT_COVER), câblé sur le Q du QWERTY → le A d'un AZERTY. Remplacé par `RegisterKeyMapping('pvp_squad', ..., 'j')`, indépendant de la disposition et rebindable | `pvp_crew/client/client.lua` |
+| Joueur téléporté à Sandy Shores au bout de 15 min | Course entre `playerSpawned` et `setLoginOutpost` : le handler faisait la téléportation puis remettait `loginOutpost` à `nil`, la boucle d'attente ne voyait donc jamais la réponse, tournait ses 15 min et re-téléportait au fallback. Nouveau témoin durable `loginOutpostReceived` | `pvp_spawn/client/client.lua` |
+| Zombies avec des voix de PNJ | Voix `ALIENS` (seule banque non humaine native), audio de douleur humain coupé, + boucle de râles forcés à proximité | `pvp_zombies/client/client.lua` |
+| Zombies qui grimpent aux murs | `SetPedPathCanUseClimbovers/Ladders/DropFromHeight(false)` + coût d'escalade prohibitif | `pvp_zombies/client/client.lua` |
+| Drop ouvrable depuis un véhicule | Prompt bloqué côté client + refus côté serveur dans `pvp_drops:open` (anti-trigger forgé) | `pvp_drops/client/client.lua`, `pvp_drops/server/server.lua` |
+| Pas de suppression d'item | Double clic molette sur une carte du SAC → `dropItem` (1 unité, destruction pure). L'event serveur existait mais n'était appelé par personne ; il déséquipe maintenant l'arme si c'était la dernière unité | `pvp_inventory/html/app.js`, `pvp_inventory/server/server.lua` |
+| Véhicule spawné à l'arrêt | Moteur allumé + `SetVehicleForwardSpeed` à 6 m/s (≈21 km/h) au moment du spawn | `pvp_inventory/client/client.lua` |
+| Zombies immobiles quand le joueur est en véhicule | `TaskCombatPed` n'engage pas une cible en véhicule pour un ped à mains nues. Mode « poursuite » (`TaskGoToEntity`) tant que le joueur roule — voir l'encadré ci-dessous | `pvp_zombies/client/client.lua` |
+| Sous la map en rangeant un véhicule contre un mur | La sortie était un `+2.0` aveugle sur X, qui tombait dans le décor. Remplacé par 4 sorties testées autour du véhicule via `GetSafeCoordForPed`, recalage sur le sol (`GetGroundZFor_3dCoord`) et repli sur la position du véhicule. Le véhicule est aussi supprimé **avant** le déplacement du joueur, sinon `SetEntityCoords` le traîne et c'est sa collision qui décide | `pvp_inventory/client/client.lua` |
 
-Corrections (`html/app.js` + `server/server.lua`) :
-- `document.addEventListener('contextmenu', e => e.preventDefault())` global.
-- Test de capacité **côté client** avant l'envoi (clic droit ET drag & drop) : coffre plein
-  → toast immédiat (throttlé à 1 par 1,5 s), aucun event serveur. Le serveur refait le
-  calcul, il reste seul juge.
-- `transferLocked` passe par `lockTransfer()`/`unlockTransfer()` avec libération
-  automatique au bout de 3 s. Avant, une réponse serveur perdue bloquait l'inventaire
-  définitivement (rouvrir l'UI ne relâchait pas le verrou : la page NUI n'est pas
-  rechargée). Verrou aussi relâché à la fermeture.
-- `stashLocks` côté serveur est horodaté (`os.time()`) avec expiration à 10 s au lieu d'un
-  booléen : un callback MySQL perdu ne condamne plus le coffre du joueur jusqu'à sa
-  reconnexion.
+#### Zombies immobiles quand le joueur est en véhicule — cause réelle
+
+**Cause : `TaskCombatPed` ne fait pas avancer un ped à mains nues vers une cible
+assise dans un véhicule.** Sans attaque valide à sa portée, l'IA de combat le
+laisse planté. Rien à voir avec le pathfinding — constaté sur une capture d'écran
+en pleine route dégagée, sans le moindre obstacle.
+
+**Solution** : `taskZombie(zed, playerPed, playerInVehicle)` dans
+`pvp_zombies/client/client.lua`, deux modes stockés dans `z.mode` :
+- joueur à pied ⇒ `TaskCombatPed` (inchangé, ils frappent) ;
+- joueur en véhicule ⇒ `TaskGoToEntity` piloté à la main, qui suit une cible
+  mobile et les fait converger autour du véhicule.
+
+La bascule se fait dans la boucle de mise à jour, **uniquement au changement de
+mode** (ré-émettre la tâche à chaque passage la réinitialise et fait bégayer le
+déplacement). `SetPedCombatAttributes(ped, 21, true)` (`BF_CanChaseTargetOnFoot`)
+est posé en plus comme filet. Un zombie qui apparaît alors que le joueur roule
+naît directement en mode poursuite.
+
+#### Corollaire : ne pas restreindre le pathfinding pour empêcher l'escalade
+
+Deux tentatives ont été faites dans cette direction avant d'identifier la vraie
+cause ci-dessus, toutes deux retirées :
+
+1. `SetPedPathCanDropFromHeight(false)` + coût d'escalade prohibitif — le moindre
+   trottoir compte comme une descente.
+2. `SetPedPathCanUseClimbovers(false)` — dans le navmesh GTA, les « climbovers »
+   ne sont pas que les murs : ce sont les liens entre polygones pour tous les
+   petits obstacles (bordures, barrières, rebords). Les interdire ampute une
+   grande partie des chemins de la carte.
+
+L'interdiction d'escalade porte donc sur le **geste** : une boucle à 100 ms annule
+toute escalade entamée (`IsPedClimbing` ⇒ `ClearPedTasksImmediately` + re-tâche) ;
+le zombie retombe au pied du mur et cherche un contournement. Côté pathfinding il
+ne reste que les échelles (`SetPedPathCanUseLadders(false)`, liens ponctuels sans
+risque) et un coût d'escalade dissuasif, qui n'a jamais rendu un chemin impossible.
+
+`IsPedJumping` est volontairement exclu du test : descendre d'un rebord joue aussi
+une animation de saut, l'interrompre ferait bégayer les zombies en navigation
+normale.
+
+**Points à valider en jeu :** le rendu sonore des zombies (GTA V n'a pas de banque
+de voix zombie ; `ALIENS` est le plus proche en natif — si le résultat ne convient
+pas, il faudra passer par des fichiers audio custom dans la resource) et le dosage
+de la propulsion au spawn véhicule (`VEHICLE_SPAWN_BOOST`).
+
+**Non traité, à confirmer :** « dégâts lors d'un accident » a été compris comme les
+dégâts subis par le **joueur**. La déformation/casse du **véhicule** lui-même est
+inchangée.
+
+### `vanta_ui` — boucle infinie des notifications, tout le NUI figé (corrigé 01/09/2026)
+
+Signalé en test : l'inventaire se fige (plus de clic, plus de fermeture, plus rien) en
+spammant le clic droit — d'abord sur un conteneur protégé plein, puis en sortant des items
+du coffre. Point commun réel : **le nombre de notifications affichées**, pas l'inventaire.
+
+**Cause : boucle infinie dans `vanta_ui/html/notify.js`.**
+
+```js
+while (STACK.children.length > MAX_VISIBLE) {   // MAX_VISIBLE = 8
+  remove(STACK.firstElementChild);
+}
+```
+
+`remove()` ne retire pas le noeud : il le marque `leaving`, joue l'animation de sortie et
+programme le retrait réel 200 ms plus tard — et un noeud déjà marqué est ignoré aux tours
+suivants. `STACK.children.length` ne diminue donc jamais. **Dès la 9ᵉ notification simultanée,
+la boucle part à l'infini.**
+
+Pourquoi tout le jeu paraît figé : dans FiveM, les pages NUI de toutes les resources
+partagent le **même thread JS du renderer CEF**. La boucle de `vanta_ui` bloque donc aussi
+la page de `pvp_inventory`, qui reste affichée (dernière image peinte) mais ne traite plus
+ni clic, ni touche, ni fermeture — jusqu'au redémarrage de la resource. Les deux captures
+du bug montrent exactement 8 notifications à l'écran.
+
+**Correction :** `trimStack()` ne compte que les notifications encore vivantes et retire
+depuis une copie de la liste, qui raccourcit réellement à chaque tour (30 notifications
+d'affilée : 0,9 ms, 1 tour par push, 8 vivantes conservées).
+
+Durcissements gardés au passage sur `pvp_inventory` (utiles, mais ce n'étaient pas la
+cause) :
+- `document.addEventListener('contextmenu', e => e.preventDefault())` global — seules les
+  cartes d'items annulaient l'événement, un clic droit à côté laissait CEF ouvrir son menu
+  contextuel natif. `pvp_garage` avait déjà cette garde.
+- Tests de capacité **côté client** avant l'envoi : dépôt refusé si le coffre est plein,
+  retrait refusé si la carte est déjà vide ou le sac trop lourd (toasts throttlés à 1 par
+  1,5 s). Le serveur refait le calcul, il reste seul juge. Effet secondaire important : ça
+  réduit fortement le nombre de notifications, donc ça masquait le vrai bug sur le dépôt.
+- `transferLocked` via `lockTransfer()`/`unlockTransfer()`, libération automatique après
+  3 s et à la fermeture ; `stashLocks` serveur horodaté (expiration 10 s) au lieu d'un
+  booléen.
+- **Chien de garde NUI** : ping/pong chaque seconde tant que l'inventaire est ouvert. Sans
+  réponse pendant 5 s, le client Lua ferme de force et écrit la raison dans la console F8
+  (erreur JS remontée, nombre de requêtes NUI en attente, page muette). **F10** ferme
+  l'inventaire depuis le jeu, même page morte.
 
 ### `/givexp` — collision de commande (corrigé 30/08/2026, non testé en jeu)
 

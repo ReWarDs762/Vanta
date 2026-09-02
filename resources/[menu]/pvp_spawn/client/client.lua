@@ -24,6 +24,12 @@ local loginOutpost       = nil    -- outpost pour spawn à la connexion
 local hasSpawnedOnce     = false  -- true après le premier playerSpawned
 local deathRespawnActive = false  -- true pendant le flow de mort
 
+-- true dès que le serveur a envoyé l'avant-poste de connexion, que le teleport
+-- ait été fait par ce handler ou par playerSpawned. Sert de témoin durable :
+-- loginOutpost, lui, est remis à nil juste après usage et ne peut donc pas
+-- servir à savoir si le serveur a répondu (voir le fallback plus bas).
+local loginOutpostReceived = false
+
 -- ── Désactiver l'auto-respawn du spawnmanager sur mort ───────────────────
 AddEventHandler('onClientMapStart', function()
     exports.spawnmanager:setAutoSpawnCallback(function()
@@ -97,6 +103,7 @@ end
 -- qui viennent de terminer leur création, le setLoginOutpost arrive tard).
 RegisterNetEvent('pvp_spawn:setLoginOutpost')
 AddEventHandler('pvp_spawn:setLoginOutpost', function(outpostCoords, outpostHeading)
+    loginOutpostReceived = true
     loginOutpost = {
         x = outpostCoords.x, y = outpostCoords.y, z = outpostCoords.z,
         h = outpostHeading or 0.0
@@ -165,17 +172,29 @@ AddEventHandler('playerSpawned', function()
         -- légitimement prendre plusieurs minutes selon le joueur — ce délai ne doit
         -- se déclencher que si pvp_outposts est réellement en panne, jamais pendant
         -- une création normale. Si après 15min aucun outpost n'est arrivé, fallback.
+        --
+        -- On attend sur loginOutpostReceived, PAS sur loginOutpost : quand le
+        -- serveur répond après ce playerSpawned, le handler setLoginOutpost fait
+        -- lui-même la téléportation puis remet loginOutpost à nil. Cette boucle
+        -- ne voyait alors jamais autre chose que nil, tournait ses 15 minutes
+        -- complètes, et re-téléportait à Sandy Shores un joueur déjà correctement
+        -- placé et en train de jouer — le symptôme remonté en test.
         local FALLBACK_TIMEOUT_MS = 15 * 60 * 1000
         local deadline = GetGameTimer() + FALLBACK_TIMEOUT_MS
-        while loginOutpost == nil and GetGameTimer() < deadline do
+        while not loginOutpostReceived and GetGameTimer() < deadline do
             Citizen.Wait(200)
         end
 
-        if loginOutpost ~= nil then
+        if loginOutpostReceived then
+            -- Si loginOutpost est encore posé, c'est que le handler a laissé la
+            -- téléportation à ce thread (il ne la fait que si hasSpawnedOnce
+            -- était déjà true à la réception). Sinon, elle est déjà faite.
             local sp = loginOutpost
-            loginOutpost = nil
-            teleportToOutpost(sp)
-            unfreezePlayer()
+            if sp ~= nil then
+                loginOutpost = nil
+                teleportToOutpost(sp)
+                unfreezePlayer()
+            end
         else
             -- Fallback de dernier recours
             print('[pvp_spawn] FALLBACK login: aucun avant-poste recu du serveur apres 15min, teleport Sandy Shores aleatoire')

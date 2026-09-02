@@ -19,7 +19,7 @@ local squadBlips  = {}
 local squadInvitePending = nil
 
 -- ══════════════════════════════════════════════════════════════════════════
---   SQUAD NUI — Ouvrir / Fermer (touche J = 44)
+--   SQUAD NUI — Ouvrir / Fermer (touche J)
 -- ══════════════════════════════════════════════════════════════════════════
 
 local function openSquadUI()
@@ -45,13 +45,20 @@ local function closeSquadUI()
     SendNUIMessage({ action = 'closeSquad' })
 end
 
--- Touche J (44) pour ouvrir/fermer
+-- Touche J pour ouvrir le squad.
+-- Avant : IsControlJustReleased(0, 44) — le contrôle 44 (INPUT_COVER) est câblé
+-- sur le Q d'un clavier QWERTY, ce qui tombe sur le A d'un AZERTY. On passe donc
+-- par RegisterKeyMapping, qui raisonne en touche physique quelle que soit la
+-- disposition (et laisse le joueur la rebinder dans les paramètres FiveM).
+RegisterCommand('pvp_squad', function()
+    if squadUIOpen then return end
+    openSquadUI()
+end, false)
+RegisterKeyMapping('pvp_squad', 'Ouvrir le menu squad', 'keyboard', 'j')
+
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
-        if IsControlJustReleased(0, 44) and not squadUIOpen then
-            openSquadUI()
-        end
         if squadUIOpen then
             DisableControlAction(0, 1, true)
             DisableControlAction(0, 2, true)

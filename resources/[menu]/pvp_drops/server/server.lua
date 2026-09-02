@@ -355,6 +355,16 @@ AddEventHandler('pvp_drops:open', function(dropId)
         return
     end
 
+    -- SÉCURITÉ : impossible de fouiller depuis un véhicule (le client bloque
+    -- déjà le prompt, ceci ferme la porte à un trigger forgé).
+    local srcPed = GetPlayerPed(src)
+    -- Côté serveur, GET_VEHICLE_PED_IS_IN ne prend que le ped (pas de flag
+    -- "lastVehicle") et renvoie 0 quand le joueur est à pied.
+    if srcPed and srcPed ~= 0 and GetVehiclePedIsIn(srcPed) ~= 0 then
+        notify(src, 'Descends de ton véhicule pour ouvrir le drop.', 'error')
+        return
+    end
+
     local xPlayer = ESX.GetPlayerFromId(src)
     if not xPlayer then return end
 

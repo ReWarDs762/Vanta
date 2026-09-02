@@ -226,6 +226,69 @@ RegisterNUICallback('notify', function(data, cb)
     cb('ok')
 end)
 
+-- ══ Chien de garde NUI ═══════════════════════════════════════════════════
+-- Tant que l'inventaire est ouvert, on ping la page toutes les secondes. Si
+-- elle ne répond plus (JS mort, file de requêtes CEF saturée, page bloquée),
+-- le joueur se retrouve avec un curseur figé et aucun moyen de fermer : on
+-- ferme alors de force côté Lua, qui lui garde toujours la main.
+local nuiLastPong  = 0
+local nuiPingSeq   = 0
+local nuiLastErrSeen = ''
+
+RegisterNUICallback('pong', function(data, cb)
+    nuiLastPong = GetGameTimer()
+    if type(data) == 'table' then
+        local pending = tonumber(data.pending) or 0
+        if pending >= 4 then
+            print(('^3[pvp_inventory] NUI : %d requêtes en attente (verrou=%s) — la file CEF sature^7')
+                :format(pending, tostring(data.locked)))
+        end
+        local err = data.err
+        if type(err) == 'string' and err ~= '' and err ~= nuiLastErrSeen then
+            nuiLastErrSeen = err
+            print(('^1[pvp_inventory] erreur JS dans le NUI : %s^7'):format(err))
+        end
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('nuiError', function(data, cb)
+    if type(data) == 'table' and type(data.msg) == 'string' then
+        print(('^1[pvp_inventory] erreur JS dans le NUI : %s^7'):format(data.msg))
+    end
+    cb('ok')
+end)
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(1000)
+        if isOpen then
+            if nuiLastPong == 0 then nuiLastPong = GetGameTimer() end
+            nuiPingSeq = nuiPingSeq + 1
+            SendNUIMessage({ type = 'ping', t = nuiPingSeq })
+            local silence = GetGameTimer() - nuiLastPong
+            if silence > 5000 then
+                print(('^1[pvp_inventory] NUI muet depuis %d ms — fermeture de secours^7'):format(silence))
+                nuiLastPong = 0
+                closeInventory()
+            end
+        else
+            nuiLastPong = 0
+        end
+    end
+end)
+
+-- Sortie de secours manuelle : F10 ferme l'inventaire depuis le jeu, sans
+-- passer par la page. SetNuiFocusKeepInput(true) laisse les contrôles jeu
+-- actifs, donc ça marche même si la page ne répond plus du tout.
+RegisterCommand('inv_forceclose', function()
+    if isOpen then
+        print('^3[pvp_inventory] fermeture forcée (F10)^7')
+        closeInventory()
+    end
+end, false)
+RegisterKeyMapping('inv_forceclose', 'Inventaire : fermeture de secours', 'keyboard', 'F10')
+
 RegisterNUICallback('close', function(_, cb)
     closeInventory()
     cb('ok')
@@ -544,6 +607,9 @@ local mySpawnedVehicle = nil  -- entity du véhicule que CE joueur a spawné (po
 -- quasiment à l'arrêt (1.5 m/s ~ 5 km/h).
 local STORE_MAX_SPEED = 1.5
 
+-- Élan donné au véhicule au moment où il sort de l'inventaire (m/s).
+local VEHICLE_SPAWN_BOOST = 6.0
+
 -- ── Spawn véhicule devant le joueur ─────────────────────────────────────
 RegisterNetEvent('pvp_inventory:spawnVehicle')
 AddEventHandler('pvp_inventory:spawnVehicle', function(model, itemName, itemLabel)
@@ -581,6 +647,12 @@ AddEventHandler('pvp_inventory:spawnVehicle', function(model, itemName, itemLabe
 
     -- Mettre le joueur au volant
     TaskWarpPedIntoVehicle(ped, veh, -1)
+
+    -- Petite propulsion à la sortie d'inventaire : moteur déjà lancé et coup
+    -- d'élan vers l'avant, pour ne pas repartir de l'arrêt complet.
+    -- SetVehicleForwardSpeed pose directement la vitesse (m/s) — ~6 m/s ≈ 21 km/h.
+    SetVehicleEngineOn(veh, true, true, false)
+    SetVehicleForwardSpeed(veh, VEHICLE_SPAWN_BOOST)
 
     -- Marquer le véhicule avec ses infos (state bag) pour que n'importe quel conducteur puisse le ranger
     local netId = NetworkGetNetworkIdFromEntity(veh)
@@ -642,13 +714,44 @@ RegisterCommand('pvp_store_vehicle', function()
         end
     end
 
-    -- Téléporter le conducteur hors du véhicule
-    local coords = GetEntityCoords(veh)
-    SetEntityCoords(ped, coords.x + 2.0, coords.y, coords.z, false, false, false, false)
+    -- Téléporter le conducteur hors du véhicule.
+    --
+    -- L'ancienne version faisait un +2.0 aveugle sur X. Garé contre un mur (ou
+    -- simplement orienté est/ouest), ce point tombait dans le décor : le jeu
+    -- refusait la position et le joueur passait sous la map. On teste donc
+    -- plusieurs sorties autour du véhicule et on garde la première que le jeu
+    -- valide, avec la position du véhicule lui-même en dernier recours — il
+    -- occupait ce volume, elle est donc forcément dégagée.
+    local vehCoords = GetEntityCoords(veh)
+    local exitSpots = {
+        GetOffsetFromEntityInWorldCoords(veh, -2.5,  0.0, 0.0), -- côté conducteur
+        GetOffsetFromEntityInWorldCoords(veh,  2.5,  0.0, 0.0), -- côté passager
+        GetOffsetFromEntityInWorldCoords(veh,  0.0, -4.5, 0.0), -- arrière
+        GetOffsetFromEntityInWorldCoords(veh,  0.0,  4.5, 0.0), -- avant
+    }
 
-    -- Supprimer le véhicule immédiatement
+    -- Le véhicule part AVANT le déplacement du joueur : tant qu'il est assis
+    -- dedans, SetEntityCoords traîne le véhicule avec lui et c'est la collision
+    -- du véhicule, pas celle du ped, qui décide de la position finale.
     SetEntityAsMissionEntity(veh, true, true)
     DeleteEntity(veh)
+
+    local dest = vehCoords
+    for _, spot in ipairs(exitSpots) do
+        local found, safe = GetSafeCoordForPed(spot.x, spot.y, spot.z, true, 16)
+        if found then
+            dest = safe
+            break
+        end
+    end
+
+    -- Recaler sur le sol réel : sans ça, un Z hérité du châssis (ou d'un
+    -- véhicule en pente) suffit à faire traverser la map.
+    RequestCollisionAtCoord(dest.x, dest.y, dest.z)
+    local groundFound, groundZ = GetGroundZFor_3dCoord(dest.x, dest.y, dest.z + 2.0, false)
+    local destZ = groundFound and (groundZ + 1.0) or dest.z
+
+    SetEntityCoords(ped, dest.x, dest.y, destZ, false, false, false, true)
 
     -- Si c'était notre véhicule spawné, nettoyer la ref
     if mySpawnedVehicle and veh == mySpawnedVehicle then

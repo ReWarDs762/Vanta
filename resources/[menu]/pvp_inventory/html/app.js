@@ -324,6 +324,19 @@ window.addEventListener('message', e => {
   else if (type==='openDrop')    openDropUI(data);
   else if (type==='close')       forceClose();
   else if (type==='refresh')     onRefresh(data);
+  // Chien de garde : le client Lua ping toutes les secondes tant que l'UI est
+  // ouverte. Le pong renvoie l'état interne — s'il n'arrive plus, le Lua ferme
+  // l'inventaire de force et rend la main au joueur.
+  else if (type==='ping') {
+    lua('pong', {
+      t:       e.data.t,
+      locked:  transferLocked,
+      pending: nuiPending,
+      open:    document.getElementById('overlay').classList.contains('open'),
+      drag:    !!dragging,
+      err:     nuiLastError,
+    });
+  }
   // Le texte des notifications est affiche par vanta_ui (pile partagee) ;
   // ce message ne sert plus qu a relacher le verrou de transfert.
   else if (type==='unlock')      { unlockTransfer(); }
@@ -652,6 +665,26 @@ function stashHasRoomFor(name, qty) {
   return stashWeightNow() + getWeight(name) * qty <= STASH_MAX_KG + 0.0001;
 }
 let stashFullToastAt = 0;
+function bagWeightNow() {
+  let w = 0;
+  (state.inventory || []).forEach(i => { w += getWeight(i.name) * i.count; });
+  return w;
+}
+function bagHasRoomFor(name, qty) {
+  return bagWeightNow() + getWeight(name) * qty <= MAX_WEIGHT + 0.0001;
+}
+function stashHasStack(name, qty) {
+  const it = (state.stash || []).find(i => i.name === name);
+  return !!it && it.count >= qty;
+}
+let bagFullToastAt = 0;
+function bagFullToast() {
+  const now = Date.now();
+  if (now - bagFullToastAt < 1500) return;
+  bagFullToastAt = now;
+  toast('Sac trop lourd ! (' + MAX_WEIGHT.toFixed(1) + ' kg max)', false);
+}
+
 function stashFullToast() {
   // Un seul toast par 1,5 s : en spammant le clic droit sur un coffre plein on
   // enverrait sinon une notification par clic.
@@ -1542,8 +1575,14 @@ document.addEventListener('mouseup', e => {
       lockTransfer();
       lua('outpostStashWithdraw', { outpostId: outpostMode.id, item: dragging.name, qty: 1 });
     } else if (invZone && dragging.source === 'stash' && !transferLocked) {
-      lockTransfer();
-      lua('stashWithdraw', { item: dragging.name, qty: 1 });
+      if (!stashHasStack(dragging.name, 1)) {
+        // pile déjà vidée
+      } else if (!bagHasRoomFor(dragging.name, 1)) {
+        bagFullToast();
+      } else {
+        lockTransfer();
+        lua('stashWithdraw', { item: dragging.name, qty: 1 });
+      }
     }
   }
 
@@ -1606,10 +1645,46 @@ function quickStash(e, name, source) {
     lockTransfer();
     lua('outpostStashWithdraw', { outpostId: outpostMode.id, item: name, qty: 1 });
   } else if (source === 'stash') {
+    // La carte cliquée peut déjà être vide (le joueur spamme au même endroit
+    // pendant que la grille se re-rend) : inutile d'envoyer un retrait qui
+    // reviendra en « Pas assez dans le coffre ».
+    if (!stashHasStack(name, 1)) return;
+    if (!bagHasRoomFor(name, 1)) { bagFullToast(); return; }
     lockTransfer();
     lua('stashWithdraw', { item: name, qty: 1 });
   }
 }
+
+// ══ Double clic molette : supprimer un item ══════════════════════════════
+// Détruit définitivement une unité de l'item survolé (pas de sac au sol) —
+// sert à se délester d'un loot encombrant quand aucun coffre n'est à portée.
+// Réservé au SAC : le serveur ne sait retirer que de l'inventaire ESX, et on
+// évite au passage de vider un coffre par accident.
+//
+// Détection manuelle plutôt que 'dblclick' : cet event ne se déclenche que pour
+// le bouton gauche. On compte donc deux mousedown molette rapprochés sur la
+// même carte. Le preventDefault coupe aussi l'autoscroll de CEF, qui laisserait
+// sinon un curseur de défilement collé au milieu du NUI.
+const MIDDLE_DELETE_MS = 400;
+let middleClickLast = { card: null, at: 0 };
+
+document.addEventListener('mousedown', e => {
+  if (e.button !== 1) return;
+  e.preventDefault();
+
+  const card = e.target.closest('.item-card');
+  if (!card || card.dataset.source !== 'inv') { middleClickLast = { card: null, at: 0 }; return; }
+
+  const now = Date.now();
+  if (middleClickLast.card === card && (now - middleClickLast.at) < MIDDLE_DELETE_MS) {
+    middleClickLast = { card: null, at: 0 };
+    if (transferLocked) return;
+    lockTransfer();
+    lua('dropItem', { item: card.dataset.name, qty: 1 });
+  } else {
+    middleClickLast = { card, at: now };
+  }
+});
 
 // ══ Toast ════════════════════════════════════════════════════════════════
 // Pont vers la pile de notifications partagee de vanta_ui.
@@ -1625,12 +1700,33 @@ function toast(msg, ok) {
 // Retourne la Promise du fetch (résolue en JSON) pour les appelants qui ont
 // besoin de la réponse Lua ; les appels existants qui ignorent la valeur de
 // retour continuent de fonctionner à l'identique (fire-and-forget).
+// nuiPending : nombre de requêtes NUI encore en vol. CEF plafonne à 6
+// connexions simultanées par hôte — si un callback Lua ne répond jamais, les
+// suivantes s'empilent et l'UI devient totalement muette (ni fermeture, ni
+// transfert). Ce compteur est renvoyé au client Lua par le pong : s'il monte
+// et ne redescend pas, c'est exactement ça.
+let nuiPending = 0;
+let nuiLastError = '';
+
 function lua(cb, data) {
+  nuiPending++;
   return fetch('https://pvp_inventory/'+cb, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(data)
-  }).then(r => r.json()).catch(() => ({}));
+  }).then(r => r.json()).catch(() => ({})).finally(() => { nuiPending--; });
 }
+
+// Toute erreur JS non rattrapée part dans la console client (F8) : sans ça une
+// exception dans un handler passe totalement inaperçue.
+window.addEventListener('error', ev => {
+  nuiLastError = (ev.message || 'erreur') + ' @' + (ev.filename || '?') + ':' + (ev.lineno || 0);
+  try {
+    fetch('https://pvp_inventory/nuiError', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ msg: nuiLastError })
+    });
+  } catch (e) {}
+});
 function esc(s) { return String(s).replace(/'/g,"\\'"); }
 function closeCtx() {}
 

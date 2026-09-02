@@ -90,17 +90,22 @@ CreateThread(function()
             end
         end
 
-        -- Notification entrée/sortie
-        if isInRedzone and not wasInRedzone then
-            showNotification('~r~REDZONE~s~ : ' .. currentZoneLabel .. '\nLoot x' .. Config.LootMultiplier .. ' | Danger accru !')
-        elseif not isInRedzone and wasInRedzone then
-            showNotification('~g~Zone sûre~s~ : Vous avez quitté la Redzone')
+        -- Notification entrée/sortie (pilotée par Config.ShowEnterExitNotifications)
+        if Config.ShowEnterExitNotifications then
+            if isInRedzone and not wasInRedzone then
+                showNotification('~r~REDZONE~s~ : ' .. currentZoneLabel .. '\nLoot x' .. Config.LootMultiplier .. ' | Danger accru !')
+            elseif not isInRedzone and wasInRedzone then
+                showNotification('~g~Zone sûre~s~ : Vous avez quitté la Redzone')
+            end
         end
     end
 end)
 
 -- ── HUD : affichage redzone + timer ──────────────────────────────────────
+-- Piloté par Config.ShowRedzoneHUD : quand il est à false le thread se termine
+-- immédiatement, il n'y a donc aucun coût par frame.
 CreateThread(function()
+    if not Config.ShowRedzoneHUD then return end
     while true do
         if isInRedzone then
             Wait(0)
@@ -151,7 +156,9 @@ CreateThread(function()
 end)
 
 -- ── Timer discret hors redzone (coin supérieur droit) ────────────────────
+-- Même interrupteur que le bandeau ci-dessus.
 CreateThread(function()
+    if not Config.ShowRedzoneHUD then return end
     while true do
         if not isInRedzone and #activeZones > 0 then
             Wait(0)

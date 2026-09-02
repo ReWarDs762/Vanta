@@ -5,7 +5,7 @@
 // Aucune interaction souris : ce NUI ne prend jamais le focus.
 
 const STACK      = document.getElementById('notify-stack');
-const MAX_VISIBLE = 5;        // au-delà, la plus ancienne est retirée
+const MAX_VISIBLE = 8;        // au-delà, la plus ancienne est retirée
 const KINDS       = ['success', 'error', 'warning', 'info'];
 
 // Échappement : les messages peuvent contenir des pseudos joueurs.
@@ -31,6 +31,26 @@ function remove(node) {
   setTimeout(() => node.remove(), 200);
 }
 
+// Limite la pile aux MAX_VISIBLE notifications encore vivantes.
+//
+// BOUCLE INFINIE CORRIGÉE : la version précédente faisait
+//   while (STACK.children.length > MAX_VISIBLE) remove(STACK.firstElementChild)
+// or `remove()` ne retire pas le noeud tout de suite — il le marque
+// `leaving` et programme le retrait réel 200 ms plus tard (animation de
+// sortie), et un noeud déjà marqué est ignoré au tour suivant.
+// `STACK.children.length` ne diminuait donc jamais : dès la 9e notification,
+// la boucle tournait à l'infini et bloquait le thread JS du renderer CEF —
+// partagé par TOUTES les pages NUI. L'inventaire restait affiché mais ne
+// répondait plus (ni clic, ni ESC, ni fermeture), jusqu'au redémarrage de la
+// resource. On ne compte donc que les noeuds vivants, et on retire depuis une
+// copie de la liste, qui elle raccourcit vraiment à chaque tour.
+function trimStack() {
+  const alive = Array.from(STACK.children).filter(n => n.dataset.leaving !== '1');
+  while (alive.length > MAX_VISIBLE) {
+    remove(alive.shift());
+  }
+}
+
 function push(msg, kind, duration, title) {
   if (typeof msg !== 'string' || msg === '') return;
 
@@ -46,9 +66,7 @@ function push(msg, kind, duration, title) {
 
   STACK.appendChild(node);
 
-  while (STACK.children.length > MAX_VISIBLE) {
-    remove(STACK.firstElementChild);
-  }
+  trimStack();
 
   const ms = Math.max(1000, Math.min(15000, Number(duration) || 4000));
   setTimeout(() => remove(node), ms);

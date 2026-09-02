@@ -25,6 +25,31 @@ local function setupRelationships()
     SetRelationshipBetweenGroups(5, playerGroupHash, zombieGroupHash)
 end
 
+-- ── Tâche d'un zombie : poursuite ou combat ───────────────────────────────
+-- TaskCombatPed ne fait PAS avancer un ped à mains nues vers une cible assise
+-- dans un véhicule : sans attaque valide à sa portée, l'IA de combat le laisse
+-- planté sur place. C'est la vraie cause des zombies immobiles dès que le
+-- joueur roule — constaté en test sur une route parfaitement dégagée, donc sans
+-- aucun rapport avec le pathfinding (deux tentatives dans cette direction ont
+-- échoué avant, voir spawnZombie).
+--
+-- Tant que le joueur est en véhicule, on ne laisse donc pas l'IA de combat
+-- décider : on pilote le déplacement à la main avec TaskGoToEntity, qui suit
+-- une cible mobile. Dès qu'il remet pied à terre, on repasse en combat pour
+-- qu'ils frappent.
+local CHASE_SPEED     = 2.0   -- m/s passés à TaskGoToEntity
+local CHASE_STOP_DIST = 1.5   -- distance d'arrêt autour du véhicule
+
+local function taskZombie(zed, playerPed, playerInVehicle)
+    if playerInVehicle then
+        zed.mode = 'chase'
+        TaskGoToEntity(zed.ped, playerPed, -1, CHASE_STOP_DIST, CHASE_SPEED, 1073741824, 0)
+    else
+        zed.mode = 'combat'
+        TaskCombatPed(zed.ped, playerPed, 0, 16)
+    end
+end
+
 -- ── Spawn d'un zombie ──────────────────────────────────────────────────────
 -- Ped local uniquement (isNetwork = false) : invisible et non-interactible
 -- pour les autres joueurs, seul le client qui l'a spawné le voit/gère.
@@ -67,6 +92,10 @@ local function spawnZombie(x, y, z)
     SetPedCombatAttributes(ped, 46, true)   -- Attaque même si sans arme
     SetPedCombatAttributes(ped, 5, true)    -- Toujours combattre
     SetPedCombatAttributes(ped, 52, true)   -- Pas de couverture
+    SetPedCombatAttributes(ped, 21, true)   -- BF_CanChaseTargetOnFoot : poursuit
+                                            -- une cible qui s'échappe, notamment
+                                            -- en véhicule (filet en plus du mode
+                                            -- 'chase' piloté à la main)
 
     -- Animation de marche zombie
     RequestClipSet(typeData.moveClipset)
@@ -81,14 +110,41 @@ local function spawnZombie(x, y, z)
     SetPedCanBeDraggedOut(ped, false)
     SetPedConfigFlag(ped, 225, true) -- CPED_CONFIG_FLAG_PreventAllMeleeTaunts (no vehicle jack)
 
+    -- ── Audio : plus de voix de PNJ ──────────────────────────────────────
+    -- Les modèles utilisés sont des PNJ GTA standards : ils partaient donc dans
+    -- les dialogues d'ambiance et les cris de douleur humains. On leur assigne
+    -- la banque de voix ALIENS (la seule voix non humaine disponible en natif
+    -- dans GTA V — feulements/râles), et on coupe l'audio de douleur humain.
+    SetAmbientVoiceName(ped, 'ALIENS')
+    DisablePedPainAudio(ped, true)
+    StopCurrentPlayingAmbientSpeech(ped)
+
+    -- ── Déplacement : pas d'escalade ─────────────────────────────────────
+    -- Un zombie ne doit pas franchir un mur ou une clôture : le décor doit
+    -- rester un abri fiable.
+    --
+    -- L'interdiction porte sur le GESTE, pas sur le calcul de chemin. Deux
+    -- versions ont tenté de passer par le pathfinding et ont été retirées :
+    --   1. SetPedPathCanDropFromHeight(false) + coût d'escalade prohibitif ;
+    --   2. SetPedPathCanUseClimbovers(false).
+    -- Dans le navmesh GTA, les « climbovers » ne sont pas que les murs : ce sont
+    -- les liens entre polygones pour tous les petits obstacles (bordures,
+    -- barrières, rebords). Les interdire ampute une grande partie des chemins de
+    -- la carte — trop risqué pour ce qu'on y gagne. Ce n'était d'ailleurs PAS la
+    -- cause des zombies figés : celle-là était dans la tâche de combat, voir
+    -- taskZombie plus haut.
+    --
+    -- Restent donc ici les échelles (liens ponctuels, sans risque pour la
+    -- navigation générale) et un coût d'escalade dissuasif, qui fait préférer le
+    -- contournement sans jamais rendre un chemin impossible. Toute escalade
+    -- réellement entamée est annulée par la boucle anti-escalade plus bas.
+    SetPedPathCanUseLadders(ped, false)
+    SetPedPathClimbCostModifier(ped, 100.0)
+
     -- Arme : mains nues (griffes)
     RemoveAllPedWeapons(ped, true)
     GiveWeaponToPed(ped, GetHashKey('WEAPON_UNARMED'), 0, false, true)
     SetPedArmour(ped, 0)
-
-    -- Ordre d'attaquer le joueur (aggro immédiate, pas de détection à simuler)
-    local playerPed = PlayerPedId()
-    TaskCombatPed(ped, playerPed, 0, 16)
 
     SetModelAsNoLongerNeeded(model)
 
@@ -97,8 +153,15 @@ local function spawnZombie(x, y, z)
         dead   = false,
         looted = false,
         token  = nil,
+        mode   = nil,   -- 'combat' | 'chase', posé par taskZombie
     }
     table.insert(activeZombies, zombieEntry)
+
+    -- Aggro immédiate, pas de détection à simuler. Passe par taskZombie pour
+    -- naître déjà dans le bon mode : un zombie qui apparaît alors que le joueur
+    -- roule doit poursuivre, pas se mettre en combat et rester planté.
+    local playerPed = PlayerPedId()
+    taskZombie(zombieEntry, playerPed, IsPedInAnyVehicle(playerPed, false))
 
     -- Jeton anti-triche serveur, attaché de façon asynchrone (n'affecte pas le spawn)
     if ESX then
@@ -221,12 +284,21 @@ Citizen.CreateThread(function()
 end)
 
 -- ── Boucle de mise à jour : détection mort + nettoyage ─────────────────────
+-- Seuils de l'anti-blocage (voir plus bas) : déplacement minimum attendu entre
+-- deux passages, distance à partir de laquelle un zombie immobile est anormal,
+-- et nombre de passages consécutifs avant de le débloquer.
+local STUCK_MIN_MOVE = 0.35   -- mètres
+local STUCK_MIN_DIST = 3.0    -- mètres (au-delà de la portée de frappe)
+local STUCK_TICKS    = 4      -- × Config.UpdateInterval (500ms) = 2s
+
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(Config.UpdateInterval)
 
-        local playerCoords = GetEntityCoords(PlayerPedId())
-        local toRemove      = {}
+        local playerPed       = PlayerPedId()
+        local playerCoords    = GetEntityCoords(playerPed)
+        local playerInVehicle = IsPedInAnyVehicle(playerPed, false)
+        local toRemove        = {}
 
         for i, z in ipairs(activeZombies) do
             if not DoesEntityExist(z.ped) then
@@ -256,10 +328,39 @@ Citizen.CreateThread(function()
                         DeleteEntity(z.ped)
                         table.insert(toRemove, i)
                     elseif not z.dead then
-                        -- Relance la tâche de combat si elle s'est arrêtée
-                        if not IsPedInCombat(z.ped, PlayerPedId()) then
-                            TaskCombatPed(z.ped, PlayerPedId(), 0, 16)
+                        -- Bascule poursuite ↔ combat selon que le joueur est en
+                        -- véhicule ou à pied (voir taskZombie plus haut). On ne
+                        -- re-tâche qu'au changement de mode : ré-émettre la
+                        -- tâche à chaque passage la réinitialiserait et ferait
+                        -- bégayer le déplacement.
+                        local wantMode = playerInVehicle and 'chase' or 'combat'
+
+                        if z.mode ~= wantMode then
+                            z.stuck = 0
+                            ClearPedTasksImmediately(z.ped)
+                            taskZombie(z, playerPed, playerInVehicle)
+                        elseif wantMode == 'combat' and not IsPedInCombat(z.ped, playerPed) then
+                            -- La tâche de combat s'est arrêtée d'elle-même
+                            taskZombie(z, playerPed, playerInVehicle)
                         end
+
+                        -- Anti-blocage. Un zombie qui n'a pas bougé depuis
+                        -- STUCK_TICKS passages ALORS qu'il est encore trop loin
+                        -- pour frapper a perdu sa tâche : on repart propre. Un
+                        -- zombie immobile au corps à corps, lui, est normal.
+                        if z.lastPos
+                            and #(zCoords - z.lastPos) < STUCK_MIN_MOVE
+                            and d > STUCK_MIN_DIST then
+                            z.stuck = (z.stuck or 0) + 1
+                            if z.stuck >= STUCK_TICKS then
+                                z.stuck = 0
+                                ClearPedTasksImmediately(z.ped)
+                                taskZombie(z, playerPed, playerInVehicle)
+                            end
+                        else
+                            z.stuck = 0
+                        end
+                        z.lastPos = zCoords
                     end
                 end
             end
@@ -268,6 +369,63 @@ Citizen.CreateThread(function()
         -- Supprime les entrées obsolètes (en partant de la fin)
         for i = #toRemove, 1, -1 do
             table.remove(activeZombies, toRemove[i])
+        end
+    end
+end)
+
+-- ── Boucle anti-escalade ──────────────────────────────────────────────────
+-- C'est ici qu'est réellement appliquée l'interdiction de grimper (voir le
+-- commentaire dans spawnZombie). Plutôt que de retirer les franchissements du
+-- pathfinding — ce qui fige les zombies faute de chemin — on laisse la
+-- navigation complète et on annule le geste dès qu'il démarre : le zombie
+-- retombe au pied de l'obstacle et repart chercher un contournement.
+--
+-- Cadence courte : un vault se joue en moins d'une seconde, la boucle de mise
+-- à jour (500ms) le laisserait passer une fois sur deux.
+local CLIMB_CHECK_MS = 100
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(CLIMB_CHECK_MS)
+
+        local playerPed       = PlayerPedId()
+        local playerInVehicle = IsPedInAnyVehicle(playerPed, false)
+
+        for _, z in ipairs(activeZombies) do
+            if not z.dead and DoesEntityExist(z.ped) and not IsEntityDead(z.ped) then
+                -- IsPedClimbing seulement, pas IsPedJumping : descendre d'un
+                -- rebord joue aussi une animation de saut, et l'interrompre
+                -- ferait bégayer les zombies en navigation normale.
+                if IsPedClimbing(z.ped) then
+                    ClearPedTasksImmediately(z.ped)
+                    taskZombie(z, playerPed, playerInVehicle)
+                end
+            end
+        end
+    end
+end)
+
+-- ── Boucle de râles ───────────────────────────────────────────────────────
+-- Les zombies ne "parlent" plus tout seuls : SetBlockingOfNonTemporaryEvents +
+-- la voix ALIENS coupent l'essentiel du bavardage PNJ, mais laissent aussi le
+-- ped muet la plupart du temps. On force donc un râle à intervalle irrégulier
+-- sur les zombies vivants proches du joueur, pour garder une ambiance sonore.
+local GROWL_INTERVAL_MS = 2500   -- fenêtre de tirage
+local GROWL_CHANCE      = 35     -- % de chance par zombie et par fenêtre
+local GROWL_RADIUS      = 35.0   -- au-delà, inaudible : inutile de déclencher
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(GROWL_INTERVAL_MS)
+
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        for _, z in ipairs(activeZombies) do
+            if not z.dead and DoesEntityExist(z.ped) and not IsEntityDead(z.ped) then
+                if #(playerCoords - GetEntityCoords(z.ped)) < GROWL_RADIUS
+                    and math.random(100) <= GROWL_CHANCE then
+                    PlayAmbientSpeech1(z.ped, 'GENERIC_INSULT_HIGH', 'SPEECH_PARAMS_FORCE')
+                end
+            end
         end
     end
 end)
@@ -316,11 +474,16 @@ end
 
 RegisterNetEvent('pvp_zombies:receiveLoot')
 AddEventHandler('pvp_zombies:receiveLoot', function(zombieLabel, reward, lootItems)
-    SendNUIMessage({
-        action = 'showLootToast',
-        amount = reward,
-        item   = prettyLootName(lootItems[1]), -- 1 seul item par zombie
-    })
+    -- Passe par la pile partagee de vanta_ui : chaque loot occupe sa propre
+    -- ligne et les precedentes remontent. L ancien toast local reutilisait une
+    -- seule div, donc deux zombies tues coup sur coup n affichaient qu un seul
+    -- message (le second ecrasait le premier).
+    local item = prettyLootName(lootItems and lootItems[1]) -- 1 seul item par zombie
+    local msg  = '+' .. tostring(reward) .. ' $'
+    if type(item) == 'string' and item ~= '' then
+        msg = msg .. '  ·  ' .. item
+    end
+    exports['vanta_ui']:notify(msg, 'success')
 end)
 
 -- ── Shot Attracteur : force le spawn de N zombies supplémentaires ──────────

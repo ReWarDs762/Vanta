@@ -18,13 +18,9 @@ server_scripts {
     'server/server.lua'
 }
 
-ui_page 'html/index.html'
-
-files {
-    'html/index.html',
-    'html/style.css',
-    'html/app.js'
-}
+-- Plus de ui_page : le toast de loot local a ete remplace par la pile
+-- partagee de vanta_ui (voir client/client.lua, pvp_zombies:receiveLoot).
+-- Le dossier html/ est conserve mais n est plus charge.
 
 dependencies {
     'es_extended',

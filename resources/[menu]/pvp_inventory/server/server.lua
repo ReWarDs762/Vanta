@@ -1006,7 +1006,19 @@ AddEventHandler('pvp_inventory:dropItem', function(itemName, qty)
     if not item or item.count < qty then return end
 
     xPlayer.removeInventoryItem(itemName, qty)
-    notify(src, item.label .. ' x' .. qty .. ' déposé.', 'success')
+
+    -- Déséquiper l'arme si le joueur vient de supprimer sa dernière unité :
+    -- sans ça le ped garde l'arme en main alors que l'item n'existe plus
+    -- (même garde que le dépôt en coffre, voir pvp_inventory:stashDeposit).
+    if WEAPONS[itemName] then
+        local left = xPlayer.getInventoryItem(itemName)
+        if not left or left.count <= 0 then
+            TriggerClientEvent('pvp_inventory:unequipWeapon', src, itemName)
+        end
+    end
+
+    -- Destruction pure : l'item ne tombe pas au sol, il disparaît.
+    notify(src, item.label .. ' x' .. qty .. ' supprimé.', 'success')
     refreshClient(src, xPlayer)
 end)
 

@@ -13,6 +13,12 @@ VantaXP.XPSources = {
     -- outpost_capture = 200,
 }
 
+-- ── Affichage ────────────────────────────────────────────────────────────
+-- Toast « +50 XP ZOMBIE » a chaque gain, en haut a droite de l ecran.
+-- Desactive le 02/09/2026 : trop bruyant en combat, l XP reste consultable
+-- dans l onglet Profil de l inventaire. Repasser a true pour le reactiver.
+VantaXP.ShowXPToast = false
+
 -- ── Niveaux ──────────────────────────────────────────────────────────────
 VantaXP.MaxLevel    = 100
 VantaXP.MaxPrestige = 5

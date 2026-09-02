@@ -175,6 +175,24 @@ Citizen.CreateThread(function()
     SetRandomBoats(false)
     SetGarbageTrucks(false)
     SetRandomTrains(false)
+
+    -- Aucune étoile de recherche possible sur ce serveur. Le reset à 0 chaque
+    -- frame (boucle plus bas) ne suffisait pas : l'étoile pouvait apparaître le
+    -- temps d'une frame — assez pour être vue et pour réveiller le dispatch.
+    -- On coupe donc le système à la racine.
+    SetMaxWantedLevel(0)
+    SetWantedLevelMultiplier(0.0)
+    SetPoliceIgnorePlayer(PlayerId(), true)
+    SetDispatchCopsForPlayer(PlayerId(), false)
+    SetCreateRandomCops(false)
+    SetCreateRandomCopsNotOnScenarios(false)
+    SetCreateRandomCopsOnScenarios(false)
+
+    -- Radio de police : le scanner audio tourne indépendamment du wanted level
+    -- et de la présence de PNJ — d'où les crachotements de radio entendus en
+    -- jeu alors qu'aucun flic n'existe. PoliceScannerDisabled le coupe net.
+    SetAudioFlag('PoliceScannerDisabled', true)
+    DistantCopCarSirens(false)
 end)
 
 -- ── Roue des armes + touches 1-9 désactivées en permanence ──────────────
@@ -320,8 +338,10 @@ end)
 -- Limite assumée : l'ignifugation vaut pour TOUT feu (ex. le souffle d'un
 -- RPG n'enflamme plus le joueur) — aucun natif ne distingue la source d'un
 -- incendie une fois le ped en train de brûler.
-local MOLOTOV_HASH = GetHashKey("WEAPON_MOLOTOV")
-local FIRE_HASH    = GetHashKey("WEAPON_FIRE")
+local MOLOTOV_HASH  = GetHashKey("WEAPON_MOLOTOV")
+local FIRE_HASH     = GetHashKey("WEAPON_FIRE")
+local RUN_OVER_HASH = GetHashKey("WEAPON_RUN_OVER_BY_CAR")
+local RAMMED_HASH   = GetHashKey("WEAPON_RAMMED_BY_CAR")
 
 Citizen.CreateThread(function()
     local lastPed    = 0
@@ -336,8 +356,27 @@ Citizen.CreateThread(function()
         -- Ignifugé : le feu au sol laissé par le molotov ne prend plus et ne
         -- retire plus de vie. Réappliqué à chaque changement de ped (respawn,
         -- changement de modèle depuis l'inventaire).
+        --
+        -- 4e booléen = collisionProof : plus aucun dégât de collision, en
+        -- véhicule (accident) comme à pied (se faire renverser). Contrairement
+        -- à la première version, ce n'est plus conditionné au fait d'être en
+        -- véhicule : écraser un joueur ne doit ni le blesser ni le faire tomber.
+        -- SetEntityProofs pose tous les flags d'un coup : cet appel est donc le
+        -- seul endroit où les proofs du joueur sont définies.
         if ped ~= lastPed then
-            SetEntityProofs(ped, false, true, false, false, false, false, false, false)
+            SetEntityProofs(ped, false, true, false, true, false, false, false, false)
+
+            -- Pas de one-shot à la tête : la balle inflige ses dégâts normaux,
+            -- mais sans le "critical hit" qui tue instantanément.
+            SetPedSuffersCriticalHits(ped, false)
+
+            -- Ragdoll : ni éjection de moto, ni chute au sol quand une voiture
+            -- touche le joueur. Les proofs coupent les dégâts, ces trois natives
+            -- coupent la mise à terre — c'est le "le joueur ne tombe pas".
+            SetPedCanBeKnockedOffVehicle(ped, 1) -- 1 = jamais
+            SetPedRagdollOnCollision(ped, false)
+            SetPedCanRagdollFromPlayerImpact(ped, false)
+
             lastPed    = ped
             lastHealth = GetEntityHealth(ped)
             lastArmour = GetPedArmour(ped)
@@ -346,10 +385,22 @@ Citizen.CreateThread(function()
         local health = GetEntityHealth(ped)
         local armour = GetPedArmour(ped)
 
-        -- Filet de sécurité pour l'explosion du cocktail elle-même, que
-        -- l'ignifugation ne couvre pas : on restaure ce qu'elle a retiré.
+        -- Filet de sécurité pour ce que les proofs ne couvrent pas :
+        --  · l'explosion du cocktail molotov elle-même (l'ignifugation ne joue
+        --    que sur le feu au sol) ;
+        --  · les dégâts de collision, que collisionProof laisse passer dans
+        --    certains cas — testé en jeu : un accident violent blessait encore
+        --    le conducteur. On restaure donc explicitement ce qui a été retiré
+        --    dès qu'un véhicule est en cause (choc subi au volant, ou piéton
+        --    renversé).
+        -- Limite assumée : un joueur touché par balle DANS la même frame qu'un
+        -- choc verrait aussi ces dégâts-là restaurés. Fenêtre trop courte pour
+        -- justifier un système plus lourd.
         if HasEntityBeenDamagedByWeapon(ped, MOLOTOV_HASH, 0)
-            or HasEntityBeenDamagedByWeapon(ped, FIRE_HASH, 0) then
+            or HasEntityBeenDamagedByWeapon(ped, FIRE_HASH, 0)
+            or HasEntityBeenDamagedByWeapon(ped, RUN_OVER_HASH, 0)
+            or HasEntityBeenDamagedByWeapon(ped, RAMMED_HASH, 0)
+            or HasEntityBeenDamagedByAnyVehicle(ped) then
             if IsEntityOnFire(ped) then
                 StopEntityFire(ped)
             end
@@ -360,6 +411,7 @@ Citizen.CreateThread(function()
                 SetPedArmour(ped, lastArmour)
             end
             ClearEntityLastWeaponDamage(ped)
+            ClearEntityLastDamageEntity(ped)
             health = GetEntityHealth(ped)
             armour = GetPedArmour(ped)
         end

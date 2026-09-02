@@ -966,11 +966,20 @@ function StartDropThread()
                 end
 
                 if dist <= Config.InteractRadius then
-                    BeginTextCommandDisplayHelp('STRING')
-                    AddTextComponentString('Appuie sur ~INPUT_CONTEXT~ pour ouvrir le drop')
-                    EndTextCommandDisplayHelp(0, false, true, -1)
-                    if IsControlJustPressed(0, 38) then
-                        TriggerServerEvent('pvp_drops:open', drop.id)
+                    -- Il faut descendre de son véhicule pour fouiller la caisse :
+                    -- sinon on se gare dessus et on loote à l'abri, sans jamais
+                    -- s'exposer. Le serveur refait la vérification (pvp_drops:open).
+                    if IsPedInAnyVehicle(PlayerPedId(), false) then
+                        BeginTextCommandDisplayHelp('STRING')
+                        AddTextComponentString('Descends de ton véhicule pour ouvrir le drop')
+                        EndTextCommandDisplayHelp(0, false, true, -1)
+                    else
+                        BeginTextCommandDisplayHelp('STRING')
+                        AddTextComponentString('Appuie sur ~INPUT_CONTEXT~ pour ouvrir le drop')
+                        EndTextCommandDisplayHelp(0, false, true, -1)
+                        if IsControlJustPressed(0, 38) then
+                            TriggerServerEvent('pvp_drops:open', drop.id)
+                        end
                     end
                 end
             end

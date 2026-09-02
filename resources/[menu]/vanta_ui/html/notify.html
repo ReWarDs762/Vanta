@@ -18,17 +18,18 @@
     font-family: var(--v-font);
   }
 
-  /* Ancrage bas-centre : reprend la position historique du toast de
-     pvp_inventory (bottom 16px, centre horizontal). La pile grandit vers le
-     haut : le message le plus recent reste au plus pres du bas de l ecran. */
+  /* Ancrage juste au-dessus de la minimap (bas-gauche).
+     La minimap GTA V occupe ~22 % de la hauteur d ecran depuis le bas et
+     commence a ~1,2 % de la largeur : la pile se pose dessus, alignee sur son
+     bord gauche. Ancree par le bas, elle grandit vers le haut — la nouvelle
+     notification apparait en bas, les precedentes remontent. */
   #notify-stack {
     position: fixed;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 24vh;
+    left: 22px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--v-space-2);
     pointer-events: none;
     z-index: 99999;

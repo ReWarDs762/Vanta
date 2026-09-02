@@ -70,8 +70,26 @@ exports['vanta_ui']:notify('Message', 'success')       -- client
 ```
 Types : `success` | `error` | `warning` | `info` (booléens `true`/`false` acceptés pour
 compat). Un 4ᵉ argument optionnel donne la durée en ms, un 5ᵉ un titre en surtitre.
-⚠️ Migration partielle : seul `pvp_drops` l'utilise. `pvp_market`, `pvp_zombies` et
-`pvp_inventory` passent encore par l'event `pvp_market:notify` — voir `STATUS.md`.
+La pile est ancrée **juste au-dessus de la minimap** (bas-gauche), alignée sur son bord
+gauche. Elle grandit vers le haut : la nouvelle notification apparaît en bas, les
+précédentes remontent — jusqu'à 8 visibles simultanément (`MAX_VISIBLE` dans
+`notify.js`). Le loot zombie passe par cette pile depuis le 02/09/2026 : `pvp_zombies`
+avait son propre toast à div unique, qui s'écrasait lui-même quand deux zombies
+tombaient coup sur coup — son `ui_page` a été retiré.
+
+**Source unique — migration terminée (30/08/2026).** Toutes les resources passent par
+`vanta_ui`. L'ancien event `pvp_market:notify` (nommé d'après `pvp_market` mais déclaré
+dans `pvp_inventory`) n'existe plus : ne jamais le réintroduire.
+
+> ⚠️ **Cas particulier `pvp_inventory`.** Le NUI pose un verrou anti-duplication
+> (`transferLocked`) pendant un transfert, et les chemins d'erreur (poids dépassé, stock
+> insuffisant, mode combat) répondent **uniquement** par une notification, sans refresh —
+> c'est donc elle qui doit relâcher le verrou. Le helper `notify(src, msg, kind)` de
+> `pvp_inventory/server/server.lua` émet à la fois la notification `vanta_ui` **et**
+> l'event `pvp_inventory:unlockTransfer`. **Toute notification émise depuis
+> `pvp_inventory` doit passer par ce helper** (ou son pendant client), sinon le joueur ne
+> peut plus rien déplacer dans son inventaire. Côté NUI, `toast()` de `html/app.js`
+> n'affiche plus rien : c'est un pont vers `vanta_ui` via le callback NUI `notify`.
 **Toutes les resources sont sur v2.** Ne jamais utiliser les anciennes variables v1 (`--bg-primary`, `--accent-silver`, etc.).
 
 ### Palette de couleurs (variables v2)
@@ -196,6 +214,9 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
   (`vanta_xp:internalPlayerKill`, `vanta_xp:internalZombieKill`), jamais via `RegisterNetEvent`
   — un client ne peut donc pas se déclencher de l'XP lui-même
 - **Table** : `vanta_xp` (identifier, xp, level, prestige_level, total_xp_earned)
+- **Toast de gain d'XP désactivé** (`VantaXP.ShowXPToast = false` depuis le 02/09/2026) : l'XP
+  est gagnée et enregistrée normalement, seul le `+50 XP ZOMBIE` en haut à droite est coupé.
+  Le toast de passage de niveau (LEVEL UP), lui, reste actif.
 - **Exports** : `addXP(identifier, amount, source)`, `getProfile(identifier)`,
   `getBagBonus(identifier)`, `getContainerBonus(identifier)` — utilisés par `pvp_inventory`
   pour les bonus de poids
@@ -322,6 +343,10 @@ voir `STATUS.md`. Ce qui suit ne décrit que l'architecture.*
 - Loot doublé dans les zones (`Config.LootMultiplier` x2)
 - Rotation automatique toutes les heures
 - Killfeed affiche une couleur différente pour les kills en redzone
+- **Aucun affichage à l'écran** (`Config.ShowRedzoneHUD = false`, `Config.ShowEnterExitNotifications = false`
+  depuis le 02/09/2026) : ni bandeau en zone, ni timer hors zone, ni notification d'entrée/sortie.
+  Les zones restent pleinement actives — seul le repère visuel est le cercle rouge sur la carte.
+  Les deux threads de dessin sortent immédiatement, aucun coût par frame.
 
 ### Killfeed (pvp_killfeed)
 - **Vision** : haut-droite de l'écran, affiche "KILLER → VICTIME"

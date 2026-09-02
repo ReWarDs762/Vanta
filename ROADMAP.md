@@ -110,13 +110,38 @@ Une resource ne passe à ✅ **testée** qu'après validation manette en main.
 
 ## 4. PHASE B — Cohérence technique *(bloquant sortie)*
 
-### B1 — Migration des notifications vers `vanta_ui`
-- [ ] `pvp_market` → `exports['vanta_ui']:notify`
-- [ ] `pvp_zombies` → idem
-- [ ] `pvp_inventory` → retirer le handler `pvp_market:notify` (déclaré ici malgré son nom)
-- [ ] Vérifier qu'aucune resource n'appelle plus `pvp_market:notify`
+### B1 — Migration des notifications vers `vanta_ui` ✅ (30/08/2026)
+- [x] `pvp_market` → `exports['vanta_ui']:notify` (41 appels)
+- [x] `pvp_zombies` → idem (1 appel) — et `pvp_outposts` (1), oublié de la liste initiale
+- [x] `pvp_inventory` → handler `pvp_market:notify` retiré, remplacé par `pvp_inventory:unlockTransfer` (47 appels migrés)
+- [x] Vérifier qu'aucune resource n'appelle plus `pvp_market:notify`
 
 **Fait quand :** un seul style de toast à l'écran, `pvp_market:notify` supprimé du code.
+
+**Résultat :** 90 notifications migrées. Seules 2 occurrences de `pvp_market:notify`
+subsistent, dans des commentaires historiques. `vanta_ui/html/notify.html` est le seul
+système de notification du projet — la pile est ancrée en bas au centre (position
+historique du toast de `pvp_inventory`, conservée volontairement).
+
+Les types ont été revus message par message plutôt que convertis mécaniquement depuis
+`true`/`false` : 17 `success`, 20 `error`, 27 `warning`, 14 `info` — contre 73 rouges
+avant. Les états transitoires (« Opération en cours... ») sont en bleu, les refus de règle
+(zone safe, poids, limite d'annonces) en jaune.
+
+Deux trouvailles pendant la migration :
+- `pvp_inventory/client/client.lua` contenait 12 `SendNUIMessage({ type = 'notify' })`
+  directs, invisibles dans une recherche sur `pvp_market:notify` — migrés aussi.
+- `pvp_market/client/client.lua` en avait un, mais `pvp_market` n'a pas de `ui_page` :
+  « Aucun joueur proche pour échanger. » n'était **jamais** affiché. Corrigé.
+
+> ⚠️ **Piège à connaître.** Dans l'ancien système, la notification levait aussi le verrou
+> anti-duplication des transferts d'items (`transferLocked` dans `html/app.js`), car les
+> chemins d'erreur d'un transfert répondent **uniquement** par une notification, sans
+> refresh. Les deux rôles sont désormais séparés : `vanta_ui` affiche le texte, l'event
+> `pvp_inventory:unlockTransfer` porte le déverrouillage. Le helper `notify()` de
+> `pvp_inventory/server/server.lua` émet les deux — **toute notification émise depuis
+> `pvp_inventory` doit passer par ce helper**. Côté NUI, `toast()` n'affiche plus rien
+> lui-même : c'est un pont vers `vanta_ui` via le callback NUI `notify`.
 
 ### B2 — Source unique des tables de loot (armes / véhicules)
 - [ ] Auditer `pvp_outposts/config.lua` (`WeaponShopItems`), `pvp_inventory/server/server.lua` (`WEAPONS`), `pvp_zombies/config.lua`
@@ -216,7 +241,7 @@ Ne pas ouvrir au public tant que **tout** ci-dessous n'est pas ✅ :
 - [ ] `pvp_combat` anti combat-log validé à 2 joueurs (A3)
 - [ ] `pvp_character` : aucun chemin de création ne bloque l'apparition (A5)
 - [ ] Aucune erreur console serveur au démarrage ni en boucle
-- [ ] Notifications unifiées (B1)
+- [x] Notifications unifiées (B1) — 30/08/2026
 - [ ] `pvp_drops` : un drop complet validé, failover inclus (B3)
 - [ ] `TEBEX_URL_SECRET` changé ou Tebex désactivé (D1)
 - [ ] Comptes admin dans `group.admin`, commandes de test non accessibles aux joueurs (D2, D4)
