@@ -217,9 +217,12 @@ Catégories de variables disponibles (préfixe `--v-`) : Backgrounds (`black`, `
 - **Toast de gain d'XP désactivé** (`VantaXP.ShowXPToast = false` depuis le 02/09/2026) : l'XP
   est gagnée et enregistrée normalement, seul le `+50 XP ZOMBIE` en haut à droite est coupé.
   Le toast de passage de niveau (LEVEL UP), lui, reste actif.
-- **Exports** : `addXP(identifier, amount, source)`, `getProfile(identifier)`,
-  `getBagBonus(identifier)`, `getContainerBonus(identifier)` — utilisés par `pvp_inventory`
-  pour les bonus de poids
+- **Exports réellement consommés** : `addXP(identifier, amount, source)` (par `pvp_admin`)
+  et `getProfile(identifier)` (par `pvp_inventory`).
+  ⚠️ `getBagBonus` / `getContainerBonus` sont déclarés mais **n'ont aucun appelant** : le
+  bonus de prestige circule dans l'autre sens, `vanta_xp` appelant
+  `exports['pvp_inventory']:setBagBonus(...)` / `setContainerBonus(..., 'prestige')`.
+  À supprimer ou à câbler (ROADMAP B5).
 
 > `/givexp` est enregistrée **uniquement par `pvp_admin`** (permissions + logs admin) et
 > relaie vers l'export `addXP` de `vanta_xp` — `vanta_xp` ne déclare plus la commande
@@ -490,8 +493,11 @@ qu'un bonus du même type est actif) :
 - Intégration Tebex prévue (webhook `pvp_vcoins/tebex/<secret>`) — **secret par défaut non changé**
   dans `pvp_vcoins/server/server.lua` (`TEBEX_URL_SECRET = 'CHANGE_ME_TO_A_LONG_RANDOM_STRING...'`).
   À générer avant toute mise en production si l'intégration Tebex est activée.
-- Exports consommés par d'autres resources : `GetTier`, `HasDiamond`, `HasGoldOrDiamond`,
-  `GetSubscriptionTier`, `GetVCoins`, `GetStashBonus`
+- **Seul export réellement consommé de l'extérieur** : `GetTier` (par `pvp_inventory` et
+  `pvp_character`). `HasDiamond`, `HasGoldOrDiamond`, `GetSubscriptionTier`, `GetVCoins`
+  et `GetStashBonus` sont déclarés mais n'ont aucun appelant hors `pvp_vcoins` — le bonus
+  de stash est poussé directement via `exports['pvp_inventory']:setContainerBonus(id,
+  bonus, 'subscription')`. À supprimer ou à câbler (ROADMAP B5).
 - Tables : `vcoin_market`, `vcoin_pending_bank`, `vcoin_tebex_transactions`, colonnes `vcoins`/`subscription`/`sub_expires_at` sur `users`
 - Chargé avant `pvp_inventory` et `pvp_outposts` dans `server.cfg` (bonus stash consommé par eux)
 
@@ -534,7 +540,9 @@ dans `pvp_player_stats` (voir ci-dessous).
   — ⚠️ contient aussi `xp` et `prestige`, **legacy non utilisés** (voir « Système XP »),
   ainsi que `rename_free_season`, legacy depuis que `/rename` est réservé aux abonnés
 - `vanta_xp` — progression réelle : `xp`, `level`, `prestige_level`, `total_xp_earned`
-- `characters` — identité personnage (`pvp_character`) : prénom, nom, date de naissance, sexe, taille
+  *(Il n'y a **pas** de table `characters` : aucune resource ne la crée. Le pseudo vit
+  dans `users.firstname`/`sex`, l'apparence dans `pvp_player_stats.appearance_json` —
+  vestige d'`esx_identity`, supprimé le 21/08/2026.)*
 
 ### Inventaire & customisation
 - `pvp_player_stash` — coffre protégé personnel (JSON items)

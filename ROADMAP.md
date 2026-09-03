@@ -10,7 +10,7 @@
 > Tenir à jour à la fin de chaque session : cocher les cases faites, remplir le
 > **Journal de session** en bas.
 
-**Dernière mise à jour :** 27 août 2026
+**Dernière mise à jour :** 3 septembre 2026 (audit de cohérence : resynchronisation du tableau de bord avec l'état réel du code et de la session de test du 02/09)
 
 ---
 
@@ -18,14 +18,21 @@
 
 | Phase | Objet | Bloque la sortie ? | Statut | Avancement |
 |---|---|---|---|---|
-| **A** | Stabilisation — tester l'existant, corriger le noyau | 🔴 Oui | ⬜ Pas commencé | 0 / 5 |
-| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | ⬜ Pas commencé | 0 / 3 |
-| **C** | Polish gameplay & visuel | 🟠 Partiel | ⬜ Pas commencé | 0 / 4 |
+| **A** | Stabilisation — tester l'existant, corriger le noyau | 🔴 Oui | 🟡 En cours | 4 / 5 |
+| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | 🟡 En cours | 1 / 5 |
+| **C** | Polish gameplay & visuel | 🟠 Partiel | ⬜ Pas commencé | 0 / 5 |
 | **D** | Pré-production & mise en ligne | 🔴 Oui | ⬜ Pas commencé | 0 / 6 |
 | **E** | Post-lancement (v1.1+) | 🟢 Non | ⬜ Backlog | 0 / 4 |
 
 **Chemin critique le plus court vers une sortie :** A → B → D.
 C et E peuvent se faire après une sortie en *early access*.
+
+> **Correction du 03/09.** Ce tableau affichait « 0 / 5 · Pas commencé » sur A alors que
+> A1, A3, A4 et A5 étaient cochés point par point plus bas depuis la session de test
+> Cloudfive du 02/09. B est passé de 3 à 5 items et C de 4 à 5, l'audit ayant ajouté
+> B4 (sécurité `pvp_zombies`), B5 (dette technique) et C5 (identité visuelle v2.1).
+> Le seul item bloquant restant sur A est **A2** : rejouer le parcours pour vérifier que
+> les 13 correctifs du 02/09 n'ont pas introduit de régression.
 
 ### Légende des statuts
 - ⬜ Pas commencé · 🟡 En cours · ✅ Fait · ⏸️ Bloqué (préciser par quoi) · ❌ Abandonné
@@ -35,76 +42,96 @@ C et E peuvent se faire après une sortie en *early access*.
 ## 2. État de test des resources
 
 Référence rapide (détail dans `STATUS.md` → « Testé en jeu vs jamais testé »).
-Une resource ne passe à ✅ **testée** qu'après validation manette en main.
+« Testé » = exercé manette en main au moins une fois, pas « sans bug ».
 
 | Resource | Code | Testée en jeu |
 |---|---|---|
-| `pvp_hud` | ✅ | ⬜ (restrictions combat réactivées, jamais vues) |
-| `pvp_outposts` | ✅ stable | ⬜ |
-| `pvp_zombies` | ✅ (refonte 22/08) | ⬜ |
-| `pvp_inventory` | ✅ | ⬜ (le plus gros système) |
-| `pvp_character` | ✅ (refonte 22/08) | ⬜ |
-| `pvp_combat` | ✅ (neuf 23/08) | ⬜ |
-| `pvp_drops` | ✅ (revue 25/08) | ⬜ |
-| `pvp_crew` | ✅ (features 24/08) | ⬜ (0 membre en base) |
-| `pvp_killfeed` | ✅ | ⬜ |
-| `pvp_redzones` | ✅ | ⬜ |
-| `vanta_ui` (notifs) | ✅ | ⬜ |
-| `vanta_xp` | ✅ | ⬜ |
-| `pvp_market` | ✅ | ⬜ |
-| `pvp_garage` | ✅ | ⬜ |
-| `pvp_vcoins` | ✅ | ⬜ |
-| `pvp_admin` | ✅ | ⬜ |
+| `pvp_character` | ✅ | ✅ 02/09 (correctifs postérieurs non rejoués) |
+| `pvp_inventory` | ✅ | ✅ 02/09 (3 correctifs postérieurs non rejoués) |
+| `pvp_combat` | ✅ | ✅ 02/09 (A3 complet, 2 joueurs) |
+| `pvp_hud` | ✅ | ✅ 02/09 (5 correctifs postérieurs non rejoués) |
+| `pvp_zombies` | ✅ | ✅ 02/09 (3 correctifs postérieurs non rejoués) |
+| `pvp_outposts` | ✅ stable | ✅ 02/09 |
+| `pvp_garage` | ✅ | ✅ 02/09 |
+| `pvp_spawn` | ✅ | ✅ 02/09 (correctif postérieur non rejoué) |
+| `pvp_market` | ✅ | ✅ 02/09 |
+| `vanta_ui` (notifs) | ✅ | ✅ 01-02/09 |
+| `pvp_drops` | ✅ (revue 25/08) | ⬜ **jamais exercé** |
+| `pvp_crew` | ✅ (features 24/08) | ⬜ **jamais exercé** (0 membre en base) |
+| `pvp_redzones` | ✅ | ⬜ **jamais exercé** |
+| `pvp_killfeed` | ✅ | ⬜ **jamais exercé** |
+| `pvp_vcoins` | ✅ | ⬜ **jamais exercé** |
+| `pvp_admin` | ✅ | ⬜ **jamais exercé** |
+| `vanta_xp` | ✅ | ⬜ **jamais exercé** |
+
+**Lecture :** le noyau de boucle de jeu (créer un perso → looter → se battre → mourir →
+recommencer) a été traversé une fois. Tout ce qui est **périphérique et différé dans le
+temps** — un drop qui met 10 min, un contrat de crew quotidien, une rotation de redzone
+horaire, un abonnement de 30 jours — n'a jamais tourné. C'est là que se concentre le
+risque restant.
 
 ---
 
 ## 3. PHASE A — Stabilisation *(bloquant sortie)*
 
-> Depuis la reprise (21/08), énormément de code produit et **rien testé manette en main**.
-> Priorité absolue : prouver que le noyau fonctionne.
+> Statut : **4 / 5**. La session de test multijoueur Cloudfive du 02/09 a validé A1, A3 et
+> A5 ; A4 avait été tranchée le 30/08. Il reste **A2**, et il est bloquant : les 13
+> correctifs issus de cette session n'ont été rejoués par personne.
 
-### A1 — Session de test complète du parcours joueur
-- [ ] Création de personnage (freemode complet)  ✅
-- [ ] Création de personnage (ped spécial du catalogue) ✅
-- [ ] Apparition (`pvp_spawn` attend bien la fin de création)  ✅
-- [ ] Ouverture inventaire, hotbar, coffres (sac / protégé / avant-poste) ✅
-- [ ] Tuer un zombie → loot au corps → item en inventaire  ✅ 
-- [ ] Achat / vente armurerie + customisation arme ✅
-- [ ] Achat / vente / spawn véhicule (garage)✅
-- [ ] Marché joueur : créer une annonce, acheter  ✅
-- [ ] Mort → perte du sac → death bag au sol → respawn avant-poste le plus proche ✅ 
-- [ ] Téléportation entre avant-postes (NPC pilote + waypoint) ✅ 
+### A1 — Session de test complète du parcours joueur ✅ (02/09/2026)
+- [x] Création de personnage (freemode complet)
+- [x] Création de personnage (ped spécial du catalogue)
+- [x] Apparition (`pvp_spawn` attend bien la fin de création)
+- [x] Ouverture inventaire, hotbar, coffres (sac / protégé / avant-poste)
+- [x] Tuer un zombie → loot au corps → item en inventaire
+- [x] Achat / vente armurerie + customisation arme
+- [x] Achat / vente / spawn véhicule (garage)
+- [x] Marché joueur : créer une annonce, acheter
+- [x] Mort → perte du sac → death bag au sol → respawn avant-poste le plus proche
+- [x] Téléportation entre avant-postes (NPC pilote + waypoint)
 
-**Fait quand :** le parcours complet tourne sans blocage ni erreur console serveur/client.
+**Résultat :** parcours traversé de bout en bout, 13 anomalies remontées (détail dans
+`STATUS.md` → « Retours de la session de test multijoueur Cloudfive »).
 
-### A2 — Corriger les bugs remontés par A1
-- [ ] Lister ici les bugs trouvés pendant A1, puis les corriger✅
-  - …
+### A2 — Corriger les bugs remontés par A1 🟡 **← prochaine étape, bloquante**
+- [x] Les 13 remontées corrigées le 02/09 (commit `8bc0693`)
+- [ ] **Rejouer A1 de bout en bout** pour vérifier l'absence de régression
+- [ ] Points à observer spécifiquement pendant ce second passage :
+  - [ ] Rendu sonore des zombies (`ALIENS` — si le résultat ne convient pas, il faudra des
+        fichiers audio custom dans la resource)
+  - [ ] Dosage de `VEHICLE_SPAWN_BOOST` (véhicule propulsé à ~21 km/h au spawn)
+  - [ ] Rangement d'un véhicule collé à un mur (4 sorties testées + recalage au sol)
+  - [ ] Double clic molette = suppression d'un item du sac (chemin jamais appelé avant le
+        02/09)
+  - [ ] Zombies : anti-escalade par annulation du geste, poursuite d'un joueur en véhicule
+  - [ ] Aucune régression du fix `vanta_ui` (spam de notifications > 8 simultanées)
 
-**Fait quand :** A1 rejoué de bout en bout sans régression.
+**Fait quand :** A1 rejoué de bout en bout sans régression ni erreur console.
 
-### A3 — Valider `pvp_combat` (anti combat-log)
-- [ ] Un coup donné/reçu passe attaquant + victime en « EN COMBAT » 5s ✅
-- [ ] Fenêtre glissante : un nouveau coup prolonge le timer ✅
-- [ ] Déconnexion en plein combat → le joueur meurt, sac perdu, death bag créé à la dernière position ✅
-- [ ] Dépôt au coffre protégé refusé tant que le mode combat est actif ✅
-- [ ] Le mode combat ne se déclenche **pas** en zone safe ni entre membres de squad ✅
- 
-**Fait quand :** les 5 points validés à 2 joueurs. *Critique — anti combat-log cassé = exploit au lancement.* ✅
+### A3 — Valider `pvp_combat` (anti combat-log) ✅ (02/09/2026)
+- [x] Un coup donné/reçu passe attaquant + victime en « EN COMBAT » 5 s
+- [x] Fenêtre glissante : un nouveau coup prolonge le timer
+- [x] Déconnexion en plein combat → le joueur meurt, sac perdu, death bag créé
+- [x] Dépôt au coffre protégé refusé tant que le mode combat est actif
+- [x] Le mode combat ne se déclenche pas en zone safe ni entre membres de squad
 
-### A4 — Trancher la collision `/givexp`
-- [ ] Décision : faire relayer `pvp_admin` vers `exports['vanta_xp']:addXP` (recommandé) **ou** supprimer la commande de `pvp_admin` ✅
-- [ ] Vérifier en jeu : `/givexp <id> <n>` fait bien monter l'XP réelle (`vanta_xp`), niveau/prestige suivent✅
+### A4 — Trancher la collision `/givexp` ✅ (30/08/2026)
+- [x] Décision : `pvp_admin` relaie vers `exports['vanta_xp']:addXP`, le
+      `RegisterCommand('givexp')` de `vanta_xp` est supprimé
+- [x] Vérifié en jeu : l'XP réelle monte, niveau et prestige suivent
 
-**Fait quand :** `/givexp` a un effet observable et écrit dans la bonne table. ✅
+> ⚠️ **La même classe de bug existe toujours sur `/xp`** (`vanta_xp/client.lua:13` vs
+> `pvp_inventory/client/client.lua:56`). Traité en **B5**.
 
-### A5 — Valider `pvp_character` en profondeur
-- [ ] Parcours freemode : peau, morphologie, cheveux + couleur, vêtements, accessoires — tout s'applique en direct sur le ped ✅
-- [ ] Choix d'un ped spécial → définitif sans Gold/Diamond ✅
-- [ ] Modération pseudo (mot interdit refusé) ✅
-- [ ] `pvp_inventory` onglet Profil : bouton changement de ped **verrouillé** sans Gold/Diamond, et rejet serveur si forcé ✅
+### A5 — Valider `pvp_character` en profondeur ✅ (02/09/2026)
+- [x] Parcours freemode : peau, morphologie, cheveux + couleur, vêtements, accessoires
+- [x] Choix d'un ped spécial → définitif sans Gold/Diamond
+- [x] Modération pseudo (mot interdit refusé)
+- [x] `pvp_inventory` onglet Profil : bouton de changement de ped verrouillé sans
+      abonnement, rejet serveur si forcé
 
-**Fait quand :** aucun chemin de création ne bloque l'apparition, et la restriction de ped tient côté serveur. ✅
+> Reste hors périmètre A5, à exercer plus tard : `/rename` (réservé aux abonnés — Diamond
+> illimité, Gold 1×/semaine), jamais testé faute d'abonnement actif en base.
 
 ---
 
@@ -143,22 +170,96 @@ Deux trouvailles pendant la migration :
 > `pvp_inventory` doit passer par ce helper**. Côté NUI, `toast()` n'affiche plus rien
 > lui-même : c'est un pont vers `vanta_ui` via le callback NUI `notify`.
 
-### B2 — Source unique des tables de loot (armes / véhicules)
-- [ ] Auditer `pvp_outposts/config.lua` (`WeaponShopItems`), `pvp_inventory/server/server.lua` (`WEAPONS`), `pvp_zombies/config.lua`
-- [ ] Décider d'une organisation par rareté qui fait foi
-- [ ] Reporter la liste consolidée dans `CLAUDE.md`, résorber la section « Écarts » de `STATUS.md`
+### B2 — Source unique des tables d'items *(à reprendre de zéro)*
 
-**Fait quand :** une seule liste de référence documentée, les autres pointent dessus ou en dérivent.
+> ⚠️ Le journal du 30/08 note « B2 fait également, création d'une resource dédiée à
+> l'organisation des items ». **Vérifié le 03/09 : cette resource n'existe pas.** Aucun
+> fichier ni dossier de catalogue partagé dans `resources/[menu]/`. L'entrée de journal est
+> corrigée en bas de ce fichier et B2 repasse à zéro.
+
+L'audit a par ailleurs trouvé **six** listes concurrentes, pas deux :
+
+| Liste | Fichier | Rôle |
+|---|---|---|
+| `Config.ShopItems` | `pvp_outposts/config.lua:271` | Boutique générale |
+| `Config.WeaponShopItems` | `pvp_outposts/config.lua:288` | Armurerie (29 entrées) |
+| `Config.AllItemPrices` | `pvp_outposts/config.lua:322` | Prix de revente |
+| `WEAPONS` | `pvp_inventory/server/server.lua:878` | Whitelist anti-triche (MK2 inclus) |
+| `Config.LootTable` | `pvp_zombies/config.lua` | Loot pondéré zombies (66 entrées) |
+| `Config.Vehicles` + `Config.MarketOnlyVehicles` | `pvp_garage/config.lua` | Catalogue véhicule (~35) |
+
+- [ ] Créer une resource `vanta_items` (ou un `shared/items.lua` dans `vanta_ui`) portant
+      **une** table : nom interne, label, rareté, poids, prix d'achat, prix de vente,
+      achetable oui/non, lootable oui/non
+- [ ] Faire dériver les six listes ci-dessus de cette table (filtres, pas copies)
+- [ ] Reporter la liste consolidée dans `CLAUDE.md`, résorber la section « Écarts » de
+      `STATUS.md`
+
+**Fait quand :** ajouter un item se fait en un seul endroit, et une arme achetable ne peut
+plus être absente de la whitelist anti-triche.
 
 ### B3 — `pvp_drops` : équilibrage loot + test terrain
-- [ ] Trancher le ratio épic / légendaire (~81 / 19 aujourd'hui) : assumer ou augmenter la part légendaire
+- [ ] Trancher le ratio épic / légendaire (~81 / 19 aujourd'hui) : assumer ou augmenter
 - [ ] Tester avion + trajectoire flèches-sprite minimap (bigmap + écran large)
 - [ ] Tester atterrissage par raycast au premier contact (toit de bâtiment surtout)
 - [ ] Tester failover contrôleur : déco en plein vol **et** en pleine chute
-- [ ] Tester expiration d'un drop non récupéré (`Config.DropLifetime`, 1h)
+- [ ] Tester expiration d'un drop non récupéré (`Config.DropLifetime`, 1 h)
 - [ ] Tester fusées éclairantes (props + son `Flare`) et `/droptest`
 
-**Fait quand :** un drop complet (largage → sécurisation → ouverture) validé à 2 joueurs, failover inclus.
+**Fait quand :** un drop complet (largage → sécurisation → ouverture) validé à 2 joueurs,
+failover inclus.
+
+### B4 — 🔴 Sécurité : jetons de fouille `pvp_zombies` *(nouveau, 03/09)*
+
+`ESX.RegisterServerCallback('pvp_zombies:getSpawnToken')` délivre un jeton à chaque appel,
+sans cap ni cooldown ni vérification. Un client modifié peut boucler
+`getSpawnToken` → `claimLoot` **sans tuer un seul zombie**, plafonné uniquement par le
+rate-limiter de `claimLoot` (30 fouilles / 30 s) — soit ~2 400 $/min et un tirage
+légendaire toutes les ~2 h de bot. Détail complet dans `STATUS.md` → Bugs actifs.
+
+- [ ] Plafonner l'émission : un compteur serveur de jetons vivants par joueur, aligné sur
+      le nombre de zombies réellement spawnés autour de lui
+- [ ] Horodater le jeton et refuser un `claimLoot` arrivant trop tard après l'émission
+- [ ] Abaisser `MAX_LOOTS_WINDOW` au rythme d'un joueur légitime (2–5 fouilles/min mesurées
+      pendant A2, prendre une marge ×3)
+- [ ] Journaliser les dépassements avec l'identifier, comme le fait déjà l'anti-spam
+
+**Fait quand :** un client qui appelle `getSpawnToken` en boucle n'obtient plus ni argent ni
+loot. **Bloquant pour la sortie publique** — sans ça l'économie est falsifiable dès le
+premier joueur outillé.
+
+### B5 — Dette technique relevée par l'audit du 03/09 *(nouveau)*
+
+Détail de chaque point dans `STATUS.md` → « Bugs actifs connus ».
+
+- [ ] **Collision `/xp`** : `vanta_xp/client.lua:13` et `pvp_inventory/client/client.lua:56`
+      enregistrent la même commande, `vanta_xp` gagne (chargée après). Trancher comme pour
+      `/givexp` : une seule des deux UI garde `/xp`, l'autre prend un autre nom ou disparaît
+- [ ] **Dépendances `fxmanifest` manquantes** : `pvp_combat` (aucune → `pvp_outposts`,
+      `pvp_inventory`), `pvp_garage` (aucune → `vanta_ui`, `pvp_inventory`), `pvp_vcoins`
+      (aucune → `pvp_inventory`), `pvp_crew` (→ `pvp_inventory`, `vanta_ui`)
+- [ ] **Exports morts** : supprimer `vanta_xp:getBagBonus`/`getContainerBonus` et les
+      exports `pvp_vcoins` sans consommateur (`GetStashBonus`, `HasDiamond`,
+      `HasGoldOrDiamond`, `GetSubscriptionTier`, `GetVCoins`) — ou les câbler. Corriger
+      `CLAUDE.md`, qui les décrit comme utilisés
+- [ ] **`setBagBonus` sans paramètre `source`** : appliquer le même correctif que
+      `setContainerBonus` (somme par source) avant qu'une 2ᵉ source n'apparaisse
+- [ ] **`spooner/` gitignoré** : sortir le `permissions.cfg` VANTA du dossier ignoré, sinon
+      un clone frais du dépôt réintroduit la faille `builtin.everyone` du 23/08
+- [ ] **Table `characters` fantôme** : retirer l'entrée de `CLAUDE.md` (aucune resource ne
+      la crée, et la section `pvp_character` du même fichier dit l'inverse)
+- [ ] **Resources ESX résiduelles** : documenter ou supprimer `esx_hud` (désactivé,
+      114 fichiers sur le disque), `esx_menu_*` et `async`, absents de l'arborescence de
+      `CLAUDE.md` alors que `pvp_outposts` dépend d'`esx_menu_default`
+- [ ] **`AGENTS.md` a divergé de `CLAUDE.md`** : 389 lignes contre 618, il ignore
+      `pvp_combat`, le système de notifications `vanta_ui` et tout ce qui a suivi le 23/08.
+      Deux docs d'architecture contradictoires, lues par des outils différents. Trancher :
+      un `AGENTS.md` d'une ligne pointant vers `CLAUDE.md`, ou une génération automatique
+- [ ] **Google Fonts en dur** : `vanta.css:11` importe Inter depuis
+      `fonts.googleapis.com`. Embarquer les `.woff2` dans `vanta_ui` avant la sortie
+
+**Fait quand :** aucun export mort, aucune dépendance implicite, aucune collision de
+commande, et le dépôt seul suffit à relancer un serveur sécurisé.
 
 ---
 
@@ -186,6 +287,33 @@ Deux trouvailles pendant la migration :
 - [ ] Maquette / direction visuelle (VANTA v2, plus lisible et présent)
 - [ ] Intégration NUI
 - [ ] Test achat / vente après refonte
+
+### C5 — Identité visuelle v2.1 « Monolithe » : trancher la branche non mergée *(nouveau, 03/09)*
+
+La branche `origin/claude/vanta-visual-identity-gma5lm` (commit `ab5c8a9`, 24/08) porte une
+refonte complète du design system : **38 fichiers, +2 997 / −1 569**, dont `vanta.css`
+(+957/−…), toutes les NUI (`pvp_hud`, `pvp_inventory`, `pvp_crew`, `pvp_outposts`,
+`vanta_xp`, `pvp_admin`, `pvp_character`, `pvp_garage`, `vanta_loading`, `pvp_killfeed`),
+trois SVG de marque (`mark.svg`, `mark-boxed.svg`, `lockup.svg`), un `VANTA_BRAND.md` de
+234 lignes, et de nouvelles bannières + `server_icon.png`.
+
+Elle n'est **pas mergée** et a 12 commits de retard sur `main`. `vanta.css` en production
+est toujours estampillé `VANTA DESIGN SYSTEM v2.0`. Plus le temps passe, plus le merge
+coûte cher : chaque session qui touche une NUI creuse l'écart.
+
+- [ ] Décider : merger v2.1, ou abandonner la branche explicitement
+- [ ] Si merge : rebaser sur `main`, résoudre les conflits NUI (`pvp_hud/html/index.html`
+      et `pvp_inventory/html/style.css` ont bougé des deux côtés), puis rejouer un tour
+      d'UI en jeu
+- [ ] Mettre `CLAUDE.md` (section « Identité Visuelle ») en cohérence avec la version
+      retenue
+- [ ] Nettoyer les 6 autres branches distantes, toutes déjà intégrées dans `main` par
+      contenu (`airdrop-resource-audit-lp7ac2`, `airdrop-system-revisions-op4o66`,
+      `character-top-display-bugs-a1be95`, `dreamy-franklin-ewgmls`,
+      `verify-game-assets-images-67femy`, `pvp-drops-airdrop-revisions`)
+
+**Fait quand :** une seule version du design system existe, dans `main`, et les branches
+mortes sont supprimées.
 
 ---
 
@@ -237,21 +365,48 @@ Deux trouvailles pendant la migration :
 
 Ne pas ouvrir au public tant que **tout** ci-dessous n'est pas ✅ :
 
-- [ ] Parcours joueur complet (A1) validé sans blocage
-- [ ] `pvp_combat` anti combat-log validé à 2 joueurs (A3)
-- [ ] `pvp_character` : aucun chemin de création ne bloque l'apparition (A5)
-- [ ] Aucune erreur console serveur au démarrage ni en boucle
+- [x] Parcours joueur complet (A1) traversé une fois — 02/09/2026
+- [ ] Parcours rejoué sans régression après les 13 correctifs du 02/09 (A2)
+- [x] `pvp_combat` anti combat-log validé à 2 joueurs (A3) — 02/09/2026
+- [x] `pvp_character` : aucun chemin de création ne bloque l'apparition (A5) — 02/09/2026
 - [x] Notifications unifiées (B1) — 30/08/2026
+- [ ] **Jetons de fouille `pvp_zombies` sécurisés (B4)** — sinon l'économie est falsifiable
 - [ ] `pvp_drops` : un drop complet validé, failover inclus (B3)
+- [ ] `pvp_crew` : contrat quotidien + boutique exercés à 2 membres (C3)
+- [ ] Aucune erreur console serveur au démarrage ni en boucle
 - [ ] `TEBEX_URL_SECRET` changé ou Tebex désactivé (D1)
-- [ ] Comptes admin dans `group.admin`, commandes de test non accessibles aux joueurs (D2, D4)
+- [ ] Comptes admin dans `group.admin`, `spooner/permissions.cfg` restauré et versionné
+      (D2, B5), commandes de test non accessibles aux joueurs (D4)
 - [ ] `server.cfg` prod complet (D4)
 - [ ] Test de charge à 3-4 joueurs passé (D5)
 - [ ] Backup DB automatique en place (D6)
 
 ---
 
-## 9. Journal de session
+## 9. Ordre d'exécution recommandé *(établi le 03/09)*
+
+Le critère de tri : **ce qui rend le reste du travail non réutilisable si on le fait
+après**. Un test joué sur une base non sécurisée est à refaire ; un polish visuel posé sur
+une NUI qui va être remplacée par la v2.1 est à refaire aussi.
+
+| # | Action | Phase | Pourquoi maintenant | Fini quand |
+|---|---|---|---|---|
+| 1 | Sécuriser `getSpawnToken` | B4 | 30 min de travail. Toute session de test jouée avant la corrige valide une économie qui n'est pas celle de la sortie | Boucle `getSpawnToken` sans effet |
+| 2 | Trancher la branche v2.1 « Monolithe » | C5 | Elle touche 10 NUI. Chaque jour de retard augmente le coût du merge, et tout polish visuel fait avant est perdu | Une seule version du design system dans `main` |
+| 3 | Rejouer A1 de bout en bout | A2 | Dernier item bloquant de la phase A. À faire **après** 1 et 2 pour ne le jouer qu'une fois | Parcours sans régression ni erreur console |
+| 4 | Premier drop réel à 2 joueurs | B3 | Le plus gros bloc de code jamais exécuté (1 958 lignes, avion + réseau + failover) | Largage → sécurisation → ouverture, failover inclus |
+| 5 | Crew à 2 membres, contrat + boutique | C3 | 2ᵉ bloc jamais exécuté, et il touche le cumul de bonus de coffre (3 sources) | Contrat crédité, bonus appliqués sans écrasement |
+| 6 | Dette technique | B5 | Peu risqué, mais `/xp` et les dépendances implicites produiront des bugs fantômes pendant les tests suivants | Aucun export mort, aucune collision |
+| 7 | Source unique des items | B2 | Gros chantier structurel. À faire une fois l'équilibrage figé par 4 et 5, sinon on refactore une table qui bouge encore | Ajouter un item se fait en un seul endroit |
+| 8 | Redzones, killfeed, VCoins, admin, XP | C1/C2 + tests | Le reste du jamais-exercé | Chaque resource vue au moins une fois |
+| 9 | Pré-production | D1→D6 | Tebex, permissions, `server.cfg` prod, charge, backup | Check-list Go/No-Go complète |
+
+**Estimation grossière du chemin critique** (1 → 6, hors B2 et polish) : 3 à 5 sessions de
+travail, dont au moins deux à 2 joueurs minimum.
+
+---
+
+## 10. Journal de session
 
 > Une ligne par session de travail. But : ne plus jamais « se perdre entre les sessions ».
 > Format : date — ce qui a été fait — ce qui bloque — prochaine étape.
@@ -259,5 +414,12 @@ Ne pas ouvrir au public tant que **tout** ci-dessous n'est pas ✅ :
 | Date | Fait | Bloqué par | Prochaine étape |
 |---|---|---|---|
 | 2026-08-27 | Création de ce ROADMAP.md à partir de STATUS.md + historique git | — | Attaquer A1 (session de test parcours joueur) |
- 2026-08-30 | Give XP migrer, B1 fais unification des notifications vers vanta_ui, B2 fais également création d'une ressource dédié a l'organisation des items, suppresion du /rename
-| | | | |
+| 2026-08-30 | A4 tranchée (`/givexp` → relais vers `vanta_xp`). B1 terminée : 90 notifications migrées vers `vanta_ui`. `/rename` repassé en réservé-abonnés (fin du tarif 5 000 $ et de `rename_free_season`) | — | A1 |
+| 2026-09-01 | Fix de la boucle infinie `vanta_ui/notify.js` (NUI entièrement figée au-delà de 8 notifications) + durcissements `pvp_inventory` (chien de garde, verrous horodatés) | — | A1 |
+| 2026-09-02 | **Session de test multijoueur Cloudfive** : A1, A3 et A5 traversés. 13 anomalies remontées et corrigées d'un bloc (commit `8bc0693`) | Correctifs non rejoués | A2 |
+| 2026-09-03 | Audit de cohérence dépôt-wide. `main` confirmé à jour (`8bc0693`). 10 écarts doc/code et 1 trou de sécurité relevés, tableau de bord resynchronisé, B4/B5/C5 ajoutés, ordre d'exécution établi. **Correction : la « resource dédiée à l'organisation des items » notée faite le 30/08 n'existe pas** — B2 repasse à zéro | — | B4 (sécuriser `getSpawnToken`), puis C5, puis A2 |
+
+> ⚠️ **Entrée corrigée.** Le journal du 30/08 affirmait « B2 fait également, création d'une
+> resource dédiée à l'organisation des items ». Vérification du 03/09 : aucun fichier ni
+> dossier de ce type dans `resources/[menu]/`, et six listes d'items concurrentes
+> subsistent. B2 n'a jamais été entamée.

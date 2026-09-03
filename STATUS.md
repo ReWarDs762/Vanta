@@ -4,28 +4,41 @@ Ce fichier contient tout ce qui change souvent : avancement par resource, bugs a
 roadmap, ce qui a été validé en jeu. À tenir à jour à chaque session — bien plus vite que
 `CLAUDE.md`, qui ne décrit que l'architecture stable.
 
-**Dernière mise à jour :** 24 août 2026 (audit du système PVP + corrections de sécurité/gameplay, nouvelle resource `pvp_combat` ; `pvp_crew` — contrat quotidien de crew, trésorerie/monnaie collective, boutique de bonus temporaires, historique + fix bonus conteneur multi-sources ; audit + correctifs `pvp_drops`, système de notifications générique `vanta_ui`)
+**Dernière mise à jour :** 3 septembre 2026 (audit de cohérence dépôt-wide : état du `main`, écarts doc/code, dette technique, priorités — voir « Bugs actifs connus » et `ROADMAP.md`)
+
+> L'en-tête est resté figé au 24/08 pendant plusieurs sessions alors que le fichier
+> contenait déjà des correctifs du 02/09. Vérifier cette ligne à chaque commit qui touche
+> ce fichier.
 
 ---
 
 ## Statut par resource
 
+Statut au 03/09/2026. « Testé » = exercé manette en main au moins une fois, pas « sans
+bug ». Voir « Testé en jeu vs jamais testé » plus bas pour le détail des trois états.
+
 | Resource | Statut | Détail |
 |---|---|---|
-| `pvp_combat` | **Nouveau (23/08/2026), jamais testé** | Mode combat / anti combat-log : voir CLAUDE.md → « Mode combat (pvp_combat) ». Dépend de `pvp_outposts` (déclenche le mode combat) et `pvp_inventory` (délègue la mort par combat-log). À tester en priorité : déconnexion en plein fight (le stuff doit tomber), blocage du dépôt au coffre protégé en combat, expiration du mode combat 5s après le dernier coup. |
-| `pvp_character` | Refondu (22/08/2026), **non testé en jeu** | Écran de création revu en profondeur : cadrage caméra corrigé (le perso était mal visible derrière le panel), personnalisation étendue (peau, morphologie, cheveux, 10 emplacements vêtements + 5 accessoires en freemode, ou choix d'un ped spécial du catalogue `pvp_inventory`). Fix du bug de timing qui empêchait l'écran de s'afficher (`Wait(400)` fixe → retry loop). Voir CLAUDE.md pour le détail. À valider intégralement en jeu avant de considérer ce chantier terminé. |
-| `pvp_drops` | Audité + corrigé (24/08/2026), **non testé en jeu** | Audit complet : 3 bugs de fiabilité corrigés (failover du contrôleur, expiration du drop, dépendances implicites), notifications migrées vers `vanta_ui`, fusées éclairantes (son + particules) à l'atterrissage, trajectoire en flèches rouges clignotantes. Reste : validation manette en main. |
-| `vanta_ui` | Étendu (24/08/2026), **non testé en jeu** | Ajout d'un système de notifications générique (`ui_page` + exports `notify`/`notifyAll`). Seul `pvp_drops` l'utilise pour l'instant — les autres resources passent toujours par `pvp_market:notify` (voir Écarts). |
-| `pvp_redzones` | Fonctionnel, détails manquants | À polish : visuels carte/minimap, notifications de rotation, timer visible — à définir |
-| `pvp_killfeed` | Créé, **jamais testé** | Voir « Testé en jeu » ci-dessous. Annonces chat de série de kills retirées (23/08/2026, trop bruyantes à plusieurs joueurs) — le killfeed NUI et les leaders de session restent inchangés. |
-| `pvp_crew` | Fonctionnel, à approfondir | Ajouté (24/08/2026), **non testé en jeu** : contrat quotidien de crew (élimination de zombies, quota adaptatif au nombre de participants actifs), trésorerie/monnaie collective (réutilise `pvp_crews.bank`, jamais retirable en argent personnel), historique des gains/dépenses, boutique de 3 bonus temporaires (XP zombies x2, XP PvP +50%, bonus de coffre protégé personnel pour tout le crew). Le blocage de dégâts entre membres de SQUAD (pas crew) est maintenant réel côté serveur (23/08/2026, voir `pvp_outposts/server/server.lua`) — l'ancien code client ne faisait rien. Vision long terme restante : hiérarchie (leader + membres), coffre partagé crew, système d'affrontement entre crews (à brainstormer) |
-| `pvp_market` | Opérationnel, design à retravailler | À faire : refonte visuelle pour plus de lisibilité et de présence |
-| `vanta_loading` | Désactivé temporairement | Raison non documentée — écran de chargement prêt mais `# ensure vanta_loading` dans `server.cfg` |
-| `pvp_hud` | ✅ Réactivé (21/08/2026) | Restrictions de combat + nettoyage du monde ambiant confirmés voulus. Bug serveur trouvé et corrigé (voir Bugs corrigés). Dégâts de chute désactivés (23/08/2026). Le nettoyage périodique protège maintenant les zombies (voir `pvp_zombies`). |
-| `pvp_zombies` | Fonctionnel côté code, **jamais testé** | Fix (23/08/2026) : les zombies étaient supprimés par le nettoyage périodique de `pvp_hud` toutes les 5s (pas marqués mission entity) — probablement jamais remarqué faute de test en jeu. |
-| `pvp_outposts` | Stable | Protection zone safe étendue aux explosions (23/08/2026) — seul `weaponDamageEvent` était filtré auparavant, un RPG/lance-grenades tuait normalement en zone safe. |
-| `spooner` | ⚠️ Faille corrigée (23/08/2026) | `permissions.cfg` donnait tout l'arbre `spooner.*` à `builtin.everyone` (spawn/modify/delete d'entités, y compris celles des autres joueurs) — restreint à `group.admin`. À vérifier : les comptes qui doivent avoir accès à spooner sont bien dans `group.admin` (voir `add_principal` dans `server.cfg`). |
-| `esx_identity` | ❌ Supprimé (21/08/2026) | Remplacé par `pvp_character`, dossier retiré du disque |
+| `pvp_character` | Testé (02/09), correctifs non rejoués | Parcours freemode + ped spécial validés lors de la session Cloudfive, ainsi que la restriction « changement de ped réservé Gold/Diamond » côté serveur. `/rename` (réservé abonnés) reste à exercer. |
+| `pvp_inventory` | Testé (02/09), correctifs non rejoués | Le plus gros système (234 fichiers, ~12 000 lignes). Sac, hotbar, 3 coffres, marché, mort/death bag exercés. Trois correctifs postérieurs non rejoués : suppression d'item au double clic molette, sortie de véhicule contre un mur, propulsion au spawn véhicule. |
+| `pvp_combat` | Testé (02/09) | Les 5 points d'A3 validés à 2 joueurs, déconnexion en plein combat incluse. `fxmanifest.lua` ne déclare toujours aucune dépendance (voir Bugs actifs). |
+| `pvp_hud` | Testé (02/09), correctifs non rejoués | Session Cloudfive : 5 des 13 remontées venaient d'ici (one-shot tête, étoiles de police, radio, dégâts de collision, chute). Tous corrigés le 02/09, aucun rejoué. |
+| `pvp_zombies` | Testé (02/09), correctifs non rejoués | Kill → loot → item validé. Correctifs postérieurs : voix `ALIENS`, anti-escalade par annulation du geste, poursuite du joueur en véhicule (`TaskGoToEntity`). **Trou de sécurité actif sur `getSpawnToken`** — voir Bugs actifs. |
+| `pvp_outposts` | Testé (02/09) | Armurerie, customisation d'arme, téléportation NPC + waypoint exercés. Stable. |
+| `pvp_garage` | Testé (02/09) | Achat/vente/spawn véhicule exercés. `fxmanifest.lua` sans dépendances déclarées. |
+| `pvp_spawn` | Testé (02/09), correctif non rejoué | Bug « téléporté à Sandy Shores au bout de 15 min » (course `playerSpawned` / `setLoginOutpost`) corrigé le 02/09, non rejoué. |
+| `pvp_market` | Testé (02/09), design à retravailler | Annonce + achat exercés. Refonte visuelle toujours à faire (ROADMAP C4). |
+| `vanta_ui` | Testé (01-02/09) | Notifications affichées en jeu, et c'est ce qui a révélé la boucle infinie de `notify.js` (corrigée le 01/09). Migration des 90 notifications terminée le 30/08. |
+| `pvp_drops` | **Jamais exercé** | Audité et corrigé le 24/08, enrichi le 25/08 (flèches minimap, atterrissage par raycast, `/droptest`), mais aucun drop n'a jamais été joué. Le plus gros bloc de risque non levé du projet. |
+| `pvp_crew` | **Jamais exercé** | 4 crews en base, 0 membre. Contrat quotidien, trésorerie, boutique de bonus : code écrit le 24/08, jamais exécuté par un joueur. |
+| `pvp_redzones` | **Jamais exercé** | Rotation horaire et loot ×2 jamais vérifiés. Affichage écran volontairement coupé le 02/09 (`ShowRedzoneHUD = false`) — les zones restent actives, seul le cercle rouge sur la carte les signale. |
+| `pvp_killfeed` | **Jamais exercé** | Créé, jamais vu à l'écran. |
+| `pvp_vcoins` | **Jamais exercé** | Abonnements et marché VCoins jamais exercés. `TEBEX_URL_SECRET` toujours à `CHANGE_ME_...` (ROADMAP D1). |
+| `pvp_admin` | **Jamais exercé** | Panel F7, noclip, spectate, `/givexp` après relais du 30/08 : rien de vérifié. |
+| `vanta_xp` | **Jamais exercé** | Montée de niveau, prestige, bonus de capacité jamais observés. Collision `/xp` active (voir Bugs actifs). |
+| `vanta_loading` | Désactivé | `# ensure vanta_loading` dans `server.cfg`, raison jamais documentée. Décision à prendre (ROADMAP D3). |
+| `spooner` | ⚠️ Correctif hors dépôt | Faille `builtin.everyone` corrigée le 23/08 **sur le disque local seulement** — le dossier est gitignoré. Voir Bugs actifs. |
+| `esx_identity` | ❌ Supprimé (21/08/2026) | Remplacé par `pvp_character`. Reste une table `characters` fantôme dans la doc — voir Bugs actifs. |
 
 Tout ce qui n'apparaît pas dans ce tableau est considéré stable — voir `CLAUDE.md` pour son
 architecture.
@@ -34,7 +47,113 @@ architecture.
 
 ## Bugs actifs connus
 
-*Aucun bug actif documenté pour l'instant.*
+*Relevés par l'audit de cohérence du 03/09/2026. Aucun n'a été corrigé — ils sont listés
+ici pour être traités dans l'ordre défini par `ROADMAP.md`.*
+
+### 🔴 `pvp_zombies` — jetons de fouille délivrés sans aucune limite
+
+`ESX.RegisterServerCallback('pvp_zombies:getSpawnToken')` (`server/server.lua`) fabrique et
+rend un jeton **à chaque appel**, sans cap, sans cooldown, sans vérification de position ni
+d'existence d'un zombie. Les zombies étant des peds 100 % locaux (`isNetwork = false`), le
+serveur n'a effectivement plus d'entité à valider — mais il ne valide alors plus rien du
+tout.
+
+Un client modifié peut donc boucler `getSpawnToken` → `claimLoot` **sans jamais tuer un
+zombie**. Le seul garde-fou restant est le rate-limiter de `claimLoot`
+(`MAX_LOOTS_WINDOW = 30` par fenêtre de 30 s, `LOOT_COOLDOWN = 500 ms`) : le plafond réel
+est donc de **60 fouilles/minute**, soit ~2 400 $/min et un tirage légendaire toutes les
+~2 h de bot, là où un joueur légitime tourne à 2–5 fouilles/minute.
+
+Pistes (non tranchées) : plafonner l'émission de jetons (1 par zombie réellement spawné,
+compteur serveur par joueur), horodater le jeton et exiger que `claimLoot` arrive dans une
+fenêtre courte après émission, et abaisser `MAX_LOOTS_WINDOW` au niveau d'un jeu légitime.
+**À traiter avant toute ouverture publique** — sans ça, l'économie du serveur est
+falsifiable dès le premier joueur outillé.
+
+### 🟠 Collision de commande `/xp` (même classe de bug que `/givexp`)
+
+`vanta_xp/client.lua:13` et `pvp_inventory/client/client.lua:56` enregistrent tous deux
+`RegisterCommand('xp')`. FiveM ne garde que la dernière — `vanta_xp` étant `ensure`d en 52ᵉ
+position contre 46 pour `pvp_inventory`, c'est le panneau NUI de `vanta_xp` qui gagne et le
+raccourci vers l'onglet Profil de l'inventaire est **du code mort**. Exactement le scénario
+tranché pour `/givexp` le 30/08, jamais recherché ailleurs.
+
+### 🟠 `fxmanifest.lua` — dépendances non déclarées
+
+Quatre resources consomment des exports d'autres resources sans les déclarer, donc sans
+garantie d'ordre de chargement :
+
+| Resource | `dependencies` déclarées | Manquantes (exports réellement consommés) |
+|---|---|---|
+| `pvp_combat` | *(aucune)* | `pvp_outposts`, `pvp_inventory` |
+| `pvp_garage` | *(aucune)* | `vanta_ui`, `pvp_inventory` |
+| `pvp_vcoins` | *(aucune)* | `pvp_inventory` (`setContainerBonus`) |
+| `pvp_crew` | `es_extended`, `mysql-async` | `pvp_inventory`, `vanta_ui` |
+
+À noter aussi une dépendance **circulaire assumée** : `vanta_xp` déclare `pvp_inventory`,
+et `pvp_inventory` lit la progression de `vanta_xp`. Elle ne casse rien aujourd'hui parce
+que le flux de bonus est un *push* (`vanta_xp` appelle `setBagBonus`/`setContainerBonus`),
+mais l'ordre de `server.cfg` charge bien `pvp_inventory` (46) **avant** `vanta_xp` (52).
+
+### 🟡 Exports morts, documentés comme vivants
+
+- `vanta_xp:getBagBonus` / `vanta_xp:getContainerBonus` : déclarés, **aucun appelant**. Le
+  bonus de prestige circule par push (`exports['pvp_inventory']:setBagBonus(...)`).
+  `CLAUDE.md` affirme pourtant qu'ils sont « utilisés par `pvp_inventory` ».
+- `pvp_vcoins:GetStashBonus`, `HasDiamond`, `HasGoldOrDiamond`, `GetSubscriptionTier`,
+  `GetVCoins` : déclarés, **aucun consommateur hors `pvp_vcoins`**. Seul `GetTier` est
+  réellement appelé de l'extérieur (par `pvp_inventory` et `pvp_character`). `CLAUDE.md`
+  les liste tous les six comme « consommés par d'autres resources ».
+
+### 🟡 `setBagBonus` — même faille latente que l'ancien `setContainerBonus`
+
+`setContainerBonus` a été corrigé le 24/08 pour sommer par source (`prestige` /
+`subscription` / `crew`). `setBagBonus` (`pvp_inventory/server/server.lua:118`) est resté
+en écrasement pur, sans paramètre `source`. Inoffensif tant que `vanta_xp` en est l'unique
+appelant — cassé silencieusement le jour où une 2ᵉ source arrive (un bonus de sac en
+boutique de crew, par exemple).
+
+### 🟡 `spooner/` est gitignoré — le correctif de permissions n'est pas dans le dépôt
+
+`.gitignore` exclut `resources/[menu]/spooner/` (dépôt git imbriqué). Le durcissement du
+23/08 (`spooner.*` retiré de `builtin.everyone`, restreint à `group.admin`) vit donc dans
+`spooner/permissions.cfg`, **sur le disque local uniquement**. Un clone frais du dépôt,
+suivi de la restauration documentée dans `audit-initial.md`, repart avec la faille
+d'origine — et `server.cfg:56` fait bien `exec resources/[menu]/spooner/permissions.cfg`.
+À traiter : sortir le `permissions.cfg` VANTA du dossier ignoré (le placer à la racine et
+l'`exec` depuis là), ou documenter le patch comme étape obligatoire de restauration.
+
+### 🟡 Table `characters` documentée, jamais créée
+
+`CLAUDE.md` → « Base de données » liste une table `characters` (« identité personnage :
+prénom, nom, date de naissance, sexe, taille »). Aucune resource ne la crée
+(`grep CREATE TABLE ... characters` = 0 résultat), et la section `pvp_character` du même
+fichier dit l'inverse : « Pas de table `characters` dédiée : le pseudo vit dans
+`users.firstname`/`sex` ». Vestige d'`esx_identity`, supprimé le 21/08.
+
+### 🟡 Resources ESX résiduelles absentes de l'architecture documentée
+
+`resources/[menu]/` contient `esx_hud`, `esx_menu_default`, `esx_menu_dialog-main`,
+`esx_menu_list-main`, `async` — aucun n'apparaît dans l'arborescence de `CLAUDE.md`. Les
+trois `esx_menu_*` et `async` sont `ensure`d et `pvp_outposts` déclare bien
+`esx_menu_default` en dépendance ; `esx_hud` est désactivé dans `server.cfg` mais toujours
+sur le disque (114 fichiers). À documenter ou à supprimer.
+
+### 🟡 `AGENTS.md` a divergé de `CLAUDE.md`
+
+389 lignes contre 618. `AGENTS.md` est un fork figé de `CLAUDE.md` : il ne connaît ni
+`pvp_combat` (créée le 23/08), ni le système de notifications générique de `vanta_ui`, ni
+aucune des décisions prises depuis. Deux documents d'architecture qui se contredisent, lus
+par des outils différents selon l'agent utilisé. À trancher : réduire `AGENTS.md` à un
+pointeur d'une ligne vers `CLAUDE.md`, ou le générer.
+
+### 🟡 `vanta.css` dépend de Google Fonts par le réseau
+
+`resources/[menu]/vanta_ui/html/vanta.css:11` fait
+`@import url('https://fonts.googleapis.com/css2?family=Inter...')`. Toutes les NUI du
+serveur en dépendent. Un joueur hors ligne côté DNS, derrière un filtrage, ou simplement
+lent au premier chargement voit l'UI se rendre en police de repli. Pour un serveur public :
+embarquer les `.woff2` dans `vanta_ui` et déclarer un `@font-face` local.
 
 ---
 
@@ -259,78 +378,82 @@ corrections appliquées d'un coup :
 
 ## Testé en jeu vs jamais testé
 
-Un démarrage de serveur prouve que le code se charge, pas qu'il fonctionne. Rien de ce qui
-suit n'a été validé manette en main :
+**Mise à jour du 03/09/2026.** La section précédente affirmait que *rien* n'avait été
+validé manette en main. C'est faux depuis la session de test multijoueur Cloudfive du
+02/09 : `ROADMAP.md` → A1/A3/A5 y sont cochés point par point. Trois états à distinguer
+maintenant, et ne plus les confondre.
 
-- [ ] `pvp_character` — refondu le 22/08/2026 (apparence détaillée, catalogue de peds,
-      caméra recadrée), **jamais revalidé en jeu depuis** — à tester en priorité :
-      parcours freemode complet, choix d'un ped spécial, `/rename`, et sur `pvp_inventory`
-      la restriction "changement de ped réservé Gold/Diamond" (bouton verrouillé + rejet
-      serveur si forcé sans abonnement)
-- [ ] `pvp_inventory` — le plus gros système (217 fichiers), jamais testé
-- [ ] `pvp_combat` — nouveau (23/08/2026), jamais testé : déconnexion en combat (drop du
-      stuff), blocage dépôt coffre protégé en combat, expiration 5s après le dernier coup
-- [ ] `pvp_killfeed` — créé, jamais testé
-- [ ] `pvp_crew` — 4 crews en base mais 0 membre, jamais réellement exercé. En particulier
-      le contrat quotidien (24/08/2026) : progression multi-participants, complétion +
-      crédit de trésorerie, boutique (achat, anti-cumul, expiration, application/retrait
-      du bonus de coffre à la connexion/déconnexion/exclusion), et non-régression du
-      bonus de coffre prestige/abonnement (fix multi-sources ci-dessus)
-- [ ] `pvp_drops` — avion, parachute, ouverture de caisse : jamais validés. Depuis les
-      correctifs du 24/08/2026, à tester en plus : la déconnexion du contrôleur en plein
-      vol (l'avion doit continuer sa trajectoire chez les autres joueurs), l'expiration
-      d'un drop non récupéré (`Config.DropLifetime`, 1h), les fusées éclairantes
-      (`prop_flare_01` + son `Flare`/`FBI_05_SOUNDS`), et les flèches rouges clignotantes
-      de trajectoire sur la minimap
-- [ ] `vanta_ui` — système de notifications générique : jamais affiché en jeu
-- [ ] `pvp_redzones` — rotation horaire, loot ×2 : jamais validés
-- [ ] `pvp_zombies` — spawn, IA, loot pondéré : jamais validés
-- [ ] `pvp_hud` — restrictions de combat réactivées, jamais vues en jeu
+### ✅ Exercé en jeu lors de la session Cloudfive (02/09/2026)
 
-Session de test suggérée : création de personnage → apparition → inventaire → tuer un
-zombie → loot → coffre → marché → crew → mort → réapparition.
+Parcours joueur complet (A1) : création de personnage freemode **et** ped spécial,
+apparition, inventaire/hotbar/coffres (sac, protégé, avant-poste), kill de zombie → loot au
+corps → item en inventaire, achat/vente armurerie + customisation d'arme, achat/vente/spawn
+véhicule au garage, marché joueur, mort → death bag → réapparition à l'avant-poste le plus
+proche, téléportation entre avant-postes. Plus A3 (`pvp_combat` : les 5 points, dont la
+déconnexion en plein combat) et A5 (`pvp_character` en profondeur, restriction de ped
+Gold/Diamond incluse).
+
+### 🟠 Correctifs appliqués après cette session, **jamais rejoués**
+
+Les 13 correctifs du 02/09 (voir « Bugs corrigés » ci-dessus) et le fix de boucle infinie
+`vanta_ui` du 01/09 ont été écrits **après** la session, donc validés par personne. Tant
+qu'une seconde passe A1 n'a pas été jouée de bout en bout, l'absence de régression n'est
+pas établie — c'est le point A2 de la roadmap. À vérifier en priorité : les voix/râles de
+zombie (`ALIENS`), le dosage de `VEHICLE_SPAWN_BOOST`, la sortie de véhicule contre un mur,
+et le double clic molette de suppression d'item.
+
+### ⬜ Jamais exercé du tout
+
+- [ ] `pvp_drops` — avion, trajectoire en flèches sur minimap, parachute, atterrissage par
+      raycast, fusées éclairantes, ouverture de caisse, failover du contrôleur, expiration
+      à 1 h, `/droptest`
+- [ ] `pvp_crew` — 4 crews en base mais 0 membre. Contrat quotidien (multi-participants,
+      complétion, crédit de trésorerie), boutique (achat, anti-cumul, expiration,
+      application/retrait du bonus de coffre), non-régression du cumul
+      prestige + abonnement + crew
+- [ ] `pvp_redzones` — rotation horaire, loot ×2 effectif, kills comptés en redzone
+- [ ] `pvp_killfeed` — affichage haut-droite, couleur redzone, sanity-check 2000 m sur un
+      tir sniper réel
+- [ ] `pvp_vcoins` — abonnements Gold/Diamond, marché VCoins entre joueurs, bonus de stash
+- [ ] `pvp_admin` — panel F7, noclip, spectate, `/givexp` après le relais du 30/08
+- [ ] `vanta_xp` — `/xp`, montée de niveau, prestige, bonus de capacité (et la collision
+      `/xp` signalée dans « Bugs actifs »)
+
+Session de test suggérée pour A2 : rejouer A1 à l'identique, puis enchaîner sur un drop
+complet à 2 joueurs et un crew à 2 membres avec contrat quotidien.
 
 ---
 
 ## Écarts de documentation connus, non résolus
 
-### Listes armes/véhicules sans source unique
+### ~~`pvp_market:notify` — migration partielle vers `vanta_ui`~~ ✅ RÉSOLU (30/08/2026)
 
-En vérifiant les pointeurs à ajouter dans `CLAUDE.md`, découvert que les listes d'armes et
-de véhicules ne correspondent à **aucune source unique** dans le code :
+Migration terminée : 90 notifications déplacées, plus aucune occurrence de
+`pvp_market:notify` dans le code exécutable (2 restantes, dans des commentaires
+historiques de `pvp_drops/server/server.lua` et `vanta_ui/client/notify.lua`).
+`vanta_ui/html/notify.html` est le seul système de notification du projet. Détail complet
+dans `ROADMAP.md` → B1. **Cette section est restée listée comme « non résolue » pendant
+4 jours après sa résolution** — d'où la vérification systématique ajoutée en tête de
+fichier.
 
-- **Armes** : `pvp_outposts/config.lua` (`Config.WeaponShopItems`, l'armurerie) a sa
-  propre liste ; `pvp_inventory/server/server.lua` (table `WEAPONS`) a une liste de
-  validation anti-triche différente et plus large (variantes MK2, molotov, stungun...
-  absents de la doc actuelle).
-- **Véhicules** : `pvp_zombies/config.lua` a une table de loot pondérée bien plus fournie
-  (dizaines d'entrées, ex. `vehicle_ztype`, `vehicle_mule`, `vehicle_blazer5`) que ce qui
-  était documenté dans `CLAUDE.md`.
+### Quatre listes d'items concurrentes, toujours sans source unique
 
-**Non résolu.** Un audit complet des tables de loot serait nécessaire pour produire une
-doc fiable — hors périmètre de la session actuelle.
+Aggravation de l'écart déjà noté : ce ne sont pas deux listes mais **quatre**, aucune
+n'étant dérivée d'une autre.
 
-### `pvp_market:notify` — migration partielle vers `vanta_ui`
+| Liste | Fichier | Rôle | Taille |
+|---|---|---|---|
+| `Config.ShopItems` | `pvp_outposts/config.lua:271` | Boutique générale (consommables) | — |
+| `Config.WeaponShopItems` | `pvp_outposts/config.lua:288` | Armurerie (achat/vente) | 29 entrées |
+| `Config.AllItemPrices` | `pvp_outposts/config.lua:322` | Prix de revente de tout item | — |
+| `WEAPONS` | `pvp_inventory/server/server.lua:878` | Whitelist anti-triche (plus large, MK2 inclus) | — |
+| `Config.LootTable` | `pvp_zombies/config.lua` | Loot pondéré zombies (armes + véhicules) | 66 entrées |
+| `Config.Vehicles` / `Config.MarketOnlyVehicles` | `pvp_garage/config.lua` | Catalogue véhicule + exclusions | ~35 |
 
-L'event `pvp_market:notify` est un faux ami : il est **nommé** d'après `pvp_market` mais
-**déclaré** dans `pvp_inventory/client/client.lua`, et utilisé par `pvp_drops`,
-`pvp_zombies` et `pvp_market`. N'importe quel renommage ou retrait de l'une de ces deux
-resources casse les notifications des autres, sans lien apparent.
-
-Un système générique existe désormais dans `vanta_ui` :
-
-```lua
-exports['vanta_ui']:notify(src, 'Message', 'success')  -- serveur
-exports['vanta_ui']:notify('Message', 'success')       -- client
-exports['vanta_ui']:notifyAll('Message', 'info')       -- serveur, tous les joueurs
-```
-
-Types : `success` | `error` | `warning` | `info` (les booléens `true`/`false` de l'ancien
-format restent acceptés).
-
-**Migré :** `pvp_drops` uniquement. **Reste à migrer :** `pvp_market`, `pvp_zombies`, et
-l'ancien handler dans `pvp_inventory`. Tant que la migration n'est pas terminée, les deux
-systèmes coexistent (deux styles de toast possibles à l'écran).
+Le journal de session du 30/08 dans `ROADMAP.md` note « B2 fait également, création d'une
+resource dédiée à l'organisation des items ». **Cette resource n'existe pas** : aucun
+fichier ni dossier de catalogue partagé dans `resources/[menu]/`. B2 est donc à reprendre
+de zéro, et son entrée de journal est à corriger.
 
 ### `pvp_drops` — loot annoncé « légendaire », majoritairement épic
 
@@ -343,24 +466,9 @@ la part de légendaire, soit assumer le ratio actuel.
 
 ## Roadmap
 
-### Priorité actuelle : rendre toutes les features existantes fonctionnelles et cohérentes avant d'en ajouter de nouvelles.
+**La roadmap vit désormais dans `ROADMAP.md`** — phases, check-list Go/No-Go, journal de
+session. Cette section était une copie divergente : elle listait encore la migration des
+notifications comme à faire alors qu'elle est terminée depuis le 30/08.
 
-- [x] Phase 1 — Base solide (server.cfg, ESX config PVP)
-- [x] Phase 2 — Zombies (spawn, IA, loot pondéré)
-- [x] Phase 2.5 — Inventaire NUI complet + armes + véhicules
-- [x] Phase 3 — Avant-postes, garage, admin, profil, badges, XP/prestige
-- [ ] **En cours — Polish & consolidation** :
-  - [x] pvp_drops : correctifs de fiabilité + sons/flares + trajectoire clignotante (24/08/2026, à tester)
-  - [ ] pvp_drops : rééquilibrer la table de loot (voir Écarts) et tester en jeu
-  - [ ] Migrer `pvp_market`, `pvp_zombies` et `pvp_inventory` vers `exports['vanta_ui']:notify`
-  - [ ] pvp_redzones : polish visuel, notifications rotation, timer
-  - [ ] pvp_killfeed : tester et finaliser
-  - [ ] pvp_crew : tester, corriger, brainstormer la vision long terme
-  - [ ] pvp_market : refonte design (plus lisible/visible)
-  - [x] `/givexp` : collision tranchée — relais `pvp_admin` → export `addXP` de `vanta_xp`
-        (30/08/2026, à tester)
-- [x] Phase 4a — Crew : hiérarchie, coffre partagé, contrat quotidien, trésorerie/monnaie
-      collective, boutique de bonus temporaires, historique (24/08/2026, non testé en jeu)
-- [ ] Phase 4b — Crew : système d'affrontement entre crews (à brainstormer)
-- [ ] Phase 5 — Mapping avant-postes (CodeWalker)
-- [ ] Phase 6 — Lancement public
+Rappel du principe directeur, inchangé : *rendre toutes les features existantes
+fonctionnelles et cohérentes avant d'en ajouter de nouvelles.*
