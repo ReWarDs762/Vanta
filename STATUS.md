@@ -23,7 +23,7 @@ bug ». Voir « Testé en jeu vs jamais testé » plus bas pour le détail des t
 | `pvp_inventory` | Testé (02/09), correctifs non rejoués | Le plus gros système (234 fichiers, ~12 000 lignes). Sac, hotbar, 3 coffres, marché, mort/death bag exercés. Trois correctifs postérieurs non rejoués : suppression d'item au double clic molette, sortie de véhicule contre un mur, propulsion au spawn véhicule. |
 | `pvp_combat` | Testé (02/09) | Les 5 points d'A3 validés à 2 joueurs, déconnexion en plein combat incluse. `fxmanifest.lua` ne déclare toujours aucune dépendance (voir Bugs actifs). |
 | `pvp_hud` | Testé (02/09), correctifs non rejoués | Session Cloudfive : 5 des 13 remontées venaient d'ici (one-shot tête, étoiles de police, radio, dégâts de collision, chute). Tous corrigés le 02/09, aucun rejoué. |
-| `pvp_zombies` | Testé (02/09), correctifs non rejoués | Kill → loot → item validé. Correctifs postérieurs : voix `ALIENS`, anti-escalade par annulation du geste, poursuite du joueur en véhicule (`TaskGoToEntity`). **Trou de sécurité actif sur `getSpawnToken`** — voir Bugs actifs. |
+| `pvp_zombies` | Testé (02/09), correctifs non rejoués | Kill → loot → item validé. Correctifs postérieurs : voix `ALIENS`, anti-escalade par annulation du geste, poursuite du joueur en véhicule (`TaskGoToEntity`). Trou de sécurité sur `getSpawnToken` **corrigé le 03/09** (seau à jetons) — non testé en jeu. |
 | `pvp_outposts` | Testé (02/09) | Armurerie, customisation d'arme, téléportation NPC + waypoint exercés. Stable. |
 | `pvp_garage` | Testé (02/09) | Achat/vente/spawn véhicule exercés. `fxmanifest.lua` sans dépendances déclarées. |
 | `pvp_spawn` | Testé (02/09), correctif non rejoué | Bug « téléporté à Sandy Shores au bout de 15 min » (course `playerSpawned` / `setLoginOutpost`) corrigé le 02/09, non rejoué. |
@@ -50,25 +50,57 @@ architecture.
 *Relevés par l'audit de cohérence du 03/09/2026. Aucun n'a été corrigé — ils sont listés
 ici pour être traités dans l'ordre défini par `ROADMAP.md`.*
 
-### 🔴 `pvp_zombies` — jetons de fouille délivrés sans aucune limite
+### ~~🔴 `pvp_zombies` — jetons de fouille délivrés sans aucune limite~~ ✅ CORRIGÉ (03/09/2026, non testé en jeu)
 
-`ESX.RegisterServerCallback('pvp_zombies:getSpawnToken')` (`server/server.lua`) fabrique et
-rend un jeton **à chaque appel**, sans cap, sans cooldown, sans vérification de position ni
-d'existence d'un zombie. Les zombies étant des peds 100 % locaux (`isNetwork = false`), le
-serveur n'a effectivement plus d'entité à valider — mais il ne valide alors plus rien du
-tout.
+**Le trou.** `ESX.RegisterServerCallback('pvp_zombies:getSpawnToken')` fabriquait un jeton à
+chaque appel : pas de cap, pas de cooldown, pas même une vérification que le joueur
+existe. Les zombies étant des peds 100 % locaux (`isNetwork = false`), le serveur n'a
+aucune entité à valider au moment du kill — mais il ne validait alors plus rien du tout. Un
+client modifié bouclait `getSpawnToken` → `claimLoot` **sans jamais tuer un zombie**,
+plafonné uniquement par le rate-limiter de `claimLoot` (30 fouilles / 30 s), soit
+**60 fouilles/minute** — huit fois le débit d'un joueur légitime.
 
-Un client modifié peut donc boucler `getSpawnToken` → `claimLoot` **sans jamais tuer un
-zombie**. Le seul garde-fou restant est le rate-limiter de `claimLoot`
-(`MAX_LOOTS_WINDOW = 30` par fenêtre de 30 s, `LOOT_COOLDOWN = 500 ms`) : le plafond réel
-est donc de **60 fouilles/minute**, soit ~2 400 $/min et un tirage légendaire toutes les
-~2 h de bot, là où un joueur légitime tourne à 2–5 fouilles/minute.
+**Le plafond légitime, mesuré dans le client.** La boucle de spawn de
+`client/client.lua` produit **1 zombie par `Config.SpawnInterval` (8 s)**, et seulement
+tant que moins de `Config.MaxZombiesPerPlayer` (40) sont vivants. S'y ajoutent des rafales
+de 3 via l'item `shot_attract`, et jusqu'à 30 d'un coup via `/spawnzombies` (admin). Le
+débit soutenu d'un joueur qui joue réellement est donc de **7,5 zombies/minute**.
 
-Pistes (non tranchées) : plafonner l'émission de jetons (1 par zombie réellement spawné,
-compteur serveur par joueur), horodater le jeton et exiger que `claimLoot` arrive dans une
-fenêtre courte après émission, et abaisser `MAX_LOOTS_WINDOW` au niveau d'un jeu légitime.
-**À traiter avant toute ouverture publique** — sans ça, l'économie du serveur est
-falsifiable dès le premier joueur outillé.
+**Le correctif.** Un seau à jetons côté serveur, calé sur ce débit
+(`Config.AntiCheat` dans `config.lua`) :
+
+| Contrôle | Valeur | Ce qu'il empêche |
+|---|---|---|
+| Seau à jetons | capacité 20, remplissage 1 / 8 s | Le débit moyen d'émission ne peut plus dépasser la boucle de spawn du client |
+| Joueur inexistant | `ESX.GetPlayerFromId` obligatoire | Un appel forgé hors session n'alimente plus le stock |
+| Âge minimum du jeton | 1 500 ms | Un zombie ne peut pas naître, mourir et être fouillé dans le même souffle |
+| TTL vérifié à la consommation | 30 min | Le thread de purge ne passe qu'une fois par minute — un jeton périmé passait entre les mailles |
+| Plafond mémoire | 400 jetons vivants | Accumulation par les zombies despawnés sans être fouillés |
+| Fouilles par fenêtre | 30 → **15** / 30 s | Rafale après un gros combat tolérée, débit soutenu ramené au niveau légitime |
+| Logs | throttlés à 1 / 10 s / joueur | Un bot ne peut plus noyer la console ni gonfler le fichier de log |
+
+Groupes `admin`/`superadmin` exemptés du seau : `/spawnzombies 30` reste testable sans
+rendre la moitié des cadavres non fouillables.
+
+**Effet mesuré** (simulation du seau sur 10 minutes) :
+
+| Scénario | Avant | Après |
+|---|---|---|
+| Joueur légitime (1 spawn / 8 s) | 7,6 fouilles/min | 7,6 fouilles/min, 0 refus |
+| Bot à 10 requêtes/s | 60 fouilles/min | **9,5 fouilles/min** |
+| Bot à 100 requêtes/s | 60 fouilles/min | **9,5 fouilles/min** |
+
+**Limite assumée, à connaître.** Ceci ne rend pas la fouille infalsifiable : tant que les
+zombies sont des peds locaux, le serveur ne peut pas prouver qu'un zombie est mort. Le
+correctif ramène le tricheur **au débit d'un joueur qui joue vraiment** — il ne gagne plus
+que l'effort de tirer. Rendre la chose impossible demanderait des zombies en entités
+réseau, avec le coût OneSync que ça implique. Décision à prendre si le problème se pose
+réellement en production.
+
+**À tester en jeu :** fouille normale d'une dizaine de zombies d'affilée (aucun refus
+attendu), `shot_attract` en rafale, `/spawnzombies 30` en admin (les 30 cadavres doivent
+rester fouillables), et vérifier qu'aucun `[ZOMBIE-ANTICHEAT]` n'apparaît en console pour
+un joueur normal.
 
 ### 🟠 Collision de commande `/xp` (même classe de bug que `/givexp`)
 

@@ -12,7 +12,68 @@ local ESX = nil
 -- chaque zombie spawné se voit attribuer un jeton unique par le serveur ;
 -- seul ce jeton (à usage unique) permet de réclamer la récompense/le loot
 -- à la fouille.
-local pendingTokens = {}  -- [src] = { [token] = issuedAt }
+local pendingTokens = {}  -- [src] = { [token] = issuedAtMs }  (GetGameTimer, monotone)
+local tokenBuckets  = {}  -- [src] = { tokens = n, lastRefillMs = t }
+local lastWarnMs    = {}  -- [src] = t  — anti-spam des logs d'avertissement
+
+-- Raccourci vers Config.AntiCheat avec repli, pour que la resource démarre même
+-- si un config.lua plus ancien traîne encore sur le serveur.
+local AC = Config.AntiCheat or {}
+local TOKEN_BUCKET_CAPACITY = AC.TokenBucketCapacity or 20
+local TOKEN_REFILL_MS       = AC.TokenRefillMs       or 8000
+local TOKEN_HARD_CAP        = AC.TokenHardCap        or 400
+local TOKEN_TTL_MS          = AC.TokenTTLMs          or 1800000
+local TOKEN_MIN_AGE_MS      = AC.TokenMinAgeMs       or 1500
+local EXEMPT_GROUPS         = AC.ExemptGroups        or { admin = true, superadmin = true }
+local LOG_THROTTLE_MS       = AC.LogThrottleMs       or 10000
+
+-- Avertissement anti-triche, throttlé : un client modifié qui boucle ne doit pas
+-- pouvoir noyer la console ni faire gonfler le fichier de log.
+local function warnCheat(src, identifier, fmt, ...)
+    local now  = GetGameTimer()
+    local last = lastWarnMs[src]
+    if last and (now - last) < LOG_THROTTLE_MS then return end
+    lastWarnMs[src] = now
+    print(('[ZOMBIE-ANTICHEAT] %s (id:%s) — ' .. fmt):format(identifier or '?', tostring(src), ...))
+end
+
+-- Compte les jetons encore vivants d'un joueur, en purgeant les expirés au
+-- passage. Sert au garde-fou mémoire.
+local function countLiveTokens(src, nowMs)
+    local tokens = pendingTokens[src]
+    if not tokens then return 0 end
+    local n = 0
+    for token, issuedAt in pairs(tokens) do
+        if (nowMs - issuedAt) > TOKEN_TTL_MS then
+            tokens[token] = nil
+        else
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- Seau à jetons : rend true si le joueur a le droit d'en recevoir un de plus.
+-- Capacité = rafale tolérée, remplissage = 1 jeton par TOKEN_REFILL_MS. En
+-- régime établi le débit ne peut donc pas dépasser la boucle de spawn client.
+local function consumeBucket(src, nowMs)
+    local b = tokenBuckets[src]
+    if not b then
+        b = { tokens = TOKEN_BUCKET_CAPACITY, lastRefillMs = nowMs }
+        tokenBuckets[src] = b
+    end
+
+    local elapsed = nowMs - b.lastRefillMs
+    if elapsed >= TOKEN_REFILL_MS then
+        local refill = math.floor(elapsed / TOKEN_REFILL_MS)
+        b.tokens = math.min(TOKEN_BUCKET_CAPACITY, b.tokens + refill)
+        b.lastRefillMs = b.lastRefillMs + refill * TOKEN_REFILL_MS
+    end
+
+    if b.tokens < 1 then return false end
+    b.tokens = b.tokens - 1
+    return true
+end
 
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
@@ -33,9 +94,40 @@ CreateThread(function()
             local src = source
             if not src or src <= 0 then return cb(nil) end
 
-            local token = ('%d_%d_%d'):format(src, os.time(), math.random(100000, 999999))
+            -- Le joueur doit exister : sans ça, n'importe quel appel forgé
+            -- alimentait le stock de jetons.
+            local xPlayer = ESX.GetPlayerFromId(src)
+            if not xPlayer then return cb(nil) end
+
+            local nowMs = GetGameTimer()
+
+            -- Les admins testent avec /spawnzombies (jusqu'à 30 d'un coup) :
+            -- les soumettre au seau rendrait la moitié des cadavres non
+            -- fouillables et fausserait le test.
+            local exempt = EXEMPT_GROUPS[xPlayer.getGroup()] == true
+
+            -- Garde-fou mémoire : un jeton fuit à chaque zombie qui despawn sans
+            -- être fouillé. Purge les expirés et refuse au-delà du plafond.
+            local live = countLiveTokens(src, nowMs)
+            if live >= TOKEN_HARD_CAP then
+                warnCheat(src, xPlayer.identifier,
+                    'plafond de %d jetons vivants atteint — émission refusée', TOKEN_HARD_CAP)
+                return cb(nil)
+            end
+
+            -- Seau à jetons : c'est ici que se joue la sécurité. Un client
+            -- légitime demande 1 jeton par Config.SpawnInterval ; un client qui
+            -- boucle vide le seau en quelques appels et n'obtient plus rien.
+            if not exempt and not consumeBucket(src, nowMs) then
+                warnCheat(src, xPlayer.identifier,
+                    'débit de spawn anormal (> %d jetons / %ds) — émission refusée',
+                    TOKEN_BUCKET_CAPACITY, math.floor(TOKEN_REFILL_MS / 1000))
+                return cb(nil)
+            end
+
+            local token = ('%d_%d_%d'):format(src, nowMs, math.random(100000, 999999))
             pendingTokens[src] = pendingTokens[src] or {}
-            pendingTokens[src][token] = os.time()
+            pendingTokens[src][token] = nowMs
 
             cb(token)
         end)
@@ -83,15 +175,17 @@ local function rollLoot(inRedzone)
     return { lootTable[#lootTable] }
 end
 
-local TOKEN_TTL_S = 1800  -- 30 min : purge des jetons jamais réclamés (zombie despawn, joueur parti, etc.)
-
+-- Purge des jetons jamais réclamés (zombie despawné, joueur parti au loin...).
+-- Horloge en ms via GetGameTimer, la même que l'émission : mélanger os.time()
+-- (secondes, horloge murale) et GetGameTimer (ms, monotone) rendait le contrôle
+-- d'âge minimum incalculable.
 CreateThread(function()
     while true do
         Wait(60000)  -- toutes les minutes
-        local now = os.time()
+        local nowMs = GetGameTimer()
         for src, tokens in pairs(pendingTokens) do
             for token, issuedAt in pairs(tokens) do
-                if (now - issuedAt) > TOKEN_TTL_S then
+                if (nowMs - issuedAt) > TOKEN_TTL_MS then
                     tokens[token] = nil
                 end
             end
@@ -102,9 +196,14 @@ end)
 -- ── Anti-exploit : tracking des fouilles pour éviter le spam ──────────────
 local recentLoots  = {}  -- [src] = { lastLoot, count, windowStart }
 
-local LOOT_COOLDOWN    = 500   -- ms minimum entre 2 fouilles
-local MAX_LOOTS_WINDOW = 30    -- max fouilles par fenêtre de 30s
-local LOOT_WINDOW_MS   = 30000
+local LOOT_COOLDOWN    = AC.LootCooldownMs    or 500    -- ms minimum entre 2 fouilles
+local MAX_LOOTS_WINDOW = AC.MaxLootsPerWindow or 15     -- max fouilles par fenêtre
+local LOOT_WINDOW_MS   = AC.LootWindowMs      or 30000
+
+-- 30 fouilles / 30 s auparavant, soit 60/min : huit fois le débit d'un joueur
+-- légitime (la boucle de spawn client plafonne à 7,5 zombies/min). Ramené à 15
+-- par fenêtre — assez pour ramasser les cadavres d'un gros combat d'affilée,
+-- sans laisser de marge à un bot. Le vrai plafond reste le seau à jetons.
 
 -- ── Appelé quand un joueur fouille un cadavre de zombie (touche E) ─────────
 RegisterNetEvent('pvp_zombies:claimLoot')
@@ -117,26 +216,44 @@ AddEventHandler('pvp_zombies:claimLoot', function(token)
     -- ── VALIDATION 1 : jeton obligatoire et valide pour ce joueur ──
     if not token or type(token) ~= 'string' then return end
     local tokens = pendingTokens[src]
-    if not tokens or not tokens[token] then return end
+    if not tokens then return end
+    local issuedAt = tokens[token]
+    if not issuedAt then return end
     tokens[token] = nil  -- usage unique : consommé immédiatement (anti double-claim)
 
+    local nowMs = GetGameTimer()
+
+    -- Jeton périmé : le thread de purge ne passe qu'une fois par minute, donc
+    -- l'expiration doit aussi être vérifiée ici, au moment de la consommation.
+    if (nowMs - issuedAt) > TOKEN_TTL_MS then return end
+
+    -- Âge minimum : un zombie ne peut pas naître, mourir et être fouillé dans le
+    -- même souffle. Coupe la boucle getSpawnToken → claimLoot la plus serrée,
+    -- celle qui ne laisse même pas le temps au seau de se vider.
+    if (nowMs - issuedAt) < TOKEN_MIN_AGE_MS then
+        warnCheat(src, xPlayer.identifier,
+            'jeton réclamé %d ms après son émission (minimum %d ms) — fouille refusée',
+            nowMs - issuedAt, TOKEN_MIN_AGE_MS)
+        return
+    end
+
     -- ── VALIDATION 2 : anti-spam (cooldown + rate limit) ──
-    local now = GetGameTimer()
     local record = recentLoots[src]
     if not record then
-        record = { lastLoot = 0, count = 0, windowStart = now }
+        record = { lastLoot = 0, count = 0, windowStart = nowMs }
         recentLoots[src] = record
     end
-    if (now - record.lastLoot) < LOOT_COOLDOWN then return end
-    if (now - record.windowStart) > LOOT_WINDOW_MS then
+    if (nowMs - record.lastLoot) < LOOT_COOLDOWN then return end
+    if (nowMs - record.windowStart) > LOOT_WINDOW_MS then
         record.count = 0
-        record.windowStart = now
+        record.windowStart = nowMs
     end
     record.count = record.count + 1
-    record.lastLoot = now
+    record.lastLoot = nowMs
     if record.count > MAX_LOOTS_WINDOW then
-        print(('[ZOMBIE-ANTICHEAT] %s (id:%d) a dépassé %d fouilles en %ds — bloqué'):format(
-            xPlayer.identifier, src, MAX_LOOTS_WINDOW, LOOT_WINDOW_MS / 1000))
+        warnCheat(src, xPlayer.identifier,
+            'plus de %d fouilles en %ds — fouille refusée',
+            MAX_LOOTS_WINDOW, math.floor(LOOT_WINDOW_MS / 1000))
         return
     end
 
@@ -208,8 +325,11 @@ end)
 
 -- ── Nettoyage anti-spam à la déconnexion ────────────────────────────────────
 AddEventHandler('playerDropped', function()
-    recentLoots[source]   = nil
-    pendingTokens[source] = nil
+    local src = source
+    recentLoots[src]   = nil
+    pendingTokens[src] = nil
+    tokenBuckets[src]  = nil
+    lastWarnMs[src]    = nil
 end)
 
 -- ── Shot Attracteur : route l'event vers le client source ─────────────────

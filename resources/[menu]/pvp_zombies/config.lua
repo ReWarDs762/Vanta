@@ -31,6 +31,62 @@ Config.RespectSafeZones     = true
 -- Les zombies qui entrent dans (safeRadius) sont automatiquement supprimés
 Config.SafeZoneBuffer       = 40.0
 
+-- ── Anti-triche : émission et consommation des jetons de fouille ────────────
+--
+-- Les zombies sont des peds 100 % locaux (`isNetwork = false`) : le serveur n'a
+-- aucune entité à valider au moment du kill. Le seul lien entre « un zombie a
+-- réellement existé » et « ce joueur peut réclamer du loot » est le jeton émis
+-- par `pvp_zombies:getSpawnToken` au spawn et consommé par
+-- `pvp_zombies:claimLoot` à la fouille.
+--
+-- Ce jeton n'était soumis à AUCUNE limite : un client modifié pouvait boucler
+-- getSpawnToken → claimLoot sans jamais tuer un zombie. Les valeurs ci-dessous
+-- alignent l'émission sur ce qu'un client légitime peut produire au maximum.
+--
+-- Client légitime (voir client/client.lua) :
+--   · boucle de spawn : 1 zombie toutes les `Config.SpawnInterval` ms,
+--     et seulement tant que moins de `Config.MaxZombiesPerPlayer` sont vivants ;
+--   · item `shot_attract` : rafale de 3 spawns quasi simultanés ;
+--   · commande admin `/spawnzombies` : jusqu'à 30 d'un coup (groupes exemptés).
+Config.AntiCheat = {
+    -- Seau à jetons : capacité = taille de rafale tolérée, remplissage = 1 jeton
+    -- par `TokenRefillMs`. En régime établi le débit d'émission ne peut donc pas
+    -- dépasser celui de la boucle de spawn du client.
+    -- Capacité fixée à 20 et pas à la rafale nominale de 3 : un joueur peut
+    -- enchaîner plusieurs `shot_attract` (3 spawns chacun) en quelques secondes
+    -- par-dessus la boucle normale. La capacité ne change QUE la tolérance aux
+    -- rafales — le débit moyen reste 1 jeton / TokenRefillMs quoi qu'il arrive —
+    -- donc la monter coûte 20 fouilles à un tricheur et évite de refuser du loot
+    -- à un joueur légitime.
+    TokenBucketCapacity = 20,
+    TokenRefillMs       = 8000,    -- = Config.SpawnInterval
+
+    -- Garde-fou mémoire : nombre max de jetons vivants simultanés par joueur.
+    -- Un jeton fuit quand un zombie despawn sans être fouillé (le joueur s'est
+    -- éloigné) ; sur une longue session ça s'accumule, d'où un plafond large.
+    TokenHardCap = 400,
+
+    -- Durée de vie d'un jeton non réclamé.
+    TokenTTLMs = 1800000,          -- 30 min
+
+    -- Âge minimum avant qu'un jeton soit réclamable : un zombie ne peut pas
+    -- naître, mourir et être fouillé dans le même souffle. Coupe la boucle
+    -- getSpawnToken → claimLoot la plus serrée.
+    TokenMinAgeMs = 1500,
+
+    -- Rafale de fouilles tolérée (un combat peut laisser une dizaine de
+    -- cadavres à ramasser d'affilée). Le débit moyen reste borné par le seau.
+    MaxLootsPerWindow = 15,
+    LootWindowMs      = 30000,
+    LootCooldownMs    = 500,
+
+    -- Groupes exemptés du seau à jetons (test avec /spawnzombies).
+    ExemptGroups = { admin = true, superadmin = true },
+
+    -- Anti-spam des logs : un avertissement max par joueur et par intervalle.
+    LogThrottleMs = 10000,
+}
+
 -- ── Zones d'exclusion (copie des coords avant-postes + rayon no-spawn) ───────
 -- noSpawnRadius = safeRadius de l'avant-poste + Config.SafeZoneBuffer
 -- killRadius    = safeRadius de l'avant-poste (suppression auto des zombies intrusifs)

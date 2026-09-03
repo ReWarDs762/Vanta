@@ -438,7 +438,11 @@ Citizen.CreateThread(function()
         local nearest, nearestDist = nil, Config.LootPromptRadius
 
         for _, z in ipairs(activeZombies) do
-            if z.dead and not z.looted and DoesEntityExist(z.ped) then
+            -- `z.token == nil` = le serveur a refusé d'en émettre un (débit de
+            -- spawn anormal, plafond mémoire) ou la réponse n'est pas encore
+            -- arrivée. Sans jeton la fouille sera rejetée côté serveur : mieux
+            -- vaut ne pas proposer le prompt que d'afficher une action muette.
+            if z.dead and not z.looted and z.token and DoesEntityExist(z.ped) then
                 local d = #(playerCoords - GetEntityCoords(z.ped))
                 if d < nearestDist then
                     nearest, nearestDist = z, d
@@ -450,7 +454,7 @@ Citizen.CreateThread(function()
             local zc = GetEntityCoords(nearest.ped)
             DrawText3D(zc.x, zc.y, zc.z + 1.0, '[E] Fouiller')
 
-            if IsControlJustPressed(0, 38) and nearest.token then -- INPUT_CONTEXT (E)
+            if IsControlJustPressed(0, 38) then -- INPUT_CONTEXT (E)
                 nearest.looted = true
                 TriggerServerEvent('pvp_zombies:claimLoot', nearest.token)
             end

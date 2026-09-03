@@ -19,7 +19,7 @@
 | Phase | Objet | Bloque la sortie ? | Statut | Avancement |
 |---|---|---|---|---|
 | **A** | Stabilisation — tester l'existant, corriger le noyau | 🔴 Oui | 🟡 En cours | 4 / 5 |
-| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | 🟡 En cours | 1 / 5 |
+| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | 🟡 En cours | 2 / 5 |
 | **C** | Polish gameplay & visuel | 🟠 Partiel | ⬜ Pas commencé | 0 / 5 |
 | **D** | Pré-production & mise en ligne | 🔴 Oui | ⬜ Pas commencé | 0 / 6 |
 | **E** | Post-lancement (v1.1+) | 🟢 Non | ⬜ Backlog | 0 / 4 |
@@ -209,24 +209,28 @@ plus être absente de la whitelist anti-triche.
 **Fait quand :** un drop complet (largage → sécurisation → ouverture) validé à 2 joueurs,
 failover inclus.
 
-### B4 — 🔴 Sécurité : jetons de fouille `pvp_zombies` *(nouveau, 03/09)*
+### B4 — Sécurité : jetons de fouille `pvp_zombies` ✅ (03/09/2026, non testé en jeu)
 
-`ESX.RegisterServerCallback('pvp_zombies:getSpawnToken')` délivre un jeton à chaque appel,
-sans cap ni cooldown ni vérification. Un client modifié peut boucler
-`getSpawnToken` → `claimLoot` **sans tuer un seul zombie**, plafonné uniquement par le
-rate-limiter de `claimLoot` (30 fouilles / 30 s) — soit ~2 400 $/min et un tirage
-légendaire toutes les ~2 h de bot. Détail complet dans `STATUS.md` → Bugs actifs.
+- [x] Plafonner l'émission : seau à jetons (capacité 20, remplissage 1 / 8 s), calé sur la
+      boucle de spawn du client
+- [x] Exiger un joueur existant (`ESX.GetPlayerFromId`) avant toute émission
+- [x] Refuser un `claimLoot` arrivant moins de 1 500 ms après l'émission du jeton
+- [x] Vérifier le TTL au moment de la consommation, pas seulement dans le thread de purge
+- [x] Plafond mémoire de 400 jetons vivants par joueur
+- [x] `MAX_LOOTS_WINDOW` ramené de 30 à 15 par fenêtre de 30 s
+- [x] Logs d'avertissement throttlés (1 / 10 s / joueur) + nettoyage complet à la
+      déconnexion (seau et compteur de logs, pas seulement les jetons)
+- [x] Exemption `admin`/`superadmin` pour que `/spawnzombies 30` reste testable
+- [x] Client : plus de prompt « [E] Fouiller » sur un cadavre sans jeton (action muette)
+- [ ] **Valider en jeu** (voir `STATUS.md` pour le protocole)
 
-- [ ] Plafonner l'émission : un compteur serveur de jetons vivants par joueur, aligné sur
-      le nombre de zombies réellement spawnés autour de lui
-- [ ] Horodater le jeton et refuser un `claimLoot` arrivant trop tard après l'émission
-- [ ] Abaisser `MAX_LOOTS_WINDOW` au rythme d'un joueur légitime (2–5 fouilles/min mesurées
-      pendant A2, prendre une marge ×3)
-- [ ] Journaliser les dépassements avec l'identifier, comme le fait déjà l'anti-spam
+**Effet mesuré :** un bot passe de 60 à 9,5 fouilles/minute, contre 7,6 pour un joueur
+légitime — 0 refus pour ce dernier.
 
-**Fait quand :** un client qui appelle `getSpawnToken` en boucle n'obtient plus ni argent ni
-loot. **Bloquant pour la sortie publique** — sans ça l'économie est falsifiable dès le
-premier joueur outillé.
+**Limite assumée :** tant que les zombies sont des peds locaux, le serveur ne peut pas
+prouver qu'un zombie est mort. Le correctif ramène le tricheur au débit d'un joueur normal,
+il ne l'élimine pas. Passer les zombies en entités réseau est la seule vraie parade — coût
+OneSync à évaluer, à décider seulement si le problème se manifeste en production.
 
 ### B5 — Dette technique relevée par l'audit du 03/09 *(nouveau)*
 
@@ -370,7 +374,7 @@ Ne pas ouvrir au public tant que **tout** ci-dessous n'est pas ✅ :
 - [x] `pvp_combat` anti combat-log validé à 2 joueurs (A3) — 02/09/2026
 - [x] `pvp_character` : aucun chemin de création ne bloque l'apparition (A5) — 02/09/2026
 - [x] Notifications unifiées (B1) — 30/08/2026
-- [ ] **Jetons de fouille `pvp_zombies` sécurisés (B4)** — sinon l'économie est falsifiable
+- [x] Jetons de fouille `pvp_zombies` sécurisés (B4) — 03/09/2026, **reste à valider en jeu**
 - [ ] `pvp_drops` : un drop complet validé, failover inclus (B3)
 - [ ] `pvp_crew` : contrat quotidien + boutique exercés à 2 membres (C3)
 - [ ] Aucune erreur console serveur au démarrage ni en boucle
@@ -391,7 +395,7 @@ une NUI qui va être remplacée par la v2.1 est à refaire aussi.
 
 | # | Action | Phase | Pourquoi maintenant | Fini quand |
 |---|---|---|---|---|
-| 1 | Sécuriser `getSpawnToken` | B4 | 30 min de travail. Toute session de test jouée avant la corrige valide une économie qui n'est pas celle de la sortie | Boucle `getSpawnToken` sans effet |
+| ~~1~~ | ~~Sécuriser `getSpawnToken`~~ ✅ 03/09 | B4 | — | Fait : bot ramené de 60 à 9,5 fouilles/min |
 | 2 | Trancher la branche v2.1 « Monolithe » | C5 | Elle touche 10 NUI. Chaque jour de retard augmente le coût du merge, et tout polish visuel fait avant est perdu | Une seule version du design system dans `main` |
 | 3 | Rejouer A1 de bout en bout | A2 | Dernier item bloquant de la phase A. À faire **après** 1 et 2 pour ne le jouer qu'une fois | Parcours sans régression ni erreur console |
 | 4 | Premier drop réel à 2 joueurs | B3 | Le plus gros bloc de code jamais exécuté (1 958 lignes, avion + réseau + failover) | Largage → sécurisation → ouverture, failover inclus |
