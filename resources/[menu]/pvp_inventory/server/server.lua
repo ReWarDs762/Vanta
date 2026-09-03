@@ -102,7 +102,12 @@ local MAX_BAG_WEIGHT = Config.MaxWeight or 50.0
 
 -- ── Bonus de capacité par joueur (utilisé par vanta_xp prestige, pvp_vcoins,
 --    et pvp_crew) ────────────────────────────────────────────────────────
-local playerBagBonus = {}  -- [identifier] = bonus kg
+-- Même schéma par source que le bonus de conteneur ci-dessous. `vanta_xp`
+-- (prestige) en est aujourd'hui l'unique appelant, donc l'écrasement n'a jamais
+-- produit de bug — mais c'est exactement la situation du bonus de conteneur
+-- avant que `pvp_vcoins` puis `pvp_crew` ne s'y ajoutent, et l'écrasement était
+-- alors silencieux. Aligné par avance le 03/09/2026.
+local bagBonusSources = {}  -- [identifier] = { [source] = bonus kg }
 
 -- SÉCURITÉ/COHÉRENCE : le bonus de conteneur a plusieurs sources indépendantes
 -- (prestige vanta_xp, abonnement pvp_vcoins, boutique de crew pvp_crew) qui
@@ -114,11 +119,24 @@ local playerBagBonus = {}  -- [identifier] = bonus kg
 -- additionné à la lecture.
 local containerBonusSources = {}  -- [identifier] = { [source] = bonus kg }
 
--- Export : définir le bonus sac d'un joueur (appelé par vanta_xp)
-exports('setBagBonus', function(identifier, bonus)
+-- Export : définir le bonus sac d'un joueur pour une source donnée (appelé par
+-- vanta_xp avec source='prestige'). `source` omis => 'default', ce qui garde la
+-- compatibilité avec un appelant à deux arguments.
+exports('setBagBonus', function(identifier, bonus, source)
     if not identifier then return end
-    playerBagBonus[identifier] = tonumber(bonus) or 0
+    source = source or 'default'
+    bagBonusSources[identifier] = bagBonusSources[identifier] or {}
+    bagBonusSources[identifier][source] = tonumber(bonus) or 0
 end)
+
+-- Helper : somme de tous les bonus sac (toutes sources) pour un joueur
+local function getBagBonusTotal(identifier)
+    local sources = bagBonusSources[identifier]
+    if not sources then return 0 end
+    local total = 0
+    for _, v in pairs(sources) do total = total + v end
+    return total
+end
 
 -- Export : définir le bonus conteneur d'un joueur pour une source donnée
 -- (appelé par vanta_xp avec source='prestige', pvp_vcoins avec
@@ -149,7 +167,7 @@ end
 
 -- Export : récupérer la capacité effective du sac d'un joueur
 exports('getPlayerBagCapacity', function(identifier)
-    return MAX_BAG_WEIGHT + (playerBagBonus[identifier] or 0)
+    return MAX_BAG_WEIGHT + getBagBonusTotal(identifier)
 end)
 
 -- Export : récupérer la capacité effective du conteneur d'un joueur
@@ -159,7 +177,7 @@ end)
 
 -- Helper : capacité sac effective pour un joueur
 local function getEffectiveBagWeight(identifier)
-    return MAX_BAG_WEIGHT + (playerBagBonus[identifier] or 0)
+    return MAX_BAG_WEIGHT + getBagBonusTotal(identifier)
 end
 
 -- Helper : capacité conteneur effective pour un joueur

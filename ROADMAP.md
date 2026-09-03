@@ -19,8 +19,8 @@
 | Phase | Objet | Bloque la sortie ? | Statut | Avancement |
 |---|---|---|---|---|
 | **A** | Stabilisation — tester l'existant, corriger le noyau | 🔴 Oui | 🟡 En cours | 4 / 5 |
-| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | 🟡 En cours | 2 / 5 |
-| **C** | Polish gameplay & visuel | 🟠 Partiel | ⬜ Pas commencé | 0 / 5 |
+| **B** | Cohérence technique — dette, sources uniques, notifs | 🔴 Oui | 🟡 En cours | 3 / 5 |
+| **C** | Polish gameplay & visuel | 🟠 Partiel | ⬜ Pas commencé | 0 / 6 |
 | **D** | Pré-production & mise en ligne | 🔴 Oui | ⬜ Pas commencé | 0 / 6 |
 | **E** | Post-lancement (v1.1+) | 🟢 Non | ⬜ Backlog | 0 / 4 |
 
@@ -232,40 +232,42 @@ prouver qu'un zombie est mort. Le correctif ramène le tricheur au débit d'un j
 il ne l'élimine pas. Passer les zombies en entités réseau est la seule vraie parade — coût
 OneSync à évaluer, à décider seulement si le problème se manifeste en production.
 
-### B5 — Dette technique relevée par l'audit du 03/09 *(nouveau)*
+### B5 — Dette technique relevée par l'audit du 03/09 ✅ (03/09/2026, non testé en jeu)
 
 Détail de chaque point dans `STATUS.md` → « Bugs actifs connus ».
 
-- [ ] **Collision `/xp`** : `vanta_xp/client.lua:13` et `pvp_inventory/client/client.lua:56`
-      enregistrent la même commande, `vanta_xp` gagne (chargée après). Trancher comme pour
-      `/givexp` : une seule des deux UI garde `/xp`, l'autre prend un autre nom ou disparaît
-- [ ] **Dépendances `fxmanifest` manquantes** : `pvp_combat` (aucune → `pvp_outposts`,
-      `pvp_inventory`), `pvp_garage` (aucune → `vanta_ui`, `pvp_inventory`), `pvp_vcoins`
-      (aucune → `pvp_inventory`), `pvp_crew` (→ `pvp_inventory`, `vanta_ui`)
-- [ ] **Exports morts** : supprimer `vanta_xp:getBagBonus`/`getContainerBonus` et les
-      exports `pvp_vcoins` sans consommateur (`GetStashBonus`, `HasDiamond`,
-      `HasGoldOrDiamond`, `GetSubscriptionTier`, `GetVCoins`) — ou les câbler. Corriger
-      `CLAUDE.md`, qui les décrit comme utilisés
-- [ ] **`setBagBonus` sans paramètre `source`** : appliquer le même correctif que
-      `setContainerBonus` (somme par source) avant qu'une 2ᵉ source n'apparaisse
-- [ ] **`spooner/` gitignoré** : sortir le `permissions.cfg` VANTA du dossier ignoré, sinon
-      un clone frais du dépôt réintroduit la faille `builtin.everyone` du 23/08
-- [ ] **Table `characters` fantôme** : retirer l'entrée de `CLAUDE.md` (aucune resource ne
-      la crée, et la section `pvp_character` du même fichier dit l'inverse)
-- [ ] **Resources ESX résiduelles** : documenter ou supprimer `esx_hud` (désactivé,
-      114 fichiers sur le disque), `esx_menu_*` et `async`, absents de l'arborescence de
-      `CLAUDE.md` alors que `pvp_outposts` dépend d'`esx_menu_default`
-- [ ] **`AGENTS.md` a divergé de `CLAUDE.md`** : 389 lignes contre 618, il ignore
-      `pvp_combat`, le système de notifications `vanta_ui` et tout ce qui a suivi le 23/08.
-      Deux docs d'architecture contradictoires, lues par des outils différents. Trancher :
-      un `AGENTS.md` d'une ligne pointant vers `CLAUDE.md`, ou une génération automatique
+- [x] **Collision `/xp`** : la commande revient à `pvp_inventory` (son onglet Profil porte
+      déjà barre d'XP, stats, badges et classement), celle de `vanta_xp` est supprimée. Le
+      `ui_page` de `vanta_xp` reste chargé — il porte les toasts LEVEL UP / PRESTIGE
+- [x] **Dépendances `fxmanifest`** : déclarées là où c'est sûr et acyclique
+      (`pvp_combat` → `pvp_inventory`, `pvp_garage` → `es_extended` + `vanta_ui`,
+      `pvp_vcoins` → `es_extended` + `mysql-async`, `pvp_crew` → `pvp_inventory`).
+      Les relations qui inverseraient un ordre de `server.cfg` voulu sont documentées en
+      commentaire plutôt que déclarées — les appels sont résolus à l'exécution et
+      protégés par `pcall`
+- [x] **Exports morts** : les 7 supprimés, avec un commentaire à chaque emplacement pour
+      qu'ils ne soient pas réintroduits. `CLAUDE.md` déjà corrigé
+- [x] **`setBagBonus`** : stockage par source + somme à la lecture, comme
+      `setContainerBonus`. `vanta_xp` passe `'prestige'`. 3ᵉ argument optionnel, donc
+      rétrocompatible
+- [x] **`spooner`** : permissions déplacées dans `vanta_spooner_permissions.cfg` à la
+      racine (versionné), `server.cfg` l'exécute **à la place** du fichier amont. L'annexe
+      A d'`audit-initial.md` a été corrigée : elle faisait re-cloner le fichier vulnérable
+- [x] **Table `characters` fantôme** : retirée de `CLAUDE.md`
+- [x] **`AGENTS.md`** : réduit à un pointeur de 24 lignes vers les vrais documents
+- [ ] **Resources ESX résiduelles** : documenter `esx_menu_*` et `async` (actifs, juste
+      non documentés) dans `CLAUDE.md`, et décider du sort d'`esx_hud` (désactivé mais
+      114 fichiers sur le disque). Suppression de fichiers non faite sans décision
 - [ ] **Google Fonts en dur** : `vanta.css:11` importe Inter depuis
-      `fonts.googleapis.com`. Embarquer les `.woff2` dans `vanta_ui` avant la sortie
+      `fonts.googleapis.com`, et six autres NUI chargent Bebas Neue / Rajdhani /
+      Big Shoulders. Embarquer les `.woff2` avant la sortie — à traiter avec C5, c'est le
+      même chantier
 
-**Fait quand :** aucun export mort, aucune dépendance implicite, aucune collision de
-commande, et le dépôt seul suffit à relancer un serveur sécurisé.
-
----
+**Correction apportée à l'audit lui-même :** il présentait les dépendances manquantes
+comme un risque d'ordre de chargement. Vérification faite, tous les appels d'exports
+inter-resources sont résolus à l'exécution et protégés par `pcall` — c'était un manque de
+documentation, pas un bug fonctionnel. Et le sens de la dépendance de `pvp_combat` était
+inversé : c'est `pvp_inventory` qui consomme son export, pas l'inverse.
 
 ## 5. PHASE C — Polish gameplay & visuel
 
@@ -292,32 +294,52 @@ commande, et le dépôt seul suffit à relancer un serveur sécurisé.
 - [ ] Intégration NUI
 - [ ] Test achat / vente après refonte
 
-### C5 — Identité visuelle v2.1 « Monolithe » : trancher la branche non mergée *(nouveau, 03/09)*
+### C5 — Identité visuelle : v2.1 « Monolithe » abandonnée, l'écart reste entier
 
-La branche `origin/claude/vanta-visual-identity-gma5lm` (commit `ab5c8a9`, 24/08) porte une
-refonte complète du design system : **38 fichiers, +2 997 / −1 569**, dont `vanta.css`
-(+957/−…), toutes les NUI (`pvp_hud`, `pvp_inventory`, `pvp_crew`, `pvp_outposts`,
-`vanta_xp`, `pvp_admin`, `pvp_character`, `pvp_garage`, `vanta_loading`, `pvp_killfeed`),
-trois SVG de marque (`mark.svg`, `mark-boxed.svg`, `lockup.svg`), un `VANTA_BRAND.md` de
-234 lignes, et de nouvelles bannières + `server_icon.png`.
+**Décision du 03/09 : ne pas merger la branche `claude/vanta-visual-identity-gma5lm`**
+(commit `ab5c8a9`, 38 fichiers, +2 997 / −1 569). Rester en v2.0.
 
-Elle n'est **pas mergée** et a 12 commits de retard sur `main`. `vanta.css` en production
-est toujours estampillé `VANTA DESIGN SYSTEM v2.0`. Plus le temps passe, plus le merge
-coûte cher : chaque session qui touche une NUI creuse l'écart.
+> SHA conservé ici pour que le travail reste récupérable tant que la branche existe :
+> `ab5c8a9`. La branche distante n'a **pas** été supprimée — voir la note ci-dessous
+> avant de le faire.
 
-- [ ] Décider : merger v2.1, ou abandonner la branche explicitement
-- [ ] Si merge : rebaser sur `main`, résoudre les conflits NUI (`pvp_hud/html/index.html`
-      et `pvp_inventory/html/style.css` ont bougé des deux côtés), puis rejouer un tour
-      d'UI en jeu
-- [ ] Mettre `CLAUDE.md` (section « Identité Visuelle ») en cohérence avec la version
-      retenue
-- [ ] Nettoyer les 6 autres branches distantes, toutes déjà intégrées dans `main` par
-      contenu (`airdrop-resource-audit-lp7ac2`, `airdrop-system-revisions-op4o66`,
+**Ce que l'abandon laisse ouvert.** En vérifiant les dépendances NUI le même jour, on a
+constaté que l'affirmation de `CLAUDE.md` — « toutes les resources importent
+`nui://vanta_ui/html/vanta.css` », « font Inter, toutes les UIs » — est fausse. Six NUI
+actives sont hors du design system, dont **la boutique/armurerie** et **le menu de crew**,
+avec trois familles de polices concurrentes (relevé complet dans `STATUS.md`).
+
+La branche abandonnée touchait exactement ces fichiers : `pvp_crew/crew.css`,
+`pvp_outposts/shop.css` et `teleport.css`, `vanta_xp/style.css`,
+`vanta_loading/style.css`. C'était le correctif de cet écart.
+
+Il reste donc à trancher, indépendamment de la branche :
+
+- [ ] Soit refaire le travail d'harmonisation sur `main` (porter les 6 NUI sur
+      `vanta.css`, une seule police)
+- [ ] Soit assumer l'hétérogénéité et **corriger `CLAUDE.md`**, qui ment aujourd'hui sur
+      un point central de l'identité du serveur
+- [ ] Dans les deux cas : embarquer les polices en local (`.woff2` dans `vanta_ui`) plutôt
+      que de dépendre de `fonts.googleapis.com` au chargement de chaque NUI
+- [ ] Nettoyer les 6 branches distantes déjà intégrées dans `main` par contenu
+      (`airdrop-resource-audit-lp7ac2`, `airdrop-system-revisions-op4o66`,
       `character-top-display-bugs-a1be95`, `dreamy-franklin-ewgmls`,
-      `verify-game-assets-images-67femy`, `pvp-drops-airdrop-revisions`)
+      `verify-game-assets-images-67femy`, `pvp-drops-airdrop-revisions`) — sans risque,
+      leur contenu est vérifié présent dans `main`
 
-**Fait quand :** une seule version du design system existe, dans `main`, et les branches
-mortes sont supprimées.
+### C6 — Bouton PRESTIGE dans l'onglet Profil de `pvp_inventory`
+
+Conséquence assumée du correctif `/xp` (B5) : le bouton PRESTIGE vivait dans le panneau
+`vanta_xp`, qui n'a plus de point d'entrée joueur. Le passage au prestige reste
+fonctionnel via `/prestige` (niveau 100 requis), mais sans bouton.
+
+- [ ] Ajouter un bouton PRESTIGE à l'onglet Profil, visible seulement quand
+      `can_prestige` est vrai (la donnée est déjà envoyée au NUI, lue dans
+      `html/app.js` sous le nom `xpMaxed` mais jamais rendue)
+- [ ] Le brancher sur la commande `/prestige` existante, comme le faisait le
+      `RegisterNUICallback('prestige')` de `vanta_xp`
+
+---
 
 ---
 
@@ -396,11 +418,11 @@ une NUI qui va être remplacée par la v2.1 est à refaire aussi.
 | # | Action | Phase | Pourquoi maintenant | Fini quand |
 |---|---|---|---|---|
 | ~~1~~ | ~~Sécuriser `getSpawnToken`~~ ✅ 03/09 | B4 | — | Fait : bot ramené de 60 à 9,5 fouilles/min |
-| 2 | Trancher la branche v2.1 « Monolithe » | C5 | Elle touche 10 NUI. Chaque jour de retard augmente le coût du merge, et tout polish visuel fait avant est perdu | Une seule version du design system dans `main` |
+| ~~2~~ | ~~Trancher la branche v2.1~~ ✅ 03/09 | C5 | Décidé : abandon, on reste en v2.0. Mais l'écart de design system qu'elle corrigeait reste entier (6 NUI hors système) | À rouvrir : harmoniser sur `main`, ou corriger `CLAUDE.md` |
 | 3 | Rejouer A1 de bout en bout | A2 | Dernier item bloquant de la phase A. À faire **après** 1 et 2 pour ne le jouer qu'une fois | Parcours sans régression ni erreur console |
 | 4 | Premier drop réel à 2 joueurs | B3 | Le plus gros bloc de code jamais exécuté (1 958 lignes, avion + réseau + failover) | Largage → sécurisation → ouverture, failover inclus |
 | 5 | Crew à 2 membres, contrat + boutique | C3 | 2ᵉ bloc jamais exécuté, et il touche le cumul de bonus de coffre (3 sources) | Contrat crédité, bonus appliqués sans écrasement |
-| 6 | Dette technique | B5 | Peu risqué, mais `/xp` et les dépendances implicites produiront des bugs fantômes pendant les tests suivants | Aucun export mort, aucune collision |
+| ~~6~~ | ~~Dette technique~~ ✅ 03/09 | B5 | Fait en amont des tests, justement pour ne pas chasser de bugs fantômes | Aucun export mort, aucune collision de commande |
 | 7 | Source unique des items | B2 | Gros chantier structurel. À faire une fois l'équilibrage figé par 4 et 5, sinon on refactore une table qui bouge encore | Ajouter un item se fait en un seul endroit |
 | 8 | Redzones, killfeed, VCoins, admin, XP | C1/C2 + tests | Le reste du jamais-exercé | Chaque resource vue au moins une fois |
 | 9 | Pré-production | D1→D6 | Tebex, permissions, `server.cfg` prod, charge, backup | Check-list Go/No-Go complète |
@@ -421,7 +443,8 @@ travail, dont au moins deux à 2 joueurs minimum.
 | 2026-08-30 | A4 tranchée (`/givexp` → relais vers `vanta_xp`). B1 terminée : 90 notifications migrées vers `vanta_ui`. `/rename` repassé en réservé-abonnés (fin du tarif 5 000 $ et de `rename_free_season`) | — | A1 |
 | 2026-09-01 | Fix de la boucle infinie `vanta_ui/notify.js` (NUI entièrement figée au-delà de 8 notifications) + durcissements `pvp_inventory` (chien de garde, verrous horodatés) | — | A1 |
 | 2026-09-02 | **Session de test multijoueur Cloudfive** : A1, A3 et A5 traversés. 13 anomalies remontées et corrigées d'un bloc (commit `8bc0693`) | Correctifs non rejoués | A2 |
-| 2026-09-03 | Audit de cohérence dépôt-wide. `main` confirmé à jour (`8bc0693`). 10 écarts doc/code et 1 trou de sécurité relevés, tableau de bord resynchronisé, B4/B5/C5 ajoutés, ordre d'exécution établi. **Correction : la « resource dédiée à l'organisation des items » notée faite le 30/08 n'existe pas** — B2 repasse à zéro | — | B4 (sécuriser `getSpawnToken`), puis C5, puis A2 |
+| 2026-09-03 | Audit de cohérence dépôt-wide. `main` confirmé à jour (`8bc0693`). 10 écarts doc/code et 1 trou de sécurité relevés, tableau de bord resynchronisé, B4/B5/C5 ajoutés, ordre d'exécution établi. **Correction : la « resource dédiée à l'organisation des items » notée faite le 30/08 n'existe pas** — B2 repasse à zéro | — | B4 puis B5 |
+| 2026-09-03 | **B4 fait** : seau à jetons sur `getSpawnToken`, un bot tombe de 60 à 9,5 fouilles/min. **B5 fait** : `/xp` rendu à `pvp_inventory`, 7 exports morts supprimés, `setBagBonus` passé multi-sources, dépendances déclarées, permissions `spooner` versionnées à la racine, `AGENTS.md` réduit à un pointeur. Nouvel écart trouvé en route : **6 NUI actives hors design system** (dont boutique et crew), ce que la branche v2.1 abandonnée corrigeait → C5 rouvert, C6 ajouté | Rien de corrigé n'est testé en jeu | A2 : rejouer le parcours joueur complet |
 
 > ⚠️ **Entrée corrigée.** Le journal du 30/08 affirmait « B2 fait également, création d'une
 > resource dédiée à l'organisation des items ». Vérification du 03/09 : aucun fichier ni

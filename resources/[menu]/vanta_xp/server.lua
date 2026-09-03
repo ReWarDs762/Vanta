@@ -143,7 +143,7 @@ local function applyPrestigeBonuses(identifier)
 
     -- Appliquer les bonus via les exports ajoutés dans pvp_inventory
     local ok1, err1 = pcall(function()
-        exports['pvp_inventory']:setBagBonus(identifier, presData.bag_bonus)
+        exports['pvp_inventory']:setBagBonus(identifier, presData.bag_bonus, 'prestige')
     end)
     if not ok1 then
         print('[vanta_xp] WARN: setBagBonus échoué pour ' .. identifier .. ' : ' .. tostring(err1))
@@ -264,21 +264,14 @@ exports('getProfile', function(identifier)
     return buildProfilePayload(identifier)
 end)
 
--- Export : récupérer le bonus sac d'un joueur (en kg)
-exports('getBagBonus', function(identifier)
-    local p = profiles[identifier]
-    if not p then return 0 end
-    local presData = getPrestigeData(p.prestige_level)
-    return presData.bag_bonus
-end)
-
--- Export : récupérer le bonus conteneur d'un joueur (en kg)
-exports('getContainerBonus', function(identifier)
-    local p = profiles[identifier]
-    if not p then return 0 end
-    local presData = getPrestigeData(p.prestige_level)
-    return presData.cont_bonus
-end)
+-- `getBagBonus` / `getContainerBonus` ont été supprimés le 03/09/2026 : déclarés
+-- de longue date, ils n'avaient aucun appelant. Le bonus de prestige circule
+-- dans l'autre sens — c'est `vanta_xp` qui pousse vers `pvp_inventory` (voir
+-- `applyPrestigeBonuses`, appels à `setBagBonus` / `setContainerBonus`), parce
+-- que `pvp_inventory` centralise le cumul des trois sources de bonus (prestige,
+-- abonnement, crew). Ne pas les réintroduire sans câbler un consommateur : deux
+-- chemins concurrents pour la même donnée, c'est exactement ce qui avait produit
+-- l'écrasement silencieux corrigé le 24/08.
 
 -- ══════════════════════════════════════════════════════════════════════════
 --   HOOKS : EVENTS PVP & ZOMBIES

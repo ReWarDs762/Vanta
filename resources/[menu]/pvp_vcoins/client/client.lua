@@ -30,19 +30,13 @@ AddEventHandler('pvp_vcoins:subChanged', function(newTier)
 end)
 
 -- ── Exports client ────────────────────────────────────────────────────────
--- Appelé par pvp_outposts avant d'ouvrir le custom véhicule
-exports('GetSubscriptionTier', function()
-    return localTier
-end)
-
-exports('GetVCoins', function()
-    return localVCoins
-end)
-
-exports('HasDiamond', function()
-    return localTier == 'diamond'
-end)
-
-exports('HasGoldOrDiamond', function()
-    return localTier == 'gold' or localTier == 'diamond'
-end)
+--
+-- `GetSubscriptionTier`, `GetVCoins`, `HasDiamond` et `HasGoldOrDiamond` ont été
+-- supprimés le 03/09/2026. Le commentaire disait « appelé par pvp_outposts avant
+-- d'ouvrir le custom véhicule » — c'était faux : aucune resource ne les appelait,
+-- vérifié sur tout `resources/`. Les contrôles d'abonnement qui comptent se font
+-- côté serveur via `exports['pvp_vcoins']:GetTier`, seul export réellement
+-- consommé de l'extérieur (par `pvp_inventory` et `pvp_character`), et c'est
+-- volontaire : un contrôle d'abonnement côté client ne prouve rien.
+--
+-- `localTier` et `localVCoins` restent utilisés localement par la NUI VCoins.

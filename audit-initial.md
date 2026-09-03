@@ -503,7 +503,16 @@ Puis appliquer l'unique personnalisation locale — dans `spooner/fxmanifest.lua
 local gameName = "gta5"    -- au lieu de la valeur d'origine : ""
 ```
 
-Le fichier `permissions.cfg` (chargé par `server.cfg`) fait partie du dépôt d'origine.
+**⚠️ Ne PAS utiliser le `permissions.cfg` du dépôt d'origine.** Il ouvre tout l'arbre
+`spooner.*` à `builtin.everyone` : n'importe quel joueur connecté peut alors spawner,
+modifier et supprimer des entités, y compris celles des autres joueurs. Le durcissement
+fait le 23/08/2026 vivait dans ce fichier, donc dans le dossier gitignoré — cette
+procédure de restauration le réintroduisait donc à chaque fois.
+
+Depuis le 03/09/2026, les permissions VANTA sont dans **`vanta_spooner_permissions.cfg`
+à la racine du dépôt**, versionné, et `server.cfg` l'exécute à la place. Il n'y a donc
+plus rien à faire après le clone : ne remettez simplement jamais
+`exec resources/[menu]/spooner/permissions.cfg` dans `server.cfg`.
 
 ---
 

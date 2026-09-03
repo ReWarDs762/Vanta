@@ -185,14 +185,14 @@ end)
 
 -- ── Exports serveur ───────────────────────────────────────────────────────
 
--- Appelé par pvp_inventory:server pour le poids max du stash
-exports('GetStashBonus', function(identifier)
-    local c = cache[identifier]
-    if not c then return 0.0 end
-    return (TIERS[c.tier] and TIERS[c.tier].stash_bonus) or 0.0
-end)
+-- `GetStashBonus` a été supprimé le 03/09/2026. Son commentaire annonçait
+-- « appelé par pvp_inventory:server pour le poids max du stash » — c'était faux :
+-- aucun appelant. Le bonus d'abonnement est *poussé* vers `pvp_inventory` via
+-- `setContainerBonus(id, bonus, 'subscription')` (voir plus haut), qui somme les
+-- trois sources (prestige / abonnement / crew) au lieu de les écraser.
 
--- Appelé par pvp_killfeed, pvp_character, etc.
+-- Consommé par pvp_inventory (sélecteur de ped) et pvp_character (validation du
+-- ped choisi à la création). Seul export de cette resource appelé de l'extérieur.
 exports('GetTier', function(identifier)
     local c = cache[identifier]
     return c and c.tier or 'none'

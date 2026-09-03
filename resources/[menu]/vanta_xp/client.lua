@@ -7,19 +7,29 @@ local nuiOpen = false
 local currentProfile = nil
 
 -- ══════════════════════════════════════════════════════════════════════════
---   COMMANDE /xp — Toggle NUI profil
+--   PAS DE COMMANDE ICI — /xp appartient à pvp_inventory
 -- ══════════════════════════════════════════════════════════════════════════
-
-RegisterCommand('xp', function()
-    if nuiOpen then
-        closeNUI()
-    else
-        openNUI()
-    end
-end, false)
-
--- Keybind optionnel (non mappé par défaut, le joueur peut le mapper)
--- RegisterKeyMapping('xp', 'Ouvrir le profil XP', 'keyboard', '')
+--
+-- `RegisterCommand('xp')` était déclaré ici ET dans
+-- `pvp_inventory/client/client.lua`. FiveM ne garde que la dernière enregistrée
+-- sous un nom donné : `vanta_xp` étant `ensure`d après `pvp_inventory` dans
+-- `server.cfg`, c'est ce panneau qui gagnait et le raccourci vers l'onglet
+-- Profil de l'inventaire était du code mort. Même collision que `/givexp`,
+-- tranchée le 30/08.
+--
+-- Décision (03/09/2026) : `/xp` ouvre l'onglet Profil de `pvp_inventory`, qui
+-- porte déjà la barre d'XP, les stats, les badges et le classement. Le panneau
+-- NUI de cette resource n'a donc plus de point d'entrée joueur.
+--
+-- ⚠️ Ne PAS supprimer le `ui_page` ni les fonctions ci-dessous pour autant : la
+-- même page NUI porte les toasts LEVEL UP et PRESTIGE (voir `vanta_xp:levelUp`
+-- et `vanta_xp:prestigeUp` plus bas), qui eux restent bien actifs.
+--
+-- Conséquence à connaître : le bouton PRESTIGE vivait dans ce panneau. Il n'a
+-- pas d'équivalent dans l'onglet Profil de `pvp_inventory` — le joueur passe
+-- donc par la commande `/prestige`, qui reste pleinement fonctionnelle
+-- (`vanta_xp/server.lua`, exige le niveau 100). Ajouter un bouton dans
+-- l'inventaire est un item de roadmap, pas une régression de ce correctif.
 
 function openNUI()
     if nuiOpen then return end

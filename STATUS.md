@@ -102,82 +102,151 @@ attendu), `shot_attract` en rafale, `/spawnzombies 30` en admin (les 30 cadavres
 rester fouillables), et vérifier qu'aucun `[ZOMBIE-ANTICHEAT]` n'apparaît en console pour
 un joueur normal.
 
-### 🟠 Collision de commande `/xp` (même classe de bug que `/givexp`)
+### ~~🟠 Collision de commande `/xp`~~ ✅ CORRIGÉ (03/09/2026, non testé en jeu)
 
-`vanta_xp/client.lua:13` et `pvp_inventory/client/client.lua:56` enregistrent tous deux
-`RegisterCommand('xp')`. FiveM ne garde que la dernière — `vanta_xp` étant `ensure`d en 52ᵉ
-position contre 46 pour `pvp_inventory`, c'est le panneau NUI de `vanta_xp` qui gagne et le
-raccourci vers l'onglet Profil de l'inventaire est **du code mort**. Exactement le scénario
-tranché pour `/givexp` le 30/08, jamais recherché ailleurs.
+`vanta_xp/client.lua` et `pvp_inventory/client/client.lua` enregistraient tous deux
+`RegisterCommand('xp')`. FiveM ne garde que la dernière — `vanta_xp` étant `ensure`d en
+52ᵉ position contre 46, c'est son panneau qui gagnait et le raccourci vers l'onglet Profil
+de l'inventaire était du code mort. Même classe de bug que `/givexp`, jamais recherchée
+ailleurs après le fix du 30/08.
 
-### 🟠 `fxmanifest.lua` — dépendances non déclarées
+**Décision : `/xp` revient à `pvp_inventory`**, dont l'onglet Profil porte déjà la barre
+d'XP, les stats, les badges et le classement. La commande de `vanta_xp` est supprimée.
 
-Quatre resources consomment des exports d'autres resources sans les déclarer, donc sans
-garantie d'ordre de chargement :
+⚠️ **Conséquence à connaître.** Le `ui_page` de `vanta_xp` reste chargé — il porte les
+toasts LEVEL UP et PRESTIGE, qui eux fonctionnent toujours. En revanche son **panneau
+profil n'a plus de point d'entrée joueur**, et avec lui le **bouton PRESTIGE** qu'il était
+seul à offrir. Le passage au prestige reste pleinement fonctionnel via la commande
+`/prestige` (`vanta_xp/server.lua`, exige le niveau 100), mais il n'y a plus de bouton.
+Ajouter un bouton PRESTIGE à l'onglet Profil de `pvp_inventory` est un item de roadmap
+(C6), pas une régression de ce correctif.
 
-| Resource | `dependencies` déclarées | Manquantes (exports réellement consommés) |
+### ~~🟠 `fxmanifest.lua` — dépendances non déclarées~~ ✅ CORRIGÉ (03/09/2026)
+
+**Correction de l'audit initial.** Il annonçait « quatre resources consomment des exports
+sans les déclarer, donc sans garantie d'ordre de chargement ». Vérification faite, c'est
+plus nuancé :
+
+- **`pvp_combat` ne consomme aucun export.** L'audit avait inversé le sens : c'est
+  `pvp_inventory` qui appelle `exports['pvp_combat']:isInCombat`. La vraie dépendance de
+  `pvp_combat` est l'event `pvp_inventory:combatLogDeath` — sans `pvp_inventory` démarré,
+  l'anti combat-log ne fait plus rien. C'est elle qui a été déclarée.
+- **Tous les appels d'exports inter-resources sont résolus à l'exécution et protégés par
+  `pcall`.** L'ordre de démarrage n'a donc aucune incidence sur eux : c'était un manque de
+  documentation et de robustesse, pas un bug fonctionnel comme l'audit le laissait croire.
+
+Déclaré : `pvp_combat` → `pvp_inventory` ; `pvp_garage` → `es_extended`, `vanta_ui` (le
+`<link nui://vanta_ui/html/vanta.css>` est une vraie dépendance au chargement de la NUI) ;
+`pvp_vcoins` → `es_extended`, `mysql-async` ; `pvp_crew` → `pvp_inventory`.
+
+Volontairement **non** déclaré, avec un commentaire expliquant pourquoi dans chaque
+manifest : `pvp_garage` → `pvp_outposts` et `pvp_vcoins` → `pvp_inventory`. Les deux
+inverseraient un ordre de `server.cfg` délibéré, pour des appels de toute façon résolus à
+l'exécution.
+
+### ~~🟡 Exports morts, documentés comme vivants~~ ✅ CORRIGÉ (03/09/2026)
+
+Sept exports supprimés, tous sans le moindre appelant :
+
+| Export | Fichier | Ce que le commentaire prétendait |
 |---|---|---|
-| `pvp_combat` | *(aucune)* | `pvp_outposts`, `pvp_inventory` |
-| `pvp_garage` | *(aucune)* | `vanta_ui`, `pvp_inventory` |
-| `pvp_vcoins` | *(aucune)* | `pvp_inventory` (`setContainerBonus`) |
-| `pvp_crew` | `es_extended`, `mysql-async` | `pvp_inventory`, `vanta_ui` |
+| `getBagBonus`, `getContainerBonus` | `vanta_xp/server.lua` | « utilisés par `pvp_inventory` » |
+| `GetStashBonus` | `pvp_vcoins/server/server.lua` | « appelé par `pvp_inventory:server` » |
+| `GetSubscriptionTier`, `GetVCoins`, `HasDiamond`, `HasGoldOrDiamond` | `pvp_vcoins/client/client.lua` | « appelé par `pvp_outposts` » |
 
-À noter aussi une dépendance **circulaire assumée** : `vanta_xp` déclare `pvp_inventory`,
-et `pvp_inventory` lit la progression de `vanta_xp`. Elle ne casse rien aujourd'hui parce
-que le flux de bonus est un *push* (`vanta_xp` appelle `setBagBonus`/`setContainerBonus`),
-mais l'ordre de `server.cfg` charge bien `pvp_inventory` (46) **avant** `vanta_xp` (52).
+Les trois commentaires étaient faux. Le bonus circule par *push* (`vanta_xp` et
+`pvp_vcoins` appellent `setBagBonus`/`setContainerBonus`), et le seul export de
+`pvp_vcoins` consommé de l'extérieur est `GetTier`. Les quatre exports client étaient de
+surcroît un contrôle d'abonnement côté client — qui ne prouve rien. Un commentaire
+explicite a été laissé à chaque emplacement pour éviter qu'ils soient réintroduits.
 
-### 🟡 Exports morts, documentés comme vivants
+### ~~🟡 `setBagBonus` — même faille latente que l'ancien `setContainerBonus`~~ ✅ CORRIGÉ (03/09/2026)
 
-- `vanta_xp:getBagBonus` / `vanta_xp:getContainerBonus` : déclarés, **aucun appelant**. Le
-  bonus de prestige circule par push (`exports['pvp_inventory']:setBagBonus(...)`).
-  `CLAUDE.md` affirme pourtant qu'ils sont « utilisés par `pvp_inventory` ».
-- `pvp_vcoins:GetStashBonus`, `HasDiamond`, `HasGoldOrDiamond`, `GetSubscriptionTier`,
-  `GetVCoins` : déclarés, **aucun consommateur hors `pvp_vcoins`**. Seul `GetTier` est
-  réellement appelé de l'extérieur (par `pvp_inventory` et `pvp_character`). `CLAUDE.md`
-  les liste tous les six comme « consommés par d'autres resources ».
+`setBagBonus` stockait un bonus unique par identifiant, en écrasement pur. Aligné sur
+`setContainerBonus` : stockage par source, somme à la lecture. `vanta_xp` passe désormais
+`'prestige'` en 3ᵉ argument. Le paramètre est optionnel (`'default'` si omis), donc un
+appelant à deux arguments continue de fonctionner.
 
-### 🟡 `setBagBonus` — même faille latente que l'ancien `setContainerBonus`
+Aucune source concurrente n'existait encore — c'est exactement la situation du bonus de
+conteneur avant l'arrivée de `pvp_vcoins` puis `pvp_crew`, où l'écrasement était devenu
+silencieux. Corrigé par avance plutôt qu'après le bug.
 
-`setContainerBonus` a été corrigé le 24/08 pour sommer par source (`prestige` /
-`subscription` / `crew`). `setBagBonus` (`pvp_inventory/server/server.lua:118`) est resté
-en écrasement pur, sans paramètre `source`. Inoffensif tant que `vanta_xp` en est l'unique
-appelant — cassé silencieusement le jour où une 2ᵉ source arrive (un bonus de sac en
-boutique de crew, par exemple).
+### ~~🟡 `spooner/` est gitignoré — le correctif de permissions n'est pas dans le dépôt~~ ✅ CORRIGÉ (03/09/2026)
 
-### 🟡 `spooner/` est gitignoré — le correctif de permissions n'est pas dans le dépôt
+Le problème était **pire que décrit** : la procédure de restauration d'`audit-initial.md`
+(annexe A) fait re-cloner le dépôt amont et concluait « le fichier `permissions.cfg` fait
+partie du dépôt d'origine » — or ce fichier-là est précisément celui qui ouvre
+`spooner.*` à `builtin.everyone`. La procédure officielle de restauration réintroduisait
+donc la faille à chaque fois.
 
-`.gitignore` exclut `resources/[menu]/spooner/` (dépôt git imbriqué). Le durcissement du
-23/08 (`spooner.*` retiré de `builtin.everyone`, restreint à `group.admin`) vit donc dans
-`spooner/permissions.cfg`, **sur le disque local uniquement**. Un clone frais du dépôt,
-suivi de la restauration documentée dans `audit-initial.md`, repart avec la faille
-d'origine — et `server.cfg:56` fait bien `exec resources/[menu]/spooner/permissions.cfg`.
-À traiter : sortir le `permissions.cfg` VANTA du dossier ignoré (le placer à la racine et
-l'`exec` depuis là), ou documenter le patch comme étape obligatoire de restauration.
+Corrigé : les permissions VANTA vivent maintenant dans **`vanta_spooner_permissions.cfg`
+à la racine du dépôt**, versionné (`add_ace group.admin spooner allow` +
+`add_ace builtin.everyone spooner deny`). `server.cfg` l'exécute **à la place** du
+`permissions.cfg` amont, qui ne doit plus jamais être `exec`'d — les deux jeux de règles
+entreraient en concurrence. L'annexe A d'`audit-initial.md` a été corrigée en
+conséquence.
 
-### 🟡 Table `characters` documentée, jamais créée
+Reste ouvert : vérifier que les comptes qui doivent l'être sont bien dans `group.admin`
+(`add_principal` dans `server.cfg`) — c'est le point D2 de `ROADMAP.md`, et sans ça plus
+personne n'a accès à spooner.
 
-`CLAUDE.md` → « Base de données » liste une table `characters` (« identité personnage :
-prénom, nom, date de naissance, sexe, taille »). Aucune resource ne la crée
-(`grep CREATE TABLE ... characters` = 0 résultat), et la section `pvp_character` du même
-fichier dit l'inverse : « Pas de table `characters` dédiée : le pseudo vit dans
-`users.firstname`/`sex` ». Vestige d'`esx_identity`, supprimé le 21/08.
+### ~~🟡 `AGENTS.md` a divergé de `CLAUDE.md`~~ ✅ CORRIGÉ (03/09/2026)
+
+389 lignes contre 618, ignorant `pvp_combat` et tout ce qui a suivi le 23/08. Réduit à un
+pointeur de 24 lignes vers `CLAUDE.md`, `STATUS.md`, `ROADMAP.md` et `audit-initial.md`.
+Un second document d'architecture entretenu à la main finira toujours par mentir.
+
+### 🟠 Le design system n'est pas appliqué partout — contrairement à ce qu'affirme `CLAUDE.md`
+
+*Trouvé le 03/09 en vérifiant les dépendances NUI. Non corrigé.*
+
+`CLAUDE.md` affirme « **Toutes les resources** importent la feuille de style via
+`nui://vanta_ui/html/vanta.css` », « Toutes les resources sont sur v2 » et « Font : Inter
+— **toutes** les UIs ». Le relevé fichier par fichier dit autre chose :
+
+| NUI | `vanta.css` | Polices chargées |
+|---|---|---|
+| `pvp_crew/html/crew.html` | ❌ | Bebas Neue + Rajdhani |
+| `pvp_outposts/html/shop.html` | ❌ | Bebas Neue + Rajdhani |
+| `pvp_outposts/html/teleport.html` | ❌ | — |
+| `vanta_xp/html/index.html` | ❌ | Rajdhani |
+| `vanta_loading/html/index.html` | ❌ | — |
+| `pvp_hud/html/index_classic.html` | ❌ | Bebas Neue + Rajdhani |
+| `pvp_inventory/html/index.html` | ✅ | Inter **+ Big Shoulders Display** |
+
+Six NUI actives sont hors du design system, dont **la boutique et l'armurerie**
+(`shop.html`) et **le menu de crew** — deux écrans que le joueur voit constamment. Trois
+familles de polices concurrentes (Inter, Bebas Neue, Rajdhani, Big Shoulders) circulent
+alors que la règle est « Inter partout ».
+
+⚠️ **Lien direct avec la décision d'abandonner la v2.1 « Monolithe ».** La branche
+`claude/vanta-visual-identity-gma5lm` touchait précisément ces fichiers —
+`pvp_crew/crew.css`, `pvp_outposts/shop.css` et `teleport.css`, `vanta_xp/style.css`,
+`vanta_loading/style.css`. C'était le correctif de cet écart. L'abandonner laisse l'écart
+entier : il faudra soit refaire ce travail, soit assumer que « design system v2 partout »
+est faux et corriger `CLAUDE.md`. À trancher (ROADMAP C5).
+
+### ~~🟡 Table `characters` documentée, jamais créée~~ ✅ CORRIGÉ (03/09/2026)
+
+`CLAUDE.md` → « Base de données » listait une table `characters` (« prénom, nom, date de
+naissance, sexe, taille »). Aucune resource ne la crée, et la section `pvp_character` du
+même fichier disait l'inverse. Vestige d'`esx_identity`, supprimé le 21/08. L'entrée a été
+retirée de `CLAUDE.md` et remplacée par une note explicite.
 
 ### 🟡 Resources ESX résiduelles absentes de l'architecture documentée
 
+*Non corrigé — suppression de fichiers, à décider.*
+
 `resources/[menu]/` contient `esx_hud`, `esx_menu_default`, `esx_menu_dialog-main`,
-`esx_menu_list-main`, `async` — aucun n'apparaît dans l'arborescence de `CLAUDE.md`. Les
-trois `esx_menu_*` et `async` sont `ensure`d et `pvp_outposts` déclare bien
-`esx_menu_default` en dépendance ; `esx_hud` est désactivé dans `server.cfg` mais toujours
-sur le disque (114 fichiers). À documenter ou à supprimer.
+`esx_menu_list-main` et `async`, aucun ne figurant dans l'arborescence de `CLAUDE.md`.
+Les trois `esx_menu_*` et `async` sont `ensure`d et `pvp_outposts` déclare bien
+`esx_menu_default` en dépendance : ils sont **actifs**, juste non documentés.
+`esx_hud` est désactivé dans `server.cfg` (`# ensure esx_hud`) mais ses 114 fichiers
+restent sur le disque, et son `ui.html` charge Montserrat.
 
-### 🟡 `AGENTS.md` a divergé de `CLAUDE.md`
-
-389 lignes contre 618. `AGENTS.md` est un fork figé de `CLAUDE.md` : il ne connaît ni
-`pvp_combat` (créée le 23/08), ni le système de notifications générique de `vanta_ui`, ni
-aucune des décisions prises depuis. Deux documents d'architecture qui se contredisent, lus
-par des outils différents selon l'agent utilisé. À trancher : réduire `AGENTS.md` à un
-pointeur d'une ligne vers `CLAUDE.md`, ou le générer.
+À trancher : documenter les quatre resources actives dans `CLAUDE.md`, et supprimer
+`esx_hud` ou dire pourquoi on le garde. Supprimer 114 fichiers n'a pas été fait sans
+décision explicite.
 
 ### 🟡 `vanta.css` dépend de Google Fonts par le réseau
 
